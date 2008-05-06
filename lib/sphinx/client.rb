@@ -498,6 +498,7 @@ module Sphinx
     # * <tt>'words'</tt> -- hash which maps query terms (stemmed!) to ('docs', 'hits') hash
     def Query(query, index = '*')
       assert { @reqs.empty? }
+      @reqs = []
       
       self.AddQuery(query, index)
       results = self.RunQueries
@@ -709,7 +710,7 @@ module Sphinx
             # handle floats
             if attrs[attr] == SPH_ATTR_FLOAT
               uval = response[p, 4].unpack('N*').first; p += 4
-              fval = ([uval].pack('L')).unpack.first
+              fval = ([uval].pack('L')).unpack('f*').first
               r['attrs'][attr] = fval
             else
               # handle everything else as unsigned ints
