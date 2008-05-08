@@ -11,6 +11,15 @@ context 'The SphinxApi connected to Sphinx' do
     result = @sphinx.Query('wifi', 'test1')
     validate_results_wifi(result)
   end
+
+  specify 'should process 64-bit keys in Query method' do
+    result = @sphinx.Query('wifi', 'test2')
+    result['total_found'].should == 3
+    result['matches'].length.should == 3
+    result['matches'][0]['id'].should == 4294967298
+    result['matches'][1]['id'].should == 4294967299
+    result['matches'][2]['id'].should == 4294967297
+  end
   
   specify 'should parse batch-query responce in RunQueries method' do
     @sphinx.AddQuery('wifi', 'test1')
@@ -50,22 +59,28 @@ context 'The SphinxApi connected to Sphinx' do
     result['total_found'].should == 3
     result['matches'].length.should == 3
     result['time'].should_not be_nil
-    result['attrs'].should == { 'group_id' => 1, 'created_at' => 2 }
+    result['attrs'].should == { 'group_id' => Sphinx::Client::SPH_ATTR_INTEGER, 'created_at' => Sphinx::Client::SPH_ATTR_TIMESTAMP, 'rating' => Sphinx::Client::SPH_ATTR_FLOAT}
     result['fields'].should == [ 'name', 'description' ]
     result['total'].should == 3
     result['matches'].should be_an_instance_of(Array)
     
     result['matches'][0]['id'].should == 2
     result['matches'][0]['weight'].should == 2
-    result['matches'][0]['attrs'].should == { 'group_id' => 2, 'created_at' => 1175658555 }
+    result['matches'][0]['attrs']['group_id'].should == 2
+    result['matches'][0]['attrs']['created_at'].should == 1175658555
+    ('%0.2f' % result['matches'][0]['attrs']['rating']).should == '54.85'
     
     result['matches'][1]['id'].should == 3
     result['matches'][1]['weight'].should == 2
-    result['matches'][1]['attrs'].should == { 'group_id' => 1, 'created_at' => 1175658647 }
+    result['matches'][1]['attrs']['group_id'].should == 1
+    result['matches'][1]['attrs']['created_at'].should == 1175658647
+    ('%0.2f' % result['matches'][1]['attrs']['rating']).should == '16.25'
 
     result['matches'][2]['id'].should == 1
     result['matches'][2]['weight'].should == 1
-    result['matches'][2]['attrs'].should == { 'group_id' => 1, 'created_at' => 1175658490 }
+    result['matches'][2]['attrs']['group_id'].should == 1
+    result['matches'][2]['attrs']['created_at'].should == 1175658490
+    ('%0.2f' % result['matches'][2]['attrs']['rating']).should == '13.32'
     
     result['words'].should == { 'wifi' => { 'hits' => 6, 'docs' => 3 } }
   end
