@@ -9,23 +9,47 @@ SET NAMES utf8;
 
 SET SQL_MODE='';
 
-create database if not exists `sphinx_test`;
+CREATE database IF NOT EXISTS `sphinx_test`;
 
 USE `sphinx_test`;
 
-/*Table structure for table `links` */
+/* Table structure for table `links` */
 
 DROP TABLE IF EXISTS `links`;
 
 CREATE TABLE `links` (
-  `id` int(11) NOT NULL auto_increment,
-  `name` varchar(255) NOT NULL,
-  `created_at` datetime NOT NULL,
-  `description` text,
-  `group_id` int(11) NOT NULL,
+  `id` INT(11) NOT NULL auto_increment,
+  `name` VARCHAR(255) NOT NULL,
+  `created_at` DATETIME NOT NULL,
+  `description` TEXT,
+  `group_id` INT(11) NOT NULL,
+  `rating` FLOAT NOT NULL,
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-/*Data for the table `links` */
+/* Table structure for table `links64` */
 
-insert  into `links`(`id`,`name`,`created_at`,`description`,`group_id`) values (1,'Paint Protects WiFi Network from Hackers','2007-04-04 06:48:10','A company known as SEC Technologies has created a special type of paint that blocks Wi-Fi signals so that you can be sure hackers can ',1),(2,'Airplanes To Become WiFi Hotspots','2007-04-04 06:49:15','Airlines will start turning their airplanes into WiFi hotspots beginning early next year, WSJ reports. Here\'s what you need to know...',2),(3,'Planet VIP-195 GSM/WiFi Phone With Windows Messanger','2007-04-04 06:50:47','The phone does comply with IEEE 802.11b and IEEE 802.11g to provide phone capability via WiFi. As GSM phone the VIP-195 support 900/1800/1900 band and GPRS too. It comes with simple button to switch between WiFi or GSM mod',1);
+DROP TABLE IF EXISTS `links64`;
+
+CREATE TABLE `links64` (
+  `id` BIGINT(11) NOT NULL auto_increment,
+  `name` VARCHAR(255) NOT NULL,
+  `created_at` DATETIME NOT NULL,
+  `description` TEXT,
+  `group_id` INT(11) NOT NULL,
+  PRIMARY KEY  (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+/* Data for the table `links` */
+
+INSERT INTO `links`(`id`,`name`,`created_at`,`description`,`group_id`,`rating`) VALUES
+	(1,'Paint Protects WiFi Network from Hackers','2007-04-04 06:48:10','A company known as SEC Technologies has created a special type of paint that blocks Wi-Fi signals so that you can be sure hackers can ',1,13.32),
+	(2,'Airplanes To Become WiFi Hotspots','2007-04-04 06:49:15','Airlines will start turning their airplanes into WiFi hotspots beginning early next year, WSJ reports. Here\'s what you need to know...',2,54.85),
+	(3,'Planet VIP-195 GSM/WiFi Phone With Windows Messanger','2007-04-04 06:50:47','The phone does comply with IEEE 802.11b and IEEE 802.11g to provide phone capability via WiFi. As GSM phone the VIP-195 support 900/1800/1900 band and GPRS too. It comes with simple button to switch between WiFi or GSM mod',1,16.25);
+
+/* Data for the table `links64` */
+
+INSERT INTO `links64`(`id`,`name`,`created_at`,`description`,`group_id`) VALUES
+	(4294967297,'Paint Protects WiFi Network from Hackers','2007-04-04 06:48:10','A company known as SEC Technologies has created a special type of paint that blocks Wi-Fi signals so that you can be sure hackers can ',1),
+	(4294967298,'Airplanes To Become WiFi Hotspots','2007-04-04 06:49:15','Airlines will start turning their airplanes into WiFi hotspots beginning early next year, WSJ reports. Here\'s what you need to know...',2),
+	(4294967299,'Planet VIP-195 GSM/WiFi Phone With Windows Messanger','2007-04-04 06:50:47','The phone does comply with IEEE 802.11b and IEEE 802.11g to provide phone capability via WiFi. As GSM phone the VIP-195 support 900/1800/1900 band and GPRS too. It comes with simple button to switch between WiFi or GSM mod',1);
