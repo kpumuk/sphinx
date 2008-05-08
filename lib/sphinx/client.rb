@@ -696,7 +696,7 @@ module Sphinx
           
           if id64 != 0
             dochi, doclo, weight = response[p, 12].unpack('N*N*N*'); p += 12
-            doc = dochi << 32 + doclo
+            doc = (dochi << 32) + doclo
           else
             doc, weight = response[p, 8].unpack('N*N*'); p += 8
           end
