@@ -635,121 +635,113 @@ module Sphinx
       sock.send(req, 0)
       
       response = GetResponse(sock, VER_COMMAND_SEARCH)
-      
-      @reqs = []
-      
+     
       # parse response
-      p = 0 # current position
-      max = response.length # max position for checks, to protect against broken responses
-      
-      results = []
-      
-      ires = 0
-      while ires < nreqs and p < max
-        result = {}
-        
-        result['error'] = ''
-        result['warning'] = ''
-        
-        # extract status
-        
-        status = result['status'] = response[p, 4].unpack('N*').first; p += 4
-        if status != SEARCHD_OK
-          len = response[p, 4].unpack('N*').first; p += 4
-          message = response[p, len]; p += len
+      response = Response.new(response)
+      @reqs = []
+      begin
+        results = []
+        ires = 0
+        while ires < nreqs
+          ires += 1
+          result = {}
           
-          if status == SEARCHD_WARNING
-            result['warning'] = message
-          else
-            result['error'] = message
-            results << result
-            next
-          end
-        end
-    
-        # read schema
-        fields = []
-        attrs = {}
-        attrs_names_in_order = []
-        
-        nfields = response[p, 4].unpack('N*').first; p += 4
-        while nfields > 0 and p < max
-          nfields -= 1
-          len = response[p, 4].unpack('N*').first; p += 4
-          fields << response[p, len]; p += len
-        end
-        result['fields'] = fields
-    
-        nattrs = response[p, 4].unpack('N*').first; p += 4
-        while nattrs > 0 && p < max
-          nattrs -= 1
-          len = response[p, 4].unpack('N*').first; p += 4
-          attr = response[p, len]; p += len
-          type = response[p, 4].unpack('N*').first; p += 4
-          attrs[attr] = type
-          attrs_names_in_order << attr
-        end
-        result['attrs'] = attrs
-        
-        # read match count
-        count = response[p, 4].unpack('N*').first; p += 4
-        id64 = response[p, 4].unpack('N*').first; p += 4
-        
-        # read matches
-        result['matches'] = []
-        while count > 0 and p < max
-          count -= 1
+          result['error'] = ''
+          result['warning'] = ''
           
-          if id64 != 0
-            dochi, doclo, weight = response[p, 12].unpack('N*N*N*'); p += 12
-            doc = (dochi << 32) + doclo
-          else
-            doc, weight = response[p, 8].unpack('N*N*'); p += 8
-          end
-    
-          r = {} # This is a single result put in the result['matches'] array
-          r['id'] = doc
-          r['weight'] = weight
-          attrs_names_in_order.each do |attr|
-            r['attrs'] ||= {}
-
-            # handle floats
-            if attrs[attr] == SPH_ATTR_FLOAT
-              uval = response[p, 4].unpack('N*').first; p += 4
-              fval = ([uval].pack('L')).unpack('f*').first
-              r['attrs'][attr] = fval
+          # extract status
+          status = result['status'] = response.get_int
+          if status != SEARCHD_OK
+            message = response.get_string
+            if status == SEARCHD_WARNING
+              result['warning'] = message
             else
-              # handle everything else as unsigned ints
-              val = response[p, 4].unpack('N*').first; p += 4
-              if (attrs[attr] & SPH_ATTR_MULTI) != 0
-                r['attrs'][attr] = []
-                nvalues = val
-                while nvalues > 0 and p < max
-                  nvalues -= 1
-                  val = response[p, 4].unpack('N*').first; p += 4
-                  r['attrs'][attr] << val
-                end
-              else
-                r['attrs'][attr] = val
-              end
+              result['error'] = message
+              results << result
+              next
             end
           end
-          result['matches'] << r
+      
+          # read schema
+          fields = []
+          attrs = {}
+          attrs_names_in_order = []
+          
+          nfields = response.get_int
+          while nfields > 0
+            nfields -= 1
+            fields << response.get_string
+          end
+          result['fields'] = fields
+      
+          nattrs = response.get_int
+          while nattrs > 0
+            nattrs -= 1
+            attr = response.get_string
+            type = response.get_int
+            attrs[attr] = type
+            attrs_names_in_order << attr
+          end
+          result['attrs'] = attrs
+          
+          # read match count
+          count = response.get_int
+          id64 = response.get_int
+          
+          # read matches
+          result['matches'] = []
+          while count > 0
+            count -= 1
+            
+            if id64 != 0
+              doc = response.get_int64
+              weight = response.get_int
+            else
+              doc, weight = response.get_ints(2)
+            end
+      
+            r = {} # This is a single result put in the result['matches'] array
+            r['id'] = doc
+            r['weight'] = weight
+            attrs_names_in_order.each do |a|
+              r['attrs'] ||= {}
+  
+              # handle floats
+              if attrs[a] == SPH_ATTR_FLOAT
+                r['attrs'][a] = response.get_float
+              else
+                # handle everything else as unsigned ints
+                val = response.get_int
+                if (attrs[a] & SPH_ATTR_MULTI) != 0
+                  r['attrs'][a] = []
+                  nvalues = val
+                  while nvalues > 0
+                    nvalues -= 1
+                    r['attrs'][a] << response.get_int
+                  end
+                else
+                  r['attrs'][a] = val
+                end
+              end
+            end
+            result['matches'] << r
+          end
+          result['total'], result['total_found'], msecs, words = response.get_ints(4)
+          result['time'] = '%.3f' % (msecs / 1000.0)
+  
+          result['words'] = {}
+          while words > 0
+            words -= 1
+            word = response.get_string
+            docs, hits = response.get_ints(2)
+            result['words'][word] = { 'docs' => docs, 'hits' => hits }
+          end
+          
+          results << result
         end
-        result['total'], result['total_found'], msecs, words = response[p, 16].unpack('N*N*N*N*'); p += 16
-        result['time'] = '%.3f' % (msecs / 1000.0)
-
-        result['words'] = {}
-        while words > 0 and p < max
-          words -= 1
-          len = response[p, 4].unpack('N*').first; p += 4
-          word = response[p, len]; p += len
-          docs, hits = response[p, 8].unpack('N*N*'); p += 8
-          result['words'][word] = { 'docs' => docs, 'hits' => hits }
-        end
-        
-        results << result
-        ires += 1
+      #rescue EOFError
+      #  @error = 'incomplete reply'
+      #  raise SphinxResponseError, @error
       end
       
       return results
@@ -834,17 +826,15 @@ module Sphinx
       response = GetResponse(sock, VER_COMMAND_EXCERPT)
       
       # parse response
-      p = 0
-      res = []
-      rlen = response.length
-      docs.each do |doc|
-        len = response[p, 4].unpack('N*').first; p += 4
-        if p + len > rlen
-          @error = 'incomplete reply'
-          raise SphinxResponseError, @error
+      response = Response.new(response)
+      begin
+        res = []
+        docs.each do |doc|
+          res << response.get_string
         end
-        res << response[p, len] if len > 0
-        p += len
+      rescue EOFError
+        @error = 'incomplete reply'
+        raise SphinxResponseError, @error
       end
       return res
     end
@@ -873,30 +863,22 @@ module Sphinx
       response = self.GetResponse(sock, VER_COMMAND_KEYWORDS)
       
       # parse response
-      p = 0
-      res = []
-      rlen = response.length
-      nwords = response[p, 4].unpack('N*').first; p += 4
-      0.upto(nwords - 1) do |i|
-        len = response[p, 4].unpack('N*').first; p += 4
-        tokenized = len ? response[p, len] : '';
-        p += len
-        
-        len = response[p, 4].unpack('N*').first; p += 4
-        normalized = len ? response[p, len] : '';
-        p += len
-        
-        entry = { 'tokenized' => tokenized, 'normalized' => normalized }
-        if hits
-          entry['docs'], entry['hits'] = response[p, 8].unpack('N*N*'); p += 8
+      response = Response.new(response)
+      begin
+        res = []
+        nwords = response.get_int
+        0.upto(nwords - 1) do |i|
+          tokenized = response.get_string
+          normalized = response.get_string
+          
+          entry = { 'tokenized' => tokenized, 'normalized' => normalized }
+          entry['docs'], entry['hits'] = response.get_ints(2) if hits
+          
+          res << entry
         end
-        
-        if p > rlen
-          @error = 'incomplete reply'
-          raise SphinxResponseError, @error
-        end
-        
-        res << entry
+      rescue EOFError
+        @error = 'incomplete reply'
+        raise SphinxResponseError, @error
       end
       
       return res
@@ -955,7 +937,13 @@ module Sphinx
       response = self.GetResponse(sock, VER_COMMAND_UPDATE)
       
       # parse response
-      response[0, 4].unpack('N*').first
+      response = Response.new(response)
+      begin
+        return response.get_int
+      rescue EOFError
+        @error = 'incomplete reply'
+        raise SphinxResponseError, @error
+      end
     end
   
     protected
