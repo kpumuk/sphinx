@@ -623,22 +623,12 @@ module Sphinx
         return false
       end
 
-      sock = self.Connect
-
-      # send query, get response
-      nreqs = @reqs.length
       req = @reqs.join('')
-      len = 4 + req.length
-      
-      # add header
-      req = [SEARCHD_COMMAND_SEARCH, VER_COMMAND_SEARCH, len, nreqs].pack('nnNN') + req
-      sock.send(req, 0)
-      
-      response = GetResponse(sock, VER_COMMAND_SEARCH)
+      nreq = @reqs.length
+      @reqs = []
+      response = PerformRequest(:search, req, nreq)
      
       # parse response
-      response = Response.new(response)
-      @reqs = []
       begin
         results = []
         ires = 0
@@ -772,8 +762,6 @@ module Sphinx
       assert { words.instance_of? String }
       assert { opts.instance_of? Hash }
 
-      sock = self.Connect
-  
       # fixup options
       opts['before_match'] ||= '<b>';
       opts['after_match'] ||= '</b>';
@@ -815,16 +803,9 @@ module Sphinx
         request.put_string doc
       end
       
-      # send query, get response
-      len = request.to_s.length
-      # add header
-      request = [SEARCHD_COMMAND_EXCERPT, VER_COMMAND_EXCERPT, len].pack('nnN') + request.to_s
-      sock.send(request, 0)
-      
-      response = GetResponse(sock, VER_COMMAND_EXCERPT)
+      response = PerformRequest(:excerpt, request)
       
       # parse response
-      response = Response.new(response)
       begin
         res = []
         docs.each do |doc|
@@ -852,16 +833,9 @@ module Sphinx
       request.put_string index # req index
       request.put_int hits ? 1 : 0
 
-      # send query, get response
-      sock = self.Connect
-      len = request.to_s.length
-      req = [SEARCHD_COMMAND_KEYWORDS, VER_COMMAND_KEYWORDS, len].pack('nnN') + request.to_s # add header
-      sock.send(req, 0)
-      
-      response = self.GetResponse(sock, VER_COMMAND_KEYWORDS)
+      response = PerformRequest(:keywords, request)
       
       # parse response
-      response = Response.new(response)
       begin
         res = []
         nwords = response.get_int
@@ -926,16 +900,9 @@ module Sphinx
         request.put_int(*entry)
       end
       
-      # connect, send query, get response
-      sock = self.Connect
-      len = request.to_s.length
-      req = [SEARCHD_COMMAND_UPDATE, VER_COMMAND_UPDATE, len].pack('nnN') + request.to_s # add header
-      sock.send(req, 0)
-      
-      response = self.GetResponse(sock, VER_COMMAND_UPDATE)
+      response = PerformRequest(:update, request)
       
       # parse response
-      response = Response.new(response)
       begin
         return response.get_int
       rescue EOFError
@@ -1027,6 +994,21 @@ module Sphinx
         end
         
         return response
+      end
+      
+      # Connect, send query, get response.
+      def PerformRequest(command, request, additional = nil)
+        cmd = command.to_s.upcase
+        command_id = Sphinx::Client.const_get('SEARCHD_COMMAND_' + cmd)
+        command_ver = Sphinx::Client.const_get('VER_COMMAND_' + cmd)
+        
+        sock = self.Connect
+        len = request.to_s.length + (additional != nil ? 4 : 0)
+        header = [command_id, command_ver, len].pack('nnN')
+        header << [additional].pack('N') if additional != nil
+        sock.send(header + request.to_s, 0)
+        response = self.GetResponse(sock, command_ver)
+        return Response.new(response)
       end
       
       # :stopdoc:
