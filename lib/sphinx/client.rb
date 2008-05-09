@@ -46,20 +46,24 @@ module Sphinx
     # Known searchd commands
   
     # search command
-    SEARCHD_COMMAND_SEARCH  = 0
+    SEARCHD_COMMAND_SEARCH   = 0
     # excerpt command
-    SEARCHD_COMMAND_EXCERPT = 1
+    SEARCHD_COMMAND_EXCERPT  = 1
     # update command
-    SEARCHD_COMMAND_UPDATE  = 2 
+    SEARCHD_COMMAND_UPDATE   = 2 
+    # keywords command
+    SEARCHD_COMMAND_KEYWORDS = 3 
   
     # Current client-side command implementation versions
     
     # search command version
-    VER_COMMAND_SEARCH  = 0x112
+    VER_COMMAND_SEARCH   = 0x113
     # excerpt command version
-    VER_COMMAND_EXCERPT = 0x100
+    VER_COMMAND_EXCERPT  = 0x100
     # update command version
-    VER_COMMAND_UPDATE  = 0x101
+    VER_COMMAND_UPDATE   = 0x101
+    # keywords command version
+    VER_COMMAND_KEYWORDS = 0x100
     
     # Known searchd status codes
   
@@ -496,11 +500,11 @@ module Sphinx
     # * <tt>'total_found'</tt> -- total amount of matching documents in index
     # * <tt>'time'</tt> -- search time
     # * <tt>'words'</tt> -- hash which maps query terms (stemmed!) to ('docs', 'hits') hash
-    def Query(query, index = '*')
+    def Query(query, index = '*', comment = '')
       assert { @reqs.empty? }
       @reqs = []
       
-      self.AddQuery(query, index)
+      self.AddQuery(query, index, comment)
       results = self.RunQueries
       
       # probably network error; error message should be already filled
@@ -525,7 +529,7 @@ module Sphinx
     #
     # Parameters are exactly the same as in <tt>Query</tt> call.
     # Returns index to results array returned by <tt>RunQueries</tt> call.
-    def AddQuery(query, index = '*')
+    def AddQuery(query, index = '*', comment = '')
       # build request
   
       # mode and limits
@@ -595,6 +599,8 @@ module Sphinx
         request.put_string field
         request.put_int weight
       end
+      
+      request.put_string comment
       
       # store request to requests array
       @reqs << request.to_s;
@@ -843,8 +849,59 @@ module Sphinx
       return res
     end
     
-    # Attribute updates
+    # Connect to searchd server, and generate keyword list for a given query.
     #
+    # Returns an array of words on success.
+    def BuildKeywords(query, index, hits)
+      assert { query.instance_of? String }
+      assert { index.instance_of? String }
+      assert { hits.instance_of? Boolean }
+      
+      # build request
+      request = Request.new
+      # v.1.0 req
+      request.put_string query # req query
+      request.put_string index # req index
+      request.put_int hits ? 1 : 0
+
+      # send query, get response
+      sock = self.Connect
+      len = request.to_s.length
+      req = [SEARCHD_COMMAND_KEYWORDS, VER_COMMAND_KEYWORDS, len].pack('nnN') + request.to_s # add header
+      sock.send(req, 0)
+      
+      response = self.GetResponse(sock, VER_COMMAND_KEYWORDS)
+      
+      # parse response
+      p = 0
+      res = []
+      rlen = response.length
+      nwords = response[p, 4].unpack('N*').first; p += 4
+      0.upto(nwords - 1) do |i|
+        len = response[p, 4].unpack('N*').first; p += 4
+        tokenized = len ? response[p, len] : '';
+        p += len
+        
+        len = response[p, 4].unpack('N*').first; p += 4
+        normalized = len ? response[p, len] : '';
+        p += len
+        
+        entry = { 'tokenized' => tokenized, 'normalized' => normalized }
+        if hits
+          entry['docs'], entry['hits'] = response[p, 8].unpack('N*N*'); p += 8
+        end
+        
+        if p > rlen
+          @error = 'incomplete reply'
+          raise SphinxResponseError, @error
+        end
+        
+        res << entry
+      end
+      
+      return res
+    end
+
     # Update specified attributes on specified documents.
     #
     # * <tt>index</tt> is a name of the index to be updated

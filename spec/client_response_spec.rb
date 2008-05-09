@@ -35,6 +35,14 @@ context 'The SphinxApi connected to Sphinx' do
     result.should == ['what <b>the</b> world', 'London is <b>the</b> capital of Great Britain']
   end
 
+  specify 'should parse response in BuildKeywords method' do
+    result = @sphinx.BuildKeywords('wifi gprs', 'test1', true)
+    result.should == [
+      { 'normalized' => 'wifi', 'tokenized' => 'wifi', 'hits' => 6, 'docs' => 3 },
+      { 'normalized' => 'gprs', 'tokenized' => 'gprs', 'hits' => 1, 'docs' => 1 }
+    ]
+  end
+
   specify 'should parse response in UpdateAttributes method' do
     @sphinx.UpdateAttributes('test1', ['group_id'], { 2 => [1] }).should == 1
     result = @sphinx.Query('wifi', 'test1')
