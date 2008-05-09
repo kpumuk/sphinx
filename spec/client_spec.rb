@@ -511,6 +511,23 @@ describe 'The BuildExcerpts method of SphinxApi' do
   end
 end
 
+describe 'The BuildKeywords method of SphinxApi' do
+  include SphinxFixtureHelper
+
+  before(:each) do
+    @sphinx = Sphinx::Client.new
+    @sock = mock('TCPSocket')
+    @sphinx.stub!(:Connect).and_return(@sock)
+    @sphinx.stub!(:GetResponse).and_raise(Sphinx::SphinxError)
+  end
+  
+  it 'should generate valid request' do
+    expected = sphinx_fixture('keywords')
+    @sock.should_receive(:send).with(expected, 0)
+    @sphinx.BuildKeywords('test', 'index', true) rescue nil?
+  end
+end
+
 describe 'The UpdateAttributes method of SphinxApi' do
   include SphinxFixtureHelper
 
