@@ -624,9 +624,9 @@ module Sphinx
       end
 
       req = @reqs.join('')
-      nreq = @reqs.length
+      nreqs = @reqs.length
       @reqs = []
-      response = PerformRequest(:search, req, nreq)
+      response = PerformRequest(:search, req, nreqs)
      
       # parse response
       begin
