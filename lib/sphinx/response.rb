@@ -24,6 +24,7 @@ module Sphinx
       @position >= @size
     end
 
+    # Get int from stream.
     def get_int
       raise EOFError if @position + 4 > @size
       value = @response[@position, 4].unpack('N*').first
@@ -31,6 +32,7 @@ module Sphinx
       return value
     end
 
+    # Get 64-bit int from stream.
     def get_int64
       raise EOFError if @position + 8 > @size
       hi, lo = @response[@position, 8].unpack('N*N*')
@@ -38,6 +40,7 @@ module Sphinx
       return (hi << 32) + lo
     end
 
+    # Get array of <tt>count</tt> ints from stream.
     def get_ints(count)
       length = 4 * count
       raise EOFError if @position + length > @size
@@ -46,6 +49,7 @@ module Sphinx
       return values
     end
     
+    # Get string from stream.
     def get_string
       length = get_int
       raise EOFError if @position + length > @size
@@ -54,6 +58,7 @@ module Sphinx
       return value
     end
     
+    # Get float from stream.
     def get_float
       raise EOFError if @position + 4 > @size
       uval = @response[@position, 4].unpack('N*').first;

@@ -714,9 +714,7 @@ module Sphinx
                 val = response.get_int
                 if (attrs[a] & SPH_ATTR_MULTI) != 0
                   r['attrs'][a] = []
-                  nvalues = val
-                  while nvalues > 0
-                    nvalues -= 1
+                  1.upto(val) do
                     r['attrs'][a] << response.get_int
                   end
                 else

@@ -67,7 +67,12 @@ context 'The SphinxApi connected to Sphinx' do
     result['total_found'].should == 3
     result['matches'].length.should == 3
     result['time'].should_not be_nil
-    result['attrs'].should == { 'group_id' => Sphinx::Client::SPH_ATTR_INTEGER, 'created_at' => Sphinx::Client::SPH_ATTR_TIMESTAMP, 'rating' => Sphinx::Client::SPH_ATTR_FLOAT}
+    result['attrs'].should == {
+      'group_id' => Sphinx::Client::SPH_ATTR_INTEGER,
+      'created_at' => Sphinx::Client::SPH_ATTR_TIMESTAMP,
+      'rating' => Sphinx::Client::SPH_ATTR_FLOAT,
+      'tags' => Sphinx::Client::SPH_ATTR_MULTI | Sphinx::Client::SPH_ATTR_INTEGER
+    }
     result['fields'].should == [ 'name', 'description' ]
     result['total'].should == 3
     result['matches'].should be_an_instance_of(Array)
@@ -76,18 +81,21 @@ context 'The SphinxApi connected to Sphinx' do
     result['matches'][0]['weight'].should == 2
     result['matches'][0]['attrs']['group_id'].should == 2
     result['matches'][0]['attrs']['created_at'].should == 1175658555
+    result['matches'][0]['attrs']['tags'].should == [5, 6, 7, 8]
     ('%0.2f' % result['matches'][0]['attrs']['rating']).should == '54.85'
     
     result['matches'][1]['id'].should == 3
     result['matches'][1]['weight'].should == 2
     result['matches'][1]['attrs']['group_id'].should == 1
     result['matches'][1]['attrs']['created_at'].should == 1175658647
+    result['matches'][1]['attrs']['tags'].should == [1, 7, 9, 10]
     ('%0.2f' % result['matches'][1]['attrs']['rating']).should == '16.25'
 
     result['matches'][2]['id'].should == 1
     result['matches'][2]['weight'].should == 1
     result['matches'][2]['attrs']['group_id'].should == 1
     result['matches'][2]['attrs']['created_at'].should == 1175658490
+    result['matches'][2]['attrs']['tags'].should == [1, 2, 3, 4]
     ('%0.2f' % result['matches'][2]['attrs']['rating']).should == '13.32'
     
     result['words'].should == { 'wifi' => { 'hits' => 6, 'docs' => 3 } }
