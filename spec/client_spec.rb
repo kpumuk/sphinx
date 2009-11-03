@@ -38,6 +38,7 @@ describe 'The Connect method of Sphinx::Client' do
 
   it 'should raise exception when searchd protocol is not 1+' do
     TCPSocket.should_receive(:new).with('localhost', 3312).and_return(@sock)
+    @sock.should_receive(:send).with([1].pack('N'), 0)
     @sock.should_receive(:recv).with(4).and_return([0].pack('N'))
     @sock.should_receive(:close)
     lambda { @sphinx.send(:Connect) }.should raise_error(Sphinx::SphinxConnectError)
@@ -47,7 +48,7 @@ describe 'The Connect method of Sphinx::Client' do
   it 'should raise exception on connection error' do
     TCPSocket.should_receive(:new).with('localhost', 3312).and_raise(Errno::EBADF)
     lambda { @sphinx.send(:Connect) }.should raise_error(Sphinx::SphinxConnectError)
-    @sphinx.GetLastError.should == 'connection to localhost:3312 failed'
+    @sphinx.GetLastError.should == 'connection to localhost:3312 failed (errno=9, msg=Bad file descriptor)'
   end
 
   it 'should use custom host and port' do
@@ -177,7 +178,7 @@ describe 'The Query method of Sphinx::Client' do
   end
 
   describe 'with rank' do
-    [ :proximity_bm25, :bm25, :none, :wordcount, :proximity ].each do |rank|
+    [ :proximity_bm25, :bm25, :none, :wordcount, :proximity, :matchany, :fieldmask, :sph04 ].each do |rank|
       it "should generate valid request for SPH_RANK_#{rank.to_s.upcase}" do
         expected = sphinx_fixture("ranking_#{rank}")
         @sock.should_receive(:send).with(expected, 0)
@@ -416,19 +417,20 @@ describe 'The BuildExcerpts method of Sphinx::Client' do
   it 'should generate valid request with custom parameters' do
     expected = sphinx_fixture('excerpt_custom')
     @sock.should_receive(:send).with(expected, 0)
-    @sphinx.BuildExcerpts(['10', '20'], 'index', 'word1 word2', { 'before_match' => 'before',
-                                                                  'after_match' => 'after',
+    @sphinx.BuildExcerpts(['10', '20'], 'index', 'word1 word2', { 'before_match'    => 'before',
+                                                                  'after_match'     => 'after',
                                                                   'chunk_separator' => 'separator',
-                                                                  'limit' => 10 }) rescue nil?
+                                                                  'limit'           => 10 }) rescue nil?
   end
   
   it 'should generate valid request with flags' do
     expected = sphinx_fixture('excerpt_flags')
     @sock.should_receive(:send).with(expected, 0)
-    @sphinx.BuildExcerpts(['10', '20'], 'index', 'word1 word2', { 'exact_phrase' => true,
+    @sphinx.BuildExcerpts(['10', '20'], 'index', 'word1 word2', { 'exact_phrase'   => true,
                                                                   'single_passage' => true,
                                                                   'use_boundaries' => true,
-                                                                  'weight_order' => true }) rescue nil?
+                                                                  'weight_order'   => true,
+                                                                  'query_mode'     => true }) rescue nil?
   end
 end
 

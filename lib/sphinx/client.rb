@@ -3,7 +3,7 @@
 # Author::    Dmytro Shteflyuk <mailto:kpumuk@kpumuk.info>.
 # Copyright:: Copyright (c) 2006 - 2008 Dmytro Shteflyuk
 # License::   Distributes under the same terms as Ruby
-# Version::   0.9.9-r1299
+# Version::   0.9.10-r2043
 # Website::   http://kpumuk.info/projects/ror-plugins/sphinx
 #
 # This library is distributed under the terms of the Ruby license.
@@ -46,24 +46,40 @@ module Sphinx
     # Known searchd commands
   
     # search command
-    SEARCHD_COMMAND_SEARCH   = 0
+    SEARCHD_COMMAND_SEARCH     = 0
     # excerpt command
-    SEARCHD_COMMAND_EXCERPT  = 1
+    SEARCHD_COMMAND_EXCERPT    = 1
     # update command
-    SEARCHD_COMMAND_UPDATE   = 2 
+    SEARCHD_COMMAND_UPDATE     = 2
     # keywords command
-    SEARCHD_COMMAND_KEYWORDS = 3 
+    SEARCHD_COMMAND_KEYWORDS   = 3
+    # persist command
+    SEARCHD_COMMAND_PERSIST    = 4
+    # status command
+    SEARCHD_COMMAND_STATUS     = 5
+    # query command
+    SEARCHD_COMMAND_QUERY      = 6
+    # flushattrs command
+    SEARCHD_COMMAND_FLUSHATTRS = 7
   
     # Current client-side command implementation versions
     
     # search command version
-    VER_COMMAND_SEARCH   = 0x116
+    VER_COMMAND_SEARCH     = 0x117
     # excerpt command version
-    VER_COMMAND_EXCERPT  = 0x100
+    VER_COMMAND_EXCERPT    = 0x100
     # update command version
-    VER_COMMAND_UPDATE   = 0x102
+    VER_COMMAND_UPDATE     = 0x102
     # keywords command version
-    VER_COMMAND_KEYWORDS = 0x100
+    VER_COMMAND_KEYWORDS   = 0x100
+    # persist command version
+    VER_COMMAND_PERSIST    = 0x000
+    # status command version
+    VER_COMMAND_STATUS     = 0x100
+    # query command version
+    VER_COMMAND_QUERY      = 0x100
+    # flushattrs command version
+    VER_COMMAND_FLUSHATTRS = 0x100
     
     # Known searchd status codes
   
@@ -107,6 +123,12 @@ module Sphinx
     SPH_RANK_WORDCOUNT      = 3
     # phrase proximity
     SPH_RANK_PROXIMITY      = 4
+    # emulate old match-any weighting
+    SPH_RANK_MATCHANY       = 5
+    # sets bits where there were matches
+    SPH_RANK_FIELDMASK      = 6
+    # codename SPH04, phrase proximity + bm25 + head/exact boost
+    SPH_RANK_SPH04          = 7
     
     # Known sort modes
   
@@ -147,6 +169,8 @@ module Sphinx
     SPH_ATTR_FLOAT     = 5
     # signed 64-bit integer
     SPH_ATTR_BIGINT    = 6
+    # string (binary; in-memory)
+    SPH_ATTR_STRING    = 7
     # this attr has multiple values (0 or more)
     SPH_ATTR_MULTI     = 0x40000000
     
@@ -170,6 +194,8 @@ module Sphinx
       # per-client-object settings
       @host          = 'localhost'             # searchd host (default is "localhost")
       @port          = 3312                    # searchd port (default is 3312)
+      @path          = false
+      @socket        = false
       
       # per-query settings
       @offset        = 0                       # how many records to seek from result-set start (default is 0)
@@ -200,9 +226,11 @@ module Sphinx
       # per-reply fields (for single-query case)
       @error         = ''                      # last error message
       @warning       = ''                      # last warning message
+      @connerror     = false                   # connection error vs remote error flag
       
       @reqs          = []                      # requests storage (for multi-query case)
       @mbenc         = ''                      # stored mbstring encoding
+      @timeout       = 0                       # connect timeout
     end
   
     # Get last error message.
@@ -215,13 +243,33 @@ module Sphinx
       @warning
     end
     
+    # Get last error flag (to tell network connection errors from
+    # searchd errors or broken responses)
+    def IsConnectError
+      @connerror
+    end
+    
     # Set searchd host name (string) and port (integer).
     def SetServer(host, port)
       assert { host.instance_of? String }
+      
+      if host[0] == ?/
+        @path = host
+        return
+      elsif host[0, 7] == 'unix://'
+        @path = host[7..-1]
+      end
+      
       assert { port.instance_of? Fixnum }
 
       @host = host
       @port = port
+    end
+    
+    def SetConnectTimeout(timeout)
+      assert { timeout.instance_of? Fixnum }
+      
+      @timeout = timeout
     end
    
     # Set offset and count into result set,
@@ -267,7 +315,10 @@ module Sphinx
             || ranker == SPH_RANK_BM25 \
             || ranker == SPH_RANK_NONE \
             || ranker == SPH_RANK_WORDCOUNT \
-            || ranker == SPH_RANK_PROXIMITY }
+            || ranker == SPH_RANK_PROXIMITY \
+            || ranker == SPH_RANK_MATCHANY \
+            || ranker == SPH_RANK_FIELDMASK \
+            || ranker == SPH_RANK_SPH04 }
 
       @ranker = ranker
     end
@@ -469,21 +520,21 @@ module Sphinx
     
     # Set attribute values override
     #
-	  # There can be only one override per attribute.
-	  # +values+ must be a hash that maps document IDs to attribute values.
-	  def SetOverride(attrname, attrtype, values)
+    # There can be only one override per attribute.
+    # +values+ must be a hash that maps document IDs to attribute values.
+    def SetOverride(attrname, attrtype, values)
       assert { attrname.instance_of? String }
       assert { [SPH_ATTR_INTEGER, SPH_ATTR_TIMESTAMP, SPH_ATTR_BOOL, SPH_ATTR_FLOAT, SPH_ATTR_BIGINT].include?(attrtype) }
       assert { values.instance_of? Hash }
 
       @overrides << { 'attr' => attrname, 'type' => attrtype, 'values' => values }
-	  end
+    end
 
     # Set select-list (attributes or expressions), SQL-like syntax.
     def SetSelect(select)
-		  assert { select.instance_of? String }
-		  @select = select
-		end
+      assert { select.instance_of? String }
+      @select = select
+    end
     
     # Clear all filters (for multi-queries).
     def ResetFilters
@@ -758,6 +809,8 @@ module Sphinx
                 when SPH_ATTR_FLOAT
                   # handle floats
                   r['attrs'][a] = response.get_float
+                when SPH_ATTR_STRING
+                  r['attrs'][a] = response.get_string
                 else
                   # handle everything else as unsigned ints
                   val = response.get_int
@@ -831,6 +884,7 @@ module Sphinx
       opts['single_passage'] ||= false
       opts['use_boundaries'] ||= false
       opts['weight_order'] ||= false
+      opts['query_mode'] ||= false
       
       # build request
       
@@ -840,6 +894,7 @@ module Sphinx
       flags |= 4  if opts['single_passage']
       flags |= 8  if opts['use_boundaries']
       flags |= 16 if opts['weight_order']
+      flags |= 32 if opts['query_mode']
       
       request = Request.new
       request.put_int 0, flags # mode=0, flags=1 (remove spaces)
@@ -983,17 +1038,98 @@ module Sphinx
         raise SphinxResponseError, @error
       end
     end
+    
+    # persistent connections
+    
+    def Open
+      unless @socket === false
+        @error = 'already connected'
+        return false
+      end
+      
+      request = Request.new
+      request.put_int(1)
+      @socket = PerformRequest(:persist, request, nil, true)
+
+      true
+    end
+    
+    def Close
+      if @socket === false
+        @error = 'not connected'
+        return false;
+      end
+      
+      @socket.close
+      @socket = false
+      
+      true
+    end
+    
+    def Status
+      request = Request.new
+      request.put_int(1)
+      response = PerformRequest(:status, request)
+
+      # parse response
+      begin
+        rows, cols = response.get_ints(2)
+      
+        res = []
+        0.upto(rows - 1) do |i|
+          res[i] = []
+          0.upto(cols - 1) do |j|
+            res[i] << response.get_string
+          end
+        end
+      rescue EOFError
+        @error = 'incomplete reply'
+        raise SphinxResponseError, @error
+      end
+      
+      res
+    end
+    
+    def FlushAttrs
+      request = Request.new
+      response = PerformRequest(:flushattrs, request)
+
+      # parse response
+      begin
+        response.get_int
+      rescue EOFError
+        -1
+      end
+    end
   
     protected
     
       # Connect to searchd server.
       def Connect
+        return @socket unless @socket === false
+        
         begin
-          sock = TCPSocket.new(@host, @port)
-        rescue
-          @error = "connection to #{@host}:#{@port} failed"
+          if @path
+            sock = UNIXSocket.new(@path)
+          else
+            sock = TCPSocket.new(@host, @port)
+          end
+        rescue => e
+          location = @path || "#{@host}:#{@port}"
+          @error = "connection to #{location} failed ("
+          if e.kind_of?(SystemCallError)
+            @error << "errno=#{e.class::Errno}, "
+          end
+          @error << "msg=#{e.message})"
+          @connerror = true
           raise SphinxConnectError, @error
         end
+
+        # send my version
+        # this is a subtle part. we must do it before (!) reading back from searchd.
+        # because otherwise under some conditions (reported on FreeBSD for instance)
+        # TCP stack could throttle write-write-read pattern because of Nagle.
+        sock.send([1].pack('N'), 0)
         
         v = sock.recv(4).unpack('N*').first
         if v < 1
@@ -1002,7 +1138,6 @@ module Sphinx
           raise SphinxConnectError, @error
         end
         
-        sock.send([1].pack('N'), 0)
         sock
       end
       
@@ -1027,7 +1162,7 @@ module Sphinx
             end
           end
         end
-        sock.close
+        sock.close if @socket === false
     
         # check response
         read = response.length
@@ -1070,7 +1205,7 @@ module Sphinx
       end
       
       # Connect, send query, get response.
-      def PerformRequest(command, request, additional = nil)
+      def PerformRequest(command, request, additional = nil, skip_response = false)
         cmd = command.to_s.upcase
         command_id = Sphinx::Client.const_get('SEARCHD_COMMAND_' + cmd)
         command_ver = Sphinx::Client.const_get('VER_COMMAND_' + cmd)
@@ -1080,6 +1215,8 @@ module Sphinx
         header = [command_id, command_ver, len].pack('nnN')
         header << [additional].pack('N') if additional != nil
         sock.send(header + request.to_s, 0)
+        
+        return sock if skip_response
         response = self.GetResponse(sock, command_ver)
         return Response.new(response)
       end
