@@ -250,24 +250,35 @@ module Sphinx
     end
     
     # Set searchd host name (string) and port (integer).
+    #
+    # You can specify an absolute path to Sphinx's UNIX socket as +host+, in this
+    # case pass port as +0+ or +nil+.
+    #
+    # Otherwise +host+ should contain a host name or IP address.
     def SetServer(host, port)
-      assert { host.instance_of? String }
+      raise ArgumentError, '"host" argument must be String' unless host.kind_of?(String)
       
+      # Check if UNIX socket should be used
       if host[0] == ?/
         @path = host
         return
       elsif host[0, 7] == 'unix://'
         @path = host[7..-1]
+        return
       end
       
-      assert { port.instance_of? Fixnum }
+      raise ArgumentError, '"port" argument must be Integer' unless port.respond_to?(:integer?) and port.integer?
 
       @host = host
       @port = port
     end
     
+    # Set connection timeout in seconds.
+    #
+    # Please note, this timeout will only be used for connection establishing, not
+    # for regular API requests.
     def SetConnectTimeout(timeout)
-      assert { timeout.instance_of? Fixnum }
+      raise ArgumentError, '"timeout" argument must be Integer' unless timeout.respond_to?(:integer?) and timeout.integer?
       
       @timeout = timeout
     end
@@ -275,12 +286,15 @@ module Sphinx
     # Set offset and count into result set,
     # and optionally set max-matches and cutoff limits.
     def SetLimits(offset, limit, max = 0, cutoff = 0)
-      assert { offset.instance_of? Fixnum }
-      assert { limit.instance_of? Fixnum }
-      assert { max.instance_of? Fixnum }
-      assert { offset >= 0 }
-      assert { limit > 0 }
-      assert { max >= 0 }
+      raise ArgumentError, '"offset" argument must be Integer' unless offset.respond_to?(:integer?) and offset.integer?
+      raise ArgumentError, '"limit" argument must be Integer'  unless limit.respond_to?(:integer?)  and limit.integer?
+      raise ArgumentError, '"max" argument must be Integer'    unless max.respond_to?(:integer?)    and max.integer?
+      raise ArgumentError, '"cutoff" argument must be Integer' unless cutoff.respond_to?(:integer?) and cutoff.integer?
+      
+      raise ArgumentError, '"offset" argument should be greater or equal than zero' unless offset >= 0
+      raise ArgumentError, '"limit" argument should be greater than zero'         unless limit > 0
+      raise ArgumentError, '"max" argument should be greater or equal than zero'    unless max >= 0
+      raise ArgumentError, '"cutoff" argument should be greater or equal than zero' unless cutoff >= 0
 
       @offset = offset
       @limit = limit
@@ -291,48 +305,76 @@ module Sphinx
     # Set maximum query time, in milliseconds, per-index,
     # integer, 0 means "do not limit"
     def SetMaxQueryTime(max)
-      assert { max.instance_of? Fixnum }
-      assert { max >= 0 }
+      raise ArgumentError, '"max" argument must be Integer' unless max.respond_to?(:integer?) and max.integer?
+      raise ArgumentError, '"max" argument should be greater or equal than zero' unless max >= 0
+
       @maxquerytime = max
     end
     
     # Set matching mode.
+    #
+    # You can specify mode as String ("all", "any", etc), Symbol (:all, :any, etc), or
+    # Fixnum constant (SPH_MATCH_ALL, SPH_MATCH_ANY, etc).
     def SetMatchMode(mode)
-      assert { mode == SPH_MATCH_ALL \
-            || mode == SPH_MATCH_ANY \
-            || mode == SPH_MATCH_PHRASE \
-            || mode == SPH_MATCH_BOOLEAN \
-            || mode == SPH_MATCH_EXTENDED \
-            || mode == SPH_MATCH_FULLSCAN \
-            || mode == SPH_MATCH_EXTENDED2 }
+      case mode
+        when String, Symbol
+          begin
+            mode = self.class.const_get("SPH_MATCH_#{mode.to_s.upcase}")
+          rescue NameError
+            raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid"
+          end
+        when Fixnum
+          raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid" unless (SPH_MATCH_ALL..SPH_MATCH_EXTENDED2).include?(mode)
+        else
+          raise ArgumentError, '"mode" argument must be Fixnum, String, or Symbol'
+      end
 
       @mode = mode
     end
     
     # Set ranking mode.
+    #
+    # You can specify ranking mode as String ("proximity_bm25", "bm25", etc),
+    # Symbol (:proximity_bm25, :bm25, etc), or
+    # Fixnum constant (SPH_RANK_PROXIMITY_BM25, SPH_RANK_BM25, etc).
     def SetRankingMode(ranker)
-      assert { ranker == SPH_RANK_PROXIMITY_BM25 \
-            || ranker == SPH_RANK_BM25 \
-            || ranker == SPH_RANK_NONE \
-            || ranker == SPH_RANK_WORDCOUNT \
-            || ranker == SPH_RANK_PROXIMITY \
-            || ranker == SPH_RANK_MATCHANY \
-            || ranker == SPH_RANK_FIELDMASK \
-            || ranker == SPH_RANK_SPH04 }
+      case ranker
+        when String, Symbol
+          begin
+            ranker = self.class.const_get("SPH_RANK_#{ranker.to_s.upcase}")
+          rescue NameError
+            raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid"
+          end
+        when Fixnum
+          raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid" unless (SPH_RANK_PROXIMITY_BM25..SPH_RANK_SPH04).include?(ranker)
+        else
+          raise ArgumentError, '"ranker" argument must be Fixnum, String, or Symbol'
+      end
 
       @ranker = ranker
     end
     
     # Set matches sorting mode.
+    #
+    # You can specify sorting mode as String ("relevance", "attr_desc", etc),
+    # Symbol (:relevance, :attr_desc, etc), or
+    # Fixnum constant (SPH_SORT_RELEVANCE, SPH_SORT_ATTR_DESC, etc).
     def SetSortMode(mode, sortby = '')
-      assert { mode == SPH_SORT_RELEVANCE \
-            || mode == SPH_SORT_ATTR_DESC \
-            || mode == SPH_SORT_ATTR_ASC \
-            || mode == SPH_SORT_TIME_SEGMENTS \
-            || mode == SPH_SORT_EXTENDED \
-            || mode == SPH_SORT_EXPR }
-      assert { sortby.instance_of? String }
-      assert { mode == SPH_SORT_RELEVANCE || !sortby.empty? }
+      case mode
+        when String, Symbol
+          begin
+            mode = self.class.const_get("SPH_SORT_#{mode.to_s.upcase}")
+          rescue NameError
+            raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid"
+          end
+        when Fixnum
+          raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid" unless (SPH_SORT_RELEVANCE..SPH_SORT_EXPR).include?(mode)
+        else
+          raise ArgumentError, '"mode" argument must be Fixnum, String, or Symbol'
+      end
+
+      raise ArgumentError, '"sortby" argument must be String' unless sortby.kind_of?(String)
+      raise ArgumentError, '"sortby" should not be empty unless mode is SPH_SORT_RELEVANCE' unless mode == SPH_SORT_RELEVANCE or !sortby.empty?
 
       @sort = mode
       @sortby = sortby
@@ -342,9 +384,9 @@ module Sphinx
     #
     # DEPRECATED; use SetFieldWeights() instead.
     def SetWeights(weights)
-      assert { weights.instance_of? Array }
+      raise ArgumentError, '"weights" argument must be Array' unless weights.kind_of?(Array)
       weights.each do |weight|
-        assert { weight.instance_of? Fixnum }
+        raise ArgumentError, '"weights" argument must be Array of integers' unless weight.respond_to?(:integer?) and weight.integer?
       end
 
       @weights = weights
@@ -352,15 +394,16 @@ module Sphinx
 
     # Bind per-field weights by name.
     #
-    # Takes string (field name) to integer name (field weight) hash as an argument.
+    # Takes string (field name) to integer (field weight) hash as an argument.
     # * Takes precedence over SetWeights().
     # * Unknown names will be silently ignored.
     # * Unbound fields will be silently given a weight of 1.
     def SetFieldWeights(weights)
-      assert { weights.instance_of? Hash }
+      raise ArgumentError, '"weights" argument must be Hash' unless weights.kind_of?(Hash)
       weights.each do |name, weight|
-        assert { name.instance_of? String }
-        assert { weight.instance_of? Fixnum }
+        unless (name.kind_of?(String) or name.kind_of?(Symbol)) and (weight.respond_to?(:integer?) and weight.integer?)
+          raise ArgumentError, '"weights" argument must be Hash map of strings to integers'
+        end
       end
 
       @fieldweights = weights
@@ -368,10 +411,11 @@ module Sphinx
     
     # Bind per-index weights by name.
     def SetIndexWeights(weights)
-      assert { weights.instance_of? Hash }
+      raise ArgumentError, '"weights" argument must be Hash' unless weights.kind_of?(Hash)
       weights.each do |index, weight|
-        assert { index.instance_of? String }
-        assert { weight.instance_of? Fixnum }
+        unless (index.kind_of?(String) or index.kind_of?(Symbol)) and (weight.respond_to?(:integer?) and weight.integer?)
+          raise ArgumentError, '"weights" argument must be Hash map of strings to integers'
+        end
       end
       
       @indexweights = weights
@@ -381,9 +425,9 @@ module Sphinx
     # 
     # Only match records if document ID is beetwen <tt>min_id</tt> and <tt>max_id</tt> (inclusive). 
     def SetIDRange(min, max)
-      assert { min.instance_of?(Fixnum) or min.instance_of?(Bignum) }
-      assert { max.instance_of?(Fixnum) or max.instance_of?(Bignum) }
-      assert { min <= max }
+      raise ArgumentError, '"min" argument must be Integer' unless min.respond_to?(:integer?) and min.integer?
+      raise ArgumentError, '"max" argument must be Integer' unless max.respond_to?(:integer?) and max.integer?
+      raise ArgumentError, '"max" argument greater or equal than "min"' unless min <= max
 
       @min_id = min
       @max_id = max
@@ -394,17 +438,16 @@ module Sphinx
     # Only match those records where <tt>attribute</tt> column values
     # are in specified set.
     def SetFilter(attribute, values, exclude = false)
-      assert { attribute.instance_of? String }
-      assert { values.instance_of? Array }
-      assert { !values.empty? }
+      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
+      raise ArgumentError, '"values" argument must be Array'               unless values.kind_of?(Array)
+      raise ArgumentError, '"values" argument must not be empty'           if values.empty?
+      raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
 
-      if values.instance_of?(Array) && values.size > 0
-        values.each do |value|
-          assert { value.instance_of? Fixnum }
-        end
-      
-        @filters << { 'type' => SPH_FILTER_VALUES, 'attr' => attribute, 'exclude' => exclude, 'values' => values }
+      values.each do |value|
+        raise ArgumentError, '"values" argument must be Array of Integer' unless value.respond_to?(:integer?) and value.integer?
       end
+    
+      @filters << { 'type' => SPH_FILTER_VALUES, 'attr' => attribute.to_s, 'exclude' => exclude, 'values' => values }
     end
     
     # Set range filter.
@@ -412,12 +455,13 @@ module Sphinx
     # Only match those records where <tt>attribute</tt> column value
     # is beetwen <tt>min</tt> and <tt>max</tt> (including <tt>min</tt> and <tt>max</tt>).
     def SetFilterRange(attribute, min, max, exclude = false)
-      assert { attribute.instance_of? String }
-      assert { min.instance_of? Fixnum or min.instance_of? Bignum }
-      assert { max.instance_of? Fixnum or max.instance_of? Bignum }
-      assert { min <= max }
+      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
+      raise ArgumentError, '"min" argument must be Integer'                unless min.respond_to?(:integer?) and min.integer?
+      raise ArgumentError, '"max" argument must be Integer'                unless max.respond_to?(:integer?) and max.integer?
+      raise ArgumentError, '"max" argument greater or equal than "min"'    unless min <= max
+      raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
     
-      @filters << { 'type' => SPH_FILTER_RANGE, 'attr' => attribute, 'exclude' => exclude, 'min' => min, 'max' => max }
+      @filters << { 'type' => SPH_FILTER_RANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min, 'max' => max }
     end
     
     # Set float range filter.
@@ -425,12 +469,13 @@ module Sphinx
     # Only match those records where <tt>attribute</tt> column value
     # is beetwen <tt>min</tt> and <tt>max</tt> (including <tt>min</tt> and <tt>max</tt>).
     def SetFilterFloatRange(attribute, min, max, exclude = false)
-      assert { attribute.instance_of? String }
-      assert { min.instance_of? Float }
-      assert { max.instance_of? Float }
-      assert { min <= max }
+      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
+      raise ArgumentError, '"min" argument must be Float or Integer'       unless min.kind_of?(Float) or (min.respond_to?(:integer?) and min.integer?)
+      raise ArgumentError, '"max" argument must be Float or Integer'       unless max.kind_of?(Float) or (max.respond_to?(:integer?) and max.integer?)
+      raise ArgumentError, '"max" argument greater or equal than "min"'    unless min <= max
+      raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
     
-      @filters << { 'type' => SPH_FILTER_FLOATRANGE, 'attr' => attribute, 'exclude' => exclude, 'min' => min, 'max' => max }
+      @filters << { 'type' => SPH_FILTER_FLOATRANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min.to_f, 'max' => max.to_f }
     end
     
     # Setup anchor point for geosphere distance calculations.
@@ -444,12 +489,12 @@ module Sphinx
     # * <tt>lat</tt> -- is anchor point latitude, in radians
     # * <tt>long</tt> -- is anchor point longitude, in radians
     def SetGeoAnchor(attrlat, attrlong, lat, long)
-      assert { attrlat.instance_of? String }
-      assert { attrlong.instance_of? String }
-      assert { lat.instance_of? Float }
-      assert { long.instance_of? Float }
+      raise ArgumentError, '"attrlat" argument must be String or Symbol'  unless attrlat.kind_of?(String)  or attrlat.kind_of?(Symbol)
+      raise ArgumentError, '"attrlong" argument must be String or Symbol' unless attrlong.kind_of?(String) or attrlong.kind_of?(Symbol)
+      raise ArgumentError, '"lat" argument must be Float or Integer'      unless lat.kind_of?(Float)  or (lat.respond_to?(:integer?)  and lat.integer?)
+      raise ArgumentError, '"long" argument must be Float or Integer'     unless long.kind_of?(Float) or (long.respond_to?(:integer?) and long.integer?)
 
-      @anchor = { 'attrlat' => attrlat, 'attrlong' => attrlong, 'lat' => lat, 'long' => long }
+      @anchor = { 'attrlat' => attrlat.to_s, 'attrlong' => attrlong.to_s, 'lat' => lat.to_f, 'long' => long.to_f }
     end
     
     # Set grouping attribute and function.
@@ -489,30 +534,38 @@ module Sphinx
     # matches published, with day number and per-day match count attached,
     # and sorted by day number in descending order (ie. recent days first).
     def SetGroupBy(attribute, func, groupsort = '@group desc')
-      assert { attribute.instance_of? String }
-      assert { groupsort.instance_of? String }
-      assert { func == SPH_GROUPBY_DAY \
-            || func == SPH_GROUPBY_WEEK \
-            || func == SPH_GROUPBY_MONTH \
-            || func == SPH_GROUPBY_YEAR \
-            || func == SPH_GROUPBY_ATTR \
-            || func == SPH_GROUPBY_ATTRPAIR }
+      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
+      raise ArgumentError, '"groupsort" argument must be String'           unless groupsort.kind_of?(String)
 
-      @groupby = attribute
+      case func
+        when String, Symbol
+          begin
+            func = self.class.const_get("SPH_GROUPBY_#{func.to_s.upcase}")
+          rescue NameError
+            raise ArgumentError, "\"func\" argument value \"#{func}\" is invalid"
+          end
+        when Fixnum
+          raise ArgumentError, "\"func\" argument value \"#{func}\" is invalid" unless (SPH_GROUPBY_DAY..SPH_GROUPBY_ATTRPAIR).include?(func)
+        else
+          raise ArgumentError, '"func" argument must be Fixnum, String, or Symbol'
+      end
+
+      @groupby = attribute.to_s
       @groupfunc = func
       @groupsort = groupsort
     end
     
     # Set count-distinct attribute for group-by queries.
     def SetGroupDistinct(attribute)
-      assert { attribute.instance_of? String }
-      @groupdistinct = attribute
+      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
+
+      @groupdistinct = attribute.to_s
     end
     
     # Set distributed retries count and delay.
     def SetRetries(count, delay = 0)
-      assert { count.instance_of? Fixnum }
-      assert { delay.instance_of? Fixnum }
+      raise ArgumentError, '"count" argument must be Integer' unless count.respond_to?(:integer?) and count.integer?
+      raise ArgumentError, '"delay" argument must be Integer' unless delay.respond_to?(:integer?) and delay.integer?
       
       @retrycount = count
       @retrydelay = delay
@@ -523,16 +576,43 @@ module Sphinx
     # There can be only one override per attribute.
     # +values+ must be a hash that maps document IDs to attribute values.
     def SetOverride(attrname, attrtype, values)
-      assert { attrname.instance_of? String }
-      assert { [SPH_ATTR_INTEGER, SPH_ATTR_TIMESTAMP, SPH_ATTR_BOOL, SPH_ATTR_FLOAT, SPH_ATTR_BIGINT].include?(attrtype) }
-      assert { values.instance_of? Hash }
+      raise ArgumentError, '"attrname" argument must be String or Symbol' unless attrname.kind_of?(String) or attrname.kind_of?(Symbol)
 
-      @overrides << { 'attr' => attrname, 'type' => attrtype, 'values' => values }
+      case attrtype
+        when String, Symbol
+          begin
+            attrtype = self.class.const_get("SPH_ATTR_#{attrtype.to_s.upcase}")
+          rescue NameError
+            raise ArgumentError, "\"attrtype\" argument value \"#{attrtype}\" is invalid"
+          end
+        when Fixnum
+          raise ArgumentError, "\"attrtype\" argument value \"#{attrtype}\" is invalid" unless (SPH_ATTR_INTEGER..SPH_ATTR_BIGINT).include?(attrtype)
+        else
+          raise ArgumentError, '"attrtype" argument must be Fixnum, String, or Symbol'
+      end
+
+      raise ArgumentError, '"values" argument must be Hash' unless values.kind_of?(Hash)
+      
+      values.each do |id, value|
+        raise ArgumentError, '"values" argument must be Hash map of Integer to Integer or Time' unless id.respond_to?(:integer?) and id.integer?
+        case attrtype
+          when SPH_ATTR_TIMESTAMP
+            raise ArgumentError, '"values" argument must be Hash map of Integer to Integer or Time' unless (value.respond_to?(:integer?) and value.integer?) or value.kind_of?(Time)
+          when SPH_ATTR_FLOAT
+            raise ArgumentError, '"values" argument must be Hash map of Integer to Float or Integer' unless value.kind_of?(Float) or (value.respond_to?(:integer?) and value.integer?)
+          else
+            # SPH_ATTR_INTEGER, SPH_ATTR_ORDINAL, SPH_ATTR_BOOL, SPH_ATTR_BIGINT
+            raise ArgumentError, '"values" argument must be Hash map of Integer to Integer' unless value.respond_to?(:integer?) and value.integer?
+        end
+      end
+
+      @overrides << { 'attr' => attrname.to_s, 'type' => attrtype, 'values' => values }
     end
 
     # Set select-list (attributes or expressions), SQL-like syntax.
     def SetSelect(select)
-      assert { select.instance_of? String }
+      raise ArgumentError, '"select" argument must be String' unless select.kind_of?(String)
+
       @select = select
     end
     
@@ -582,7 +662,6 @@ module Sphinx
     # * <tt>'time'</tt> -- search time
     # * <tt>'words'</tt> -- hash which maps query terms (stemmed!) to ('docs', 'hits') hash
     def Query(query, index = '*', comment = '')
-      assert { @reqs.empty? }
       @reqs = []
       
       self.AddQuery(query, index, comment)
@@ -667,7 +746,7 @@ module Sphinx
       # per-index weights
       request.put_int @indexweights.length
       @indexweights.each do |idx, weight|
-        request.put_string idx
+        request.put_string idx.to_s
         request.put_int weight
       end
       
@@ -677,7 +756,7 @@ module Sphinx
       # per-field weights
       request.put_int @fieldweights.length
       @fieldweights.each do |field, weight|
-        request.put_string field
+        request.put_string field.to_s
         request.put_int weight
       end
       
@@ -690,17 +769,14 @@ module Sphinx
         request.put_string entry['attr']
         request.put_int entry['type'], entry['values'].size
         entry['values'].each do |id, val|
-          assert { id.instance_of?(Fixnum) || id.instance_of?(Bignum) }
-          assert { val.instance_of?(Fixnum) || val.instance_of?(Bignum) || val.instance_of?(Float) }
-          
           request.put_int64 id
           case entry['type']
             when SPH_ATTR_FLOAT
-              request.put_float val
+              request.put_float val.to_f
             when SPH_ATTR_BIGINT
-              request.put_int64 val
+              request.put_int64 val.to_i
             else
-              request.put_int val
+              request.put_int val.to_i
           end
         end
       end
@@ -869,22 +945,26 @@ module Sphinx
     # Returns false on failure.
     # Returns an array of string excerpts on success.
     def BuildExcerpts(docs, index, words, opts = {})
-      assert { docs.instance_of? Array }
-      assert { index.instance_of? String }
-      assert { words.instance_of? String }
-      assert { opts.instance_of? Hash }
+      raise ArgumentError, '"docs" argument must be Array'   unless docs.kind_of?(Array)
+      raise ArgumentError, '"index" argument must be String' unless index.kind_of?(String) or index.kind_of?(Symbol)
+      raise ArgumentError, '"words" argument must be String' unless words.kind_of?(String)
+      raise ArgumentError, '"opts" argument must be Hash'    unless opts.kind_of?(Hash)
+
+      docs.each do |doc|
+        raise ArgumentError, '"docs" argument must be Array of Strings' unless doc.kind_of?(String)
+      end
 
       # fixup options
-      opts['before_match'] ||= '<b>';
-      opts['after_match'] ||= '</b>';
-      opts['chunk_separator'] ||= ' ... ';
-      opts['limit'] ||= 256;
-      opts['around'] ||= 5;
-      opts['exact_phrase'] ||= false
-      opts['single_passage'] ||= false
-      opts['use_boundaries'] ||= false
-      opts['weight_order'] ||= false
-      opts['query_mode'] ||= false
+      opts['before_match']    ||= opts[:before_match]    || '<b>';
+      opts['after_match']     ||= opts[:after_match]     || '</b>';
+      opts['chunk_separator'] ||= opts[:chunk_separator] || ' ... ';
+      opts['limit']           ||= opts[:limit]           || 256;
+      opts['around']          ||= opts[:around]          || 5;
+      opts['exact_phrase']    ||= opts[:exact_phrase]    || false
+      opts['single_passage']  ||= opts[:single_passage]  || false
+      opts['use_boundaries']  ||= opts[:use_boundaries]  || false
+      opts['weight_order']    ||= opts[:weight_order]    || false
+      opts['query_mode']      ||= opts[:query_mode]      || false
       
       # build request
       
@@ -899,7 +979,7 @@ module Sphinx
       request = Request.new
       request.put_int 0, flags # mode=0, flags=1 (remove spaces)
       # req index
-      request.put_string index
+      request.put_string index.to_s
       # req words
       request.put_string words
   
@@ -911,11 +991,7 @@ module Sphinx
       
       # documents
       request.put_int docs.size
-      docs.each do |doc|
-        assert { doc.instance_of? String }
-
-        request.put_string doc
-      end
+      request.put_string *docs
       
       response = PerformRequest(:excerpt, request)
       
@@ -936,9 +1012,9 @@ module Sphinx
     #
     # Returns an array of words on success.
     def BuildKeywords(query, index, hits)
-      assert { query.instance_of? String }
-      assert { index.instance_of? String }
-      assert { hits.instance_of?(TrueClass) || hits.instance_of?(FalseClass) }
+      raise ArgumentError, '"query" argument must be String' unless query.kind_of?(String)
+      raise ArgumentError, '"index" argument must be String' unless index.kind_of?(String) or index.kind_of?(Symbol)
+      raise ArgumentError, '"hits" argument must be Boolean' unless hits.kind_of?(TrueClass) or hits.kind_of?(FalseClass)
       
       # build request
       request = Request.new
@@ -985,25 +1061,27 @@ module Sphinx
     #    sphinx.UpdateAttributes('test1', ['group_id'], { 1 => [456] })
     def UpdateAttributes(index, attrs, values, mva = false)
       # verify everything
-      assert { index.instance_of? String }
-      assert { mva.instance_of?(TrueClass) || mva.instance_of?(FalseClass) }
+      raise ArgumentError, '"index" argument must be String' unless index.kind_of?(String) or index.kind_of?(Symbol)
+      raise ArgumentError, '"mva" argument must be Boolean'  unless mva.kind_of?(TrueClass) or mva.kind_of?(FalseClass)
       
-      assert { attrs.instance_of? Array }
+      raise ArgumentError, '"attrs" argument must be Array' unless attrs.kind_of?(Array)
       attrs.each do |attr|
-        assert { attr.instance_of? String }
+        raise ArgumentError, '"attrs" argument must be Array of Strings' unless attr.kind_of?(String) or attr.kind_of?(Symbol)
       end
       
-      assert { values.instance_of? Hash }
+      raise ArgumentError, '"values" argument must be Hash' unless values.kind_of?(Hash)
       values.each do |id, entry|
-        assert { id.instance_of? Fixnum }
-        assert { entry.instance_of? Array }
-        assert { entry.length == attrs.length }
+        raise ArgumentError, '"values" argument must be Hash map of Integer to Array' unless id.respond_to?(:integer?) and id.integer?
+        raise ArgumentError, '"values" argument must be Hash map of Integer to Array' unless entry.kind_of?(Array)
+        raise ArgumentError, "\"values\" argument Hash values Array must have #{attrs.length} elements" unless entry.length == attrs.length
         entry.each do |v|
           if mva
-            assert { v.instance_of? Array }
-            v.each { |vv| assert { vv.instance_of? Fixnum } }
+            raise ArgumentError, '"values" argument must be Hash map of Integer to Array of Arrays' unless v.kind_of?(Array)
+            v.each do |vv|
+              raise ArgumentError, '"values" argument must be Hash map of Integer to Array of Arrays of Integers' unless vv.respond_to?(:integer?) and vv.integer?
+            end
           else
-            assert { v.instance_of? Fixnum }
+            raise ArgumentError, '"values" argument must be Hash map of Integer to Array of Integers' unless v.respond_to?(:integer?) and v.integer?
           end
         end
       end
@@ -1220,11 +1298,5 @@ module Sphinx
         response = self.GetResponse(sock, command_ver)
         return Response.new(response)
       end
-      
-      # :stopdoc:
-      def assert
-        raise 'Assertion failed!' unless yield if $DEBUG
-      end
-      # :startdoc:
   end
 end

@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + '/../init'
+require File.dirname(__FILE__) + '/spec_helper'
 
 # To execute these tests you need to execute sphinx_test.sql and configure sphinx using sphinx.conf
 # (both files are placed under sphinx directory)
@@ -62,25 +62,6 @@ describe Sphinx::Client, 'connected' do
     end
   end
 
-  context 'in Open method' do
-    it 'should open socket' do
-      @sphinx.Open.should be_true
-      socket = @sphinx.instance_variable_get(:@socket)
-      socket.should be_kind_of(TCPSocket)
-      socket.close
-    end
-
-    it 'should produce an error when opened twice' do
-      @sphinx.Open.should be_true
-      @sphinx.Open.should be_false
-      @sphinx.GetLastError.should == 'already connected'
-
-      socket = @sphinx.instance_variable_get(:@socket)
-      socket.should be_kind_of(TCPSocket)
-      socket.close
-    end
-  end
-
   context 'in UpdateAttributes method' do
     it 'should parse response' do
       @sphinx.UpdateAttributes('test1', ['group_id'], { 2 => [1] }).should == 1
@@ -98,6 +79,25 @@ describe Sphinx::Client, 'connected' do
       @sphinx.UpdateAttributes('test1', ['tags'], { 2 => [[5, 6, 7, 8]] }, true).should == 1
       result = @sphinx.Query('wifi', 'test1')
       result['matches'][0]['attrs']['tags'].should == [5, 6, 7, 8]
+    end
+  end
+
+  context 'in Open method' do
+    it 'should open socket' do
+      @sphinx.Open.should be_true
+      socket = @sphinx.instance_variable_get(:@socket)
+      socket.should be_kind_of(TCPSocket)
+      socket.close
+    end
+
+    it 'should produce an error when opened twice' do
+      @sphinx.Open.should be_true
+      @sphinx.Open.should be_false
+      @sphinx.GetLastError.should == 'already connected'
+
+      socket = @sphinx.instance_variable_get(:@socket)
+      socket.should be_kind_of(TCPSocket)
+      socket.close
     end
   end
 
