@@ -36,6 +36,14 @@ describe Sphinx::Client, 'disconnected' do
       lambda { @sphinx.send(:Connect) }.should raise_error(Sphinx::SphinxConnectError)
       @sphinx.IsConnectError.should be_true
     end
+    
+    it 'should handle connection timeouts' do
+      TCPSocket.should_receive(:new).with('localhost', 3312).and_return { sleep(5) }
+      @sphinx.SetConnectTimeout(1)
+      lambda { @sphinx.send(:Connect) }.should raise_error(Sphinx::SphinxConnectError)
+      @sphinx.GetLastError.should == 'connection to localhost:3312 failed (msg=time\'s up!)'
+      @sphinx.IsConnectError.should be_true
+    end
   end
   
   context 'in GetResponse method' do

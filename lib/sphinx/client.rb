@@ -1186,13 +1186,16 @@ module Sphinx
       def Connect
         return @socket unless @socket === false
         
+        sock = nil
         begin
-          if @path
-            sock = UNIXSocket.new(@path)
-          else
-            sock = TCPSocket.new(@host, @port)
+          Sphinx::safe_execute(@timeout, 1) do
+            if @path
+              sock = UNIXSocket.new(@path)
+            else
+              sock = TCPSocket.new(@host, @port)
+            end
           end
-        rescue => e
+        rescue SocketError, SystemCallError, IOError, ::Timeout::Error => e
           location = @path || "#{@host}:#{@port}"
           @error = "connection to #{location} failed ("
           if e.kind_of?(SystemCallError)
