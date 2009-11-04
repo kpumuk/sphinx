@@ -1,4 +1,4 @@
-=Sphinx Client API 0.9.10-dev (r2043)
+=Sphinx Client API 0.9.10
 
 This document gives an overview of what is Sphinx itself and how to use in 
 within Ruby on Rails. For more information or documentation, 
@@ -14,6 +14,13 @@ either via direct connection to MySQL, or from an XML pipe.
  
 Simplest way to communicate with Sphinx is to use <tt>searchd</tt> -
 a daemon to search through fulltext indices from external software.
+
+==Compatibility
+
+This version supports all API features of Sphinx 0.9.10-r2043. Full compatibility list:
+
+* <tt>0.9.10</tt> — Sphinx 0.9.10-r2043
+* <tt>0.9.9</tt> — Sphinx 0.9.9-r1299
 
 ==Documentation
 
