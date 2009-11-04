@@ -52,58 +52,58 @@ describe Sphinx::Client, 'disconnected' do
   context 'in GetResponse method' do
     before :each do
       @sphinx = Sphinx::Client.new
-      @sock = mock('TCPSocket')
+      @sock = mock('Sphinx::BufferedIO', :closed? => false)
       @sock.should_receive(:close)
     end
 
     it 'should receive response' do
-      @sock.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_OK, 1, 4].pack('n2N'))
-      @sock.should_receive(:read).with(4).and_return([0].pack('N'))
+      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_OK, 1, 4].pack('n2N'))
+      @sock.should_receive(:read).with(4, '', true).and_return([0].pack('N'))
       @sphinx.send(:GetResponse, @sock, 1)
     end
 
     it 'should raise exception on zero-sized response' do
-      @sock.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_OK, 1, 0].pack('n2N'))
+      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_OK, 1, 0].pack('n2N'))
       lambda { @sphinx.send(:GetResponse, @sock, 1) }.should raise_error(Sphinx::SphinxResponseError)
     end
 
     it 'should raise exception when response is incomplete' do
-      @sock.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_OK, 1, 4].pack('n2N'))
-      @sock.should_receive(:read).with(4).and_raise(EOFError)
+      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_OK, 1, 4].pack('n2N'))
+      @sock.should_receive(:read).with(4, '', true).and_return('')
       lambda { @sphinx.send(:GetResponse, @sock, 1) }.should raise_error(Sphinx::SphinxResponseError)
     end
 
     it 'should set warning message when SEARCHD_WARNING received' do
-      @sock.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_WARNING, 1, 14].pack('n2N'))
-      @sock.should_receive(:read).with(14).and_return([5].pack('N') + 'helloworld')
+      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_WARNING, 1, 14].pack('n2N'))
+      @sock.should_receive(:read).with(14, '', true).and_return([5].pack('N') + 'helloworld')
       @sphinx.send(:GetResponse, @sock, 1).should == 'world'
       @sphinx.GetLastWarning.should == 'hello'
     end
 
     it 'should raise exception when SEARCHD_ERROR received' do
-      @sock.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_ERROR, 1, 9].pack('n2N'))
-      @sock.should_receive(:read).with(9).and_return([1].pack('N') + 'hello')
+      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_ERROR, 1, 9].pack('n2N'))
+      @sock.should_receive(:read).with(9, '', true).and_return([1].pack('N') + 'hello')
       lambda { @sphinx.send(:GetResponse, @sock, 1) }.should raise_error(Sphinx::SphinxInternalError)
       @sphinx.GetLastError.should == 'searchd error: hello'
     end
 
     it 'should raise exception when SEARCHD_RETRY received' do
-      @sock.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_RETRY, 1, 9].pack('n2N'))
-      @sock.should_receive(:read).with(9).and_return([1].pack('N') + 'hello')
+      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_RETRY, 1, 9].pack('n2N'))
+      @sock.should_receive(:read).with(9, '', true).and_return([1].pack('N') + 'hello')
       lambda { @sphinx.send(:GetResponse, @sock, 1) }.should raise_error(Sphinx::SphinxTemporaryError)
       @sphinx.GetLastError.should == 'temporary searchd error: hello'
     end
 
     it 'should raise exception when unknown status received' do
-      @sock.should_receive(:read).with(8).and_return([65535, 1, 9].pack('n2N'))
-      @sock.should_receive(:read).with(9).and_return([1].pack('N') + 'hello')
+      @sock.should_receive(:read).with(8, '', true).and_return([65535, 1, 9].pack('n2N'))
+      @sock.should_receive(:read).with(9, '', true).and_return([1].pack('N') + 'hello')
       lambda { @sphinx.send(:GetResponse, @sock, 1) }.should raise_error(Sphinx::SphinxUnknownError)
       @sphinx.GetLastError.should == 'unknown status code: \'65535\''
     end
 
     it 'should set warning when server is older than client' do
-      @sock.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_OK, 1, 9].pack('n2N'))
-      @sock.should_receive(:read).with(9).and_return([1].pack('N') + 'hello')
+      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_OK, 1, 9].pack('n2N'))
+      @sock.should_receive(:read).with(9, '', true).and_return([1].pack('N') + 'hello')
       @sphinx.send(:GetResponse, @sock, 5)
       @sphinx.GetLastWarning.should == 'searchd command v.0.1 older than client\'s v.0.5, some options might not work'
     end

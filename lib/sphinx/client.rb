@@ -1270,23 +1270,12 @@ module Sphinx
         response = ''
         len = 0
         
-        header = sock.read(8)
+        header = sock.read(8, '', true)
         if header.length == 8
           status, ver, len = header.unpack('n2N')
-          left = len.to_i
-          while left > 0 do
-            begin
-              chunk = sock.read(left)
-              if chunk
-                response << chunk
-                left -= chunk.length
-              end
-            rescue EOFError
-              break
-            end
-          end
+          response = sock.read(len, '', true) if len > 0
         end
-        sock.close if @socket === false
+        sock.close if @socket === false and !sock.closed?
     
         # check response
         read = response.length
