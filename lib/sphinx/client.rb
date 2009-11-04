@@ -24,8 +24,6 @@
 #   docs = posts.map(&:body)
 #   excerpts = sphinx.BuildExcerpts(docs, 'index', 'test')
 
-require 'socket'
-
 module Sphinx
   # :stopdoc:
 
@@ -231,6 +229,9 @@ module Sphinx
       @reqs          = []                      # requests storage (for multi-query case)
       @mbenc         = ''                      # stored mbstring encoding
       @timeout       = 0                       # connect timeout
+      @retries       = 1                       # number of connect retries in case of emergency
+      @reqtimeout    = 0                       # request timeout
+      @reqretries    = 1                       # number of request retries in case of emergency
     end
   
     # Get last error message.
@@ -277,10 +278,26 @@ module Sphinx
     #
     # Please note, this timeout will only be used for connection establishing, not
     # for regular API requests.
-    def SetConnectTimeout(timeout)
-      raise ArgumentError, '"timeout" argument must be Integer' unless timeout.respond_to?(:integer?) and timeout.integer?
+    def SetConnectTimeout(timeout, retries = 1)
+      raise ArgumentError, '"timeout" argument must be Integer'        unless timeout.respond_to?(:integer?) and timeout.integer?
+      raise ArgumentError, '"retries" argument must be Integer'        unless retries.respond_to?(:integer?) and retries.integer?
+      raise ArgumentError, '"retries" argument must be greater than 0' unless retries > 0
       
       @timeout = timeout
+      @retries = retries
+    end
+    
+    # Set request timeout in seconds.
+    #
+    # Please note, this timeout will only be used for regular API requests, not
+    # for connection establishing.
+    def SetRequestTimeout(timeout, retries = 1)
+      raise ArgumentError, '"timeout" argument must be Integer'        unless timeout.respond_to?(:integer?) and timeout.integer?
+      raise ArgumentError, '"retries" argument must be Integer'        unless retries.respond_to?(:integer?) and retries.integer?
+      raise ArgumentError, '"retries" argument must be greater than 0' unless retries > 0
+      
+      @reqtimeout = timeout
+      @reqretries = retries
     end
    
     # Set offset and count into result set,
@@ -291,10 +308,10 @@ module Sphinx
       raise ArgumentError, '"max" argument must be Integer'    unless max.respond_to?(:integer?)    and max.integer?
       raise ArgumentError, '"cutoff" argument must be Integer' unless cutoff.respond_to?(:integer?) and cutoff.integer?
       
-      raise ArgumentError, '"offset" argument should be greater or equal than zero' unless offset >= 0
-      raise ArgumentError, '"limit" argument should be greater than zero'         unless limit > 0
-      raise ArgumentError, '"max" argument should be greater or equal than zero'    unless max >= 0
-      raise ArgumentError, '"cutoff" argument should be greater or equal than zero' unless cutoff >= 0
+      raise ArgumentError, '"offset" argument should be greater or equal to zero' unless offset >= 0
+      raise ArgumentError, '"limit" argument should be greater to zero'           unless limit > 0
+      raise ArgumentError, '"max" argument should be greater or equal to zero'    unless max >= 0
+      raise ArgumentError, '"cutoff" argument should be greater or equal to zero' unless cutoff >= 0
 
       @offset = offset
       @limit = limit
@@ -306,7 +323,7 @@ module Sphinx
     # integer, 0 means "do not limit"
     def SetMaxQueryTime(max)
       raise ArgumentError, '"max" argument must be Integer' unless max.respond_to?(:integer?) and max.integer?
-      raise ArgumentError, '"max" argument should be greater or equal than zero' unless max >= 0
+      raise ArgumentError, '"max" argument should be greater or equal to zero' unless max >= 0
 
       @maxquerytime = max
     end
@@ -427,7 +444,7 @@ module Sphinx
     def SetIDRange(min, max)
       raise ArgumentError, '"min" argument must be Integer' unless min.respond_to?(:integer?) and min.integer?
       raise ArgumentError, '"max" argument must be Integer' unless max.respond_to?(:integer?) and max.integer?
-      raise ArgumentError, '"max" argument greater or equal than "min"' unless min <= max
+      raise ArgumentError, '"max" argument greater or equal to "min"' unless min <= max
 
       @min_id = min
       @max_id = max
@@ -458,7 +475,7 @@ module Sphinx
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
       raise ArgumentError, '"min" argument must be Integer'                unless min.respond_to?(:integer?) and min.integer?
       raise ArgumentError, '"max" argument must be Integer'                unless max.respond_to?(:integer?) and max.integer?
-      raise ArgumentError, '"max" argument greater or equal than "min"'    unless min <= max
+      raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
       raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
     
       @filters << { 'type' => SPH_FILTER_RANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min, 'max' => max }
@@ -472,7 +489,7 @@ module Sphinx
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
       raise ArgumentError, '"min" argument must be Float or Integer'       unless min.kind_of?(Float) or (min.respond_to?(:integer?) and min.integer?)
       raise ArgumentError, '"max" argument must be Float or Integer'       unless max.kind_of?(Float) or (max.respond_to?(:integer?) and max.integer?)
-      raise ArgumentError, '"max" argument greater or equal than "min"'    unless min <= max
+      raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
       raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
     
       @filters << { 'type' => SPH_FILTER_FLOATRANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min.to_f, 'max' => max.to_f }
@@ -1138,7 +1155,7 @@ module Sphinx
         return false;
       end
       
-      @socket.close
+      @socket.close if !@socket.closed?
       @socket = false
       
       true
@@ -1188,7 +1205,7 @@ module Sphinx
         
         sock = nil
         begin
-          Sphinx::safe_execute(@timeout, 1) do
+          Sphinx::safe_execute(@timeout, @retries) do
             if @path
               sock = UNIXSocket.new(@path)
             else
@@ -1206,20 +1223,46 @@ module Sphinx
           raise SphinxConnectError, @error
         end
 
+        io = Sphinx::BufferedIO.new(sock)
+        io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+        if @reqtimeout > 0
+          io.read_timeout = @reqtimeout
+          
+          # This is a part of memcache-client library.
+          #
+          # Getting reports from several customers, including 37signals,
+          # that the non-blocking timeouts in 1.7.5 don't seem to be reliable.
+          # It can't hurt to set the underlying socket timeout also, if possible.
+          if timeout
+            secs = Integer(timeout)
+            usecs = Integer((timeout - secs) * 1_000_000)
+            optval = [secs, usecs].pack("l_2")
+            begin
+              io.setsockopt Socket::SOL_SOCKET, Socket::SO_RCVTIMEO, optval
+              io.setsockopt Socket::SOL_SOCKET, Socket::SO_SNDTIMEO, optval
+            rescue Exception => ex
+              # Solaris, for one, does not like/support socket timeouts.
+              @warning = "Unable to use raw socket timeouts: #{ex.class.name}: #{ex.message}"
+            end
+          end
+        else
+          io.read_timeout = false
+        end
+
         # send my version
         # this is a subtle part. we must do it before (!) reading back from searchd.
         # because otherwise under some conditions (reported on FreeBSD for instance)
         # TCP stack could throttle write-write-read pattern because of Nagle.
-        sock.send([1].pack('N'), 0)
+        io.write([1].pack('N'))
         
-        v = sock.recv(4).unpack('N*').first
+        v = io.read(4).unpack('N*').first
         if v < 1
-          sock.close
+          io.close
           @error = "expected searchd protocol version 1+, got version '#{v}'"
           raise SphinxConnectError, @error
         end
         
-        sock
+        io
       end
       
       # Get and check response packet from searchd server.
@@ -1227,13 +1270,13 @@ module Sphinx
         response = ''
         len = 0
         
-        header = sock.recv(8)
+        header = sock.read(8)
         if header.length == 8
           status, ver, len = header.unpack('n2N')
           left = len.to_i
           while left > 0 do
             begin
-              chunk = sock.recv(left)
+              chunk = sock.read(left)
               if chunk
                 response << chunk
                 left -= chunk.length
@@ -1295,11 +1338,14 @@ module Sphinx
         len = request.to_s.length + (additional != nil ? 4 : 0)
         header = [command_id, command_ver, len].pack('nnN')
         header << [additional].pack('N') if additional != nil
-        sock.send(header + request.to_s, 0)
         
-        return sock if skip_response
-        response = self.GetResponse(sock, command_ver)
-        return Response.new(response)
+        Sphinx::safe_execute(@reqtimeout, @reqretries) do
+          sock.write(header + request.to_s)
+        
+          return sock if skip_response
+          response = self.GetResponse(sock, command_ver)
+          return Response.new(response)
+        end
       end
   end
 end

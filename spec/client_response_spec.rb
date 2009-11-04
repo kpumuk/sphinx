@@ -86,7 +86,7 @@ describe Sphinx::Client, 'connected' do
     it 'should open socket' do
       @sphinx.Open.should be_true
       socket = @sphinx.instance_variable_get(:@socket)
-      socket.should be_kind_of(TCPSocket)
+      socket.should be_kind_of(Sphinx::BufferedIO)
       socket.close
     end
 
@@ -96,7 +96,7 @@ describe Sphinx::Client, 'connected' do
       @sphinx.GetLastError.should == 'already connected'
 
       socket = @sphinx.instance_variable_get(:@socket)
-      socket.should be_kind_of(TCPSocket)
+      socket.should be_kind_of(Sphinx::BufferedIO)
       socket.close
     end
   end

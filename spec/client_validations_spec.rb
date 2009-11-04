@@ -25,6 +25,46 @@ describe Sphinx::Client, 'disconnected' do
         @sphinx.SetConnectTimeout('timeout')
       }.to raise_error(ArgumentError)
     end
+
+    it 'should raise an error when retries is not Integer' do
+      expect {
+        @sphinx.SetConnectTimeout(1, 'retries')
+      }.to raise_error(ArgumentError)
+    end
+
+    it 'should raise an error when retries is less than 1' do
+      expect {
+        @sphinx.SetConnectTimeout(1, 0)
+      }.to raise_error(ArgumentError)
+
+      expect {
+        @sphinx.SetConnectTimeout(1, -1)
+      }.to raise_error(ArgumentError)
+    end
+  end
+
+  context 'in SetRequestTimeout method' do
+    it 'should raise an error when timeout is not Integer' do
+      expect {
+        @sphinx.SetRequestTimeout('timeout')
+      }.to raise_error(ArgumentError)
+    end
+
+    it 'should raise an error when retries is not Integer' do
+      expect {
+        @sphinx.SetRequestTimeout(1, 'retries')
+      }.to raise_error(ArgumentError)
+    end
+
+    it 'should raise an error when retries is less than 1' do
+      expect {
+        @sphinx.SetRequestTimeout(1, 0)
+      }.to raise_error(ArgumentError)
+
+      expect {
+        @sphinx.SetRequestTimeout(1, -1)
+      }.to raise_error(ArgumentError)
+    end
   end
   
   context 'in SetLimits method' do
