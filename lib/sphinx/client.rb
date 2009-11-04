@@ -1203,66 +1203,63 @@ module Sphinx
       def Connect
         return @socket unless @socket === false
         
-        sock = nil
-        begin
-          Sphinx::safe_execute(@timeout, @retries) do
-            if @path
-              sock = UNIXSocket.new(@path)
-            else
-              sock = TCPSocket.new(@host, @port)
-            end
+        Sphinx::safe_execute(@timeout, @retries) do
+          if @path
+            sock = UNIXSocket.new(@path)
+          else
+            sock = TCPSocket.new(@host, @port)
           end
-        rescue SocketError, SystemCallError, IOError, ::Timeout::Error => e
-          location = @path || "#{@host}:#{@port}"
-          @error = "connection to #{location} failed ("
-          if e.kind_of?(SystemCallError)
-            @error << "errno=#{e.class::Errno}, "
-          end
-          @error << "msg=#{e.message})"
-          @connerror = true
-          raise SphinxConnectError, @error
-        end
 
-        io = Sphinx::BufferedIO.new(sock)
-        io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
-        if @reqtimeout > 0
-          io.read_timeout = @reqtimeout
+          io = Sphinx::BufferedIO.new(sock)
+          io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+          if @reqtimeout > 0
+            io.read_timeout = @reqtimeout
           
-          # This is a part of memcache-client library.
-          #
-          # Getting reports from several customers, including 37signals,
-          # that the non-blocking timeouts in 1.7.5 don't seem to be reliable.
-          # It can't hurt to set the underlying socket timeout also, if possible.
-          if timeout
-            secs = Integer(timeout)
-            usecs = Integer((timeout - secs) * 1_000_000)
-            optval = [secs, usecs].pack("l_2")
-            begin
-              io.setsockopt Socket::SOL_SOCKET, Socket::SO_RCVTIMEO, optval
-              io.setsockopt Socket::SOL_SOCKET, Socket::SO_SNDTIMEO, optval
-            rescue Exception => ex
-              # Solaris, for one, does not like/support socket timeouts.
-              @warning = "Unable to use raw socket timeouts: #{ex.class.name}: #{ex.message}"
+            # This is a part of memcache-client library.
+            #
+            # Getting reports from several customers, including 37signals,
+            # that the non-blocking timeouts in 1.7.5 don't seem to be reliable.
+            # It can't hurt to set the underlying socket timeout also, if possible.
+            if timeout
+              secs = Integer(timeout)
+              usecs = Integer((timeout - secs) * 1_000_000)
+              optval = [secs, usecs].pack("l_2")
+              begin
+                io.setsockopt Socket::SOL_SOCKET, Socket::SO_RCVTIMEO, optval
+                io.setsockopt Socket::SOL_SOCKET, Socket::SO_SNDTIMEO, optval
+              rescue Exception => ex
+                # Solaris, for one, does not like/support socket timeouts.
+                @warning = "Unable to use raw socket timeouts: #{ex.class.name}: #{ex.message}"
+              end
             end
+          else
+            io.read_timeout = false
           end
-        else
-          io.read_timeout = false
-        end
 
-        # send my version
-        # this is a subtle part. we must do it before (!) reading back from searchd.
-        # because otherwise under some conditions (reported on FreeBSD for instance)
-        # TCP stack could throttle write-write-read pattern because of Nagle.
-        io.write([1].pack('N'))
-        
-        v = io.read(4).unpack('N*').first
-        if v < 1
-          io.close
-          @error = "expected searchd protocol version 1+, got version '#{v}'"
-          raise SphinxConnectError, @error
+          # send my version
+          # this is a subtle part. we must do it before (!) reading back from searchd.
+          # because otherwise under some conditions (reported on FreeBSD for instance)
+          # TCP stack could throttle write-write-read pattern because of Nagle.
+          io.write([1].pack('N'))
+          v = io.read(4).unpack('N*').first
+
+          if v < 1
+            io.close
+            @error = "expected searchd protocol version 1+, got version '#{v}'"
+            raise SphinxConnectError, @error
+          end
+
+          io
         end
-        
-        io
+      rescue SocketError, SystemCallError, IOError, EOFError, ::Timeout::Error => e
+        location = @path || "#{@host}:#{@port}"
+        @error = "connection to #{location} failed ("
+        if e.kind_of?(SystemCallError)
+          @error << "errno=#{e.class::Errno}, "
+        end
+        @error << "msg=#{e.message})"
+        @connerror = true
+        raise SphinxConnectError, @error
       end
       
       # Get and check response packet from searchd server.
