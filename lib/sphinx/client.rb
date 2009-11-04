@@ -1342,9 +1342,7 @@ module Sphinx
         Sphinx::safe_execute(@reqtimeout, @reqretries) do
           sock.write(header + request.to_s)
         
-          return sock if skip_response
-          response = self.GetResponse(sock, command_ver)
-          return Response.new(response)
+          skip_response ? sock : Response.new(self.GetResponse(sock, command_ver))
         end
       end
   end
