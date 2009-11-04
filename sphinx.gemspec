@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{sphinx}
-  s.version = ""
+  s.version = "9.10.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Dmytro Shteflyuk"]
@@ -16,9 +16,10 @@ Gem::Specification.new do |s|
     "README.rdoc"
   ]
   s.files = [
-    "README.rdoc",
+    ".gitignore",
+     "README.rdoc",
      "Rakefile",
-     "VERSION",
+     "VERSION.yml",
      "init.rb",
      "install.rb",
      "lib/sphinx.rb",
@@ -94,6 +95,7 @@ Gem::Specification.new do |s|
      "spec/sphinx/sphinx-id64.conf",
      "spec/sphinx/sphinx.conf",
      "spec/sphinx/sphinx_test.sql",
+     "sphinx.gemspec",
      "sphinx.yml.tpl",
      "tasks/sphinx.rake"
   ]
