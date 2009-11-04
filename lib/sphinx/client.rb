@@ -1,7 +1,7 @@
 # = client.rb - Sphinx Client API
 # 
 # Author::    Dmytro Shteflyuk <mailto:kpumuk@kpumuk.info>.
-# Copyright:: Copyright (c) 2006 - 2008 Dmytro Shteflyuk
+# Copyright:: Copyright (c) 2006 — 2009 Dmytro Shteflyuk
 # License::   Distributes under the same terms as Ruby
 # Version::   0.9.10-r2043
 # Website::   http://kpumuk.info/projects/ror-plugins/sphinx
