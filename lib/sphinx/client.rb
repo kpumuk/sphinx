@@ -1203,6 +1203,7 @@ module Sphinx
       def Connect
         return @socket unless @socket === false
         
+        sock = io = nil
         Sphinx::safe_execute(@timeout, @retries) do
           if @path
             sock = UNIXSocket.new(@path)
@@ -1252,6 +1253,13 @@ module Sphinx
           io
         end
       rescue SocketError, SystemCallError, IOError, EOFError, ::Timeout::Error => e
+        # Close previously opened socket (in case of it has been really opened)
+        if io and !io.closed?
+          io.close
+        elsif sock and !sock.closed?
+          sock.close
+        end
+        
         location = @path || "#{@host}:#{@port}"
         @error = "connection to #{location} failed ("
         if e.kind_of?(SystemCallError)
