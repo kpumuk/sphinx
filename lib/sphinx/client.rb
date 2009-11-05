@@ -88,6 +88,7 @@ module Sphinx
     # general success, warning message and command-specific reply follow 
     SEARCHD_WARNING = 3    
 
+    attr_reader :servers
     attr_reader :timeout
     attr_reader :retries
     attr_reader :reqtimeout
@@ -236,28 +237,51 @@ module Sphinx
       @lastserver    = -1
     end
   
-    # Get last error message.
+    # Returns last error message, as a string, in human readable format. If there
+    # were no errors during the previous API call, empty string is returned.
+    #
+    # You should call it when any other function (such as +Query+) fails (typically,
+    # the failing function returns false). The returned string will contain the
+    # error description.
+    #
+    # The error message is not reset by this call; so you can safely call it
+    # several times if needed.
+    #
     def GetLastError
       @error
     end
     
-    # Get last warning message.
+    # Returns last warning message, as a string, in human readable format. If there
+    # were no warnings during the previous API call, empty string is returned.
+    #
+    # You should call it to verify whether your request (such as +Query+) was
+    # completed but with warnings. For instance, search query against a distributed
+    # index might complete succesfully even if several remote agents timed out.
+    # In that case, a warning message would be produced.
+    # 
+    # The warning message is not reset by this call; so you can safely call it
+    # several times if needed.
+    #
     def GetLastWarning
       @warning
     end
     
-    # Get last error flag (to tell network connection errors from
-    # searchd errors or broken responses)
+    # Checks whether the last error was a network error on API side, or a
+    # remote error reported by searchd. Returns true if the last connection
+    # attempt to searchd failed on API side, false otherwise (if the error
+    # was remote, or there were no connection attempts at all).
+    #
     def IsConnectError
       @connerror || false
     end
     
-    # Set searchd host name (string) and port (integer).
+    # Sets searchd host name and TCP port. All subsequent requests will
+    # use the new host and port settings. Default +host+ and +port+ are
+    # 'localhost' and 3312, respectively.
     #
-    # You can specify an absolute path to Sphinx's UNIX socket as +host+, in this
-    # case pass port as +0+ or +nil+.
+    # Also, you can specify an absolute path to Sphinx's UNIX socket as +host+,
+    # in this case pass port as +0+ or +nil+.
     #
-    # Otherwise +host+ should contain a host name or IP address.
     def SetServer(host, port)
       raise ArgumentError, '"host" argument must be String' unless host.kind_of?(String)
       
@@ -276,14 +300,14 @@ module Sphinx
       @servers = [Sphinx::Server.new(self, host, port, path)].freeze
     end
 
-    attr_reader :servers
-
-    # Set searchd host name (string) and port (integer).
+    # Sets the list of searchd servers. Each subsequent request will use next
+    # server in list (round-robin). In case of one server failure, request could
+    # be retried on another server (see +SetConnectTimeout+ and +SetRequestTimeout+).
     #
-    # You can specify an absolute path to Sphinx's UNIX socket as +host+, in this
-    # case pass port as +0+ or +nil+.
+    # Method accepts an +Array+ of +Hash+es, each of them should have :host
+    # and :port (to connect to searchd through network) or :path (an absolute path
+    # to UNIX socket) specified.
     #
-    # Otherwise +host+ should contain a host name or IP address.
     def SetServers(servers)
       raise ArgumentError, '"servers" argument must be Array'     unless servers.kind_of?(Array)
       raise ArgumentError, '"servers" argument must be not empty' if servers.empty?
@@ -311,10 +335,21 @@ module Sphinx
       end.freeze
     end
     
-    # Set connection timeout in seconds.
+    # Sets the time allowed to spend connecting to the server before giving up
+    # and number of retries to perform.
+    #
+    # In the event of a failure to connect, an appropriate error code should
+    # be returned back to the application in order for application-level error
+    # handling to advise the user.
+    #
+    # When multiple servers configured through +SetServers+ method, and +retries+
+    # number is greater than 1, library will try to connect to another server.
+    # In case of single server configured, it will try to reconnect +retries+
+    # times.
     #
     # Please note, this timeout will only be used for connection establishing, not
     # for regular API requests.
+    #
     def SetConnectTimeout(timeout, retries = 1)
       raise ArgumentError, '"timeout" argument must be Integer'        unless timeout.respond_to?(:integer?) and timeout.integer?
       raise ArgumentError, '"retries" argument must be Integer'        unless retries.respond_to?(:integer?) and retries.integer?
@@ -324,10 +359,21 @@ module Sphinx
       @retries = retries
     end
     
-    # Set request timeout in seconds.
+    # Sets the time allowed to spend performing request to the server before giving up
+    # and number of retries to perform.
     #
-    # Please note, this timeout will only be used for regular API requests, not
+    # In the event of a failure to do request, an appropriate error code should
+    # be returned back to the application in order for application-level error
+    # handling to advise the user.
+    #
+    # When multiple servers configured through +SetServers+ method, and +retries+
+    # number is greater than 1, library will try to do another try with this server
+    # (with full reconnect). If connection would fail, behavior depends on
+    # +SetConnectTimeout+ settings.
+    #
+    # Please note, this timeout will only be used for request performing, not
     # for connection establishing.
+    #
     def SetRequestTimeout(timeout, retries = 1)
       raise ArgumentError, '"timeout" argument must be Integer'        unless timeout.respond_to?(:integer?) and timeout.integer?
       raise ArgumentError, '"retries" argument must be Integer'        unless retries.respond_to?(:integer?) and retries.integer?
