@@ -383,8 +383,38 @@ module Sphinx
       @reqretries = retries
     end
    
-    # Set offset and count into result set,
-    # and optionally set max-matches and cutoff limits.
+    # Sets offset into server-side result set (+offset+) and amount of matches to
+    # return to client starting from that offset (+limit+). Can additionally control
+    # maximum server-side result set size for current query (+max_matches+) and the
+    # threshold amount of matches to stop searching at (+cutoff+). All parameters
+    # must be non-negative integers.
+    #
+    # First two parameters to +SetLimits+ are identical in behavior to MySQL LIMIT
+    # clause. They instruct searchd to return at most +limit+ matches starting from
+    # match number +offset+. The default offset and limit settings are +0+ and +20+,
+    # that is, to return first +20+ matches.
+    # 
+    # +max_matches+ setting controls how much matches searchd will keep in RAM
+    # while searching. All matching documents will be normally processed, ranked,
+    # filtered, and sorted even if max_matches is set to +1+. But only best +N+
+    # documents are stored in memory at any given moment for performance and RAM
+    # usage reasons, and this setting controls that N. Note that there are two
+    # places where max_matches limit is enforced. Per-query limit is controlled
+    # by this API call, but there also is per-server limit controlled by +max_matches+
+    # setting in the config file. To prevent RAM usage abuse, server will not
+    # allow to set per-query limit higher than the per-server limit.
+    #
+    # You can't retrieve more than +max_matches+ matches to the client application.
+    # The default limit is set to +1000+. Normally, you must not have to go over
+    # this limit. One thousand records is enough to present to the end user.
+    # And if you're thinking about pulling the results to application for further
+    # sorting or filtering, that would be much more efficient if performed on
+    # Sphinx side.
+    #
+    # +cutoff+ setting is intended for advanced performance control. It tells
+    # searchd to forcibly stop search query once $cutoff matches had been found
+    # and processed.
+    #
     def SetLimits(offset, limit, max = 0, cutoff = 0)
       raise ArgumentError, '"offset" argument must be Integer' unless offset.respond_to?(:integer?) and offset.integer?
       raise ArgumentError, '"limit" argument must be Integer'  unless limit.respond_to?(:integer?)  and limit.integer?
@@ -402,8 +432,15 @@ module Sphinx
       @cutoff = cutoff if cutoff > 0
     end
     
-    # Set maximum query time, in milliseconds, per-index,
-    # integer, 0 means "do not limit"
+    # Sets maximum search query time, in milliseconds. Parameter must be a
+    # non-negative integer. Default valus is +0+ which means "do not limit".
+    #
+    # Similar to +cutoff+ setting from +SetLimits+, but limits elapsed query
+    # time instead of processed matches count. Local search queries will be
+    # stopped once that much time has elapsed. Note that if you're performing
+    # a search which queries several local indexes, this limit applies to each
+    # index separately.
+    #
     def SetMaxQueryTime(max)
       raise ArgumentError, '"max" argument must be Integer' unless max.respond_to?(:integer?) and max.integer?
       raise ArgumentError, '"max" argument should be greater or equal to zero' unless max >= 0
@@ -411,10 +448,16 @@ module Sphinx
       @maxquerytime = max
     end
     
-    # Set matching mode.
+    # Sets full-text query matching mode.
     #
-    # You can specify mode as String ("all", "any", etc), Symbol (:all, :any, etc), or
-    # Fixnum constant (SPH_MATCH_ALL, SPH_MATCH_ANY, etc).
+    # Parameter must be a +Fixnum+ constant specifying one of the known modes
+    # (+SPH_MATCH_ALL+, +SPH_MATCH_ANY+, etc), +String+ with identifier (<tt>"all"</tt>,
+    # <tt>"any"</tt>, etc), or a +Symbol+ (<tt>:all</tt>, <tt>:any</tt>, etc).
+    #
+    # Corresponding sections in Sphinx reference manual:
+    # * {Section 4.1, "Matching modes"}[http://www.sphinxsearch.com/docs/current.html#matching-modes] for details.
+    # * {Section 6.3.1, "SetMatchMode"}[http://www.sphinxsearch.com/docs/current.html#api-func-setmatchmode] for details.
+    #
     def SetMatchMode(mode)
       case mode
         when String, Symbol
@@ -662,7 +705,15 @@ module Sphinx
       @groupdistinct = attribute.to_s
     end
     
-    # Set distributed retries count and delay.
+    # Sets distributed retry count and delay.
+    #
+    # On temporary failures searchd will attempt up to +count+ retries per
+    # agent. +delay+ is the delay between the retries, in milliseconds. Retries
+    # are disabled by default. Note that this call will not make the API itself
+    # retry on temporary failure; it only tells searchd to do so. Currently,
+    # the list of temporary failures includes all kinds of +connect+
+    # failures and maxed out (too busy) remote agents.
+    #
     def SetRetries(count, delay = 0)
       raise ArgumentError, '"count" argument must be Integer' unless count.respond_to?(:integer?) and count.integer?
       raise ArgumentError, '"delay" argument must be Integer' unless delay.respond_to?(:integer?) and delay.integer?
@@ -671,10 +722,22 @@ module Sphinx
       @retrydelay = delay
     end
     
-    # Set attribute values override
+    # Sets temporary (per-query) per-document attribute value overrides. Only
+    # supports scalar attributes. +values+ must be a +Hash+ that maps document
+    # IDs to overridden attribute values.
     #
-    # There can be only one override per attribute.
-    # +values+ must be a hash that maps document IDs to attribute values.
+    # Override feature lets you "temporary" update attribute values for some
+    # documents within a single query, leaving all other queries unaffected.
+    # This might be useful for personalized data. For example, assume you're
+    # implementing a personalized search function that wants to boost the posts
+    # that the user's friends recommend. Such data is not just dynamic, but
+    # also personal; so you can't simply put it in the index because you don't
+    # want everyone's searches affected. Overrides, on the other hand, are local
+    # to a single query and invisible to everyone else. So you can, say, setup
+    # a "friends_weight" value for every document, defaulting to 0, then
+    # temporary override it with 1 for documents 123, 456 and 789 (recommended
+    # by exactly the friends of current user), and use that value when ranking.
+    #
     def SetOverride(attrname, attrtype, values)
       raise ArgumentError, '"attrname" argument must be String or Symbol' unless attrname.kind_of?(String) or attrname.kind_of?(Symbol)
 
@@ -709,20 +772,72 @@ module Sphinx
       @overrides << { 'attr' => attrname.to_s, 'type' => attrtype, 'values' => values }
     end
 
-    # Set select-list (attributes or expressions), SQL-like syntax.
+    # Sets the select clause, listing specific attributes to fetch, and
+    # expressions to compute and fetch. Clause syntax mimics SQL.
+    #
+    # +SetSelect+ is very similar to the part of a typical SQL query between
+    # +SELECT+ and +FROM+. It lets you choose what attributes (columns) to
+    # fetch, and also what expressions over the columns to compute and fetch.
+    # A certain difference from SQL is that expressions must always be aliased
+    # to a correct identifier (consisting of letters and digits) using +AS+
+    # keyword. SQL also lets you do that but does not require to. Sphinx enforces
+    # aliases so that the computation results can always be returned under a
+    #{ }"normal" name in the result set, used in other clauses, etc.
+    #
+    # Everything else is basically identical to SQL. Star ('*') is supported.
+    # Functions are supported. Arbitrary amount of expressions is supported.
+    # Computed expressions can be used for sorting, filtering, and grouping,
+    # just as the regular attributes.
+    #
+    # Starting with version 0.9.9-rc2, aggregate functions (<tt>AVG()</tt>,
+    # <tt>MIN()</tt>, <tt>MAX()</tt>, <tt>SUM()</tt>) are supported when using
+    # <tt>GROUP BY</tt>.
+    #
+    # Expression sorting (Section 4.5, “SPH_SORT_EXPR mode”) and geodistance
+    # functions (+SetGeoAnchor+) are now internally implemented
+    # using this computed expressions mechanism, using magic names '<tt>@expr</tt>'
+    # and '<tt>@geodist</tt>' respectively.
+    #
+    # Usage example:
+    #
+    #   sphinx.SetSelect('*, @weight+(user_karma+ln(pageviews))*0.1 AS myweight')
+    #   sphinx.SetSelect('exp_years, salary_gbp*{$gbp_usd_rate} AS salary_usd, IF(age>40,1,0) AS over40')
+    #   sphinx.SetSelect('*, AVG(price) AS avgprice')
+    #
     def SetSelect(select)
       raise ArgumentError, '"select" argument must be String' unless select.kind_of?(String)
 
       @select = select
     end
     
-    # Clear all filters (for multi-queries).
+    # Clears all currently set filters.
+    #
+    # This call is only normally required when using multi-queries. You might want
+    # to set different filters for different queries in the batch. To do that,
+    # you should call +ResetFilters+ and add new filters using the respective calls.
+    #
+    # Usage example:
+    #
+    #   sphinx.ResetFilters
+    #
     def ResetFilters
       @filters = []
       @anchor = []
     end
     
-    # Clear groupby settings (for multi-queries).
+    # Clears all currently group-by settings, and disables group-by.
+    #
+    # This call is only normally required when using multi-queries. You can
+    # change individual group-by settings using +SetGroupBy+ and +SetGroupDistinct+
+    # calls, but you can not disable group-by using those calls. +ResetGroupBy+
+    # fully resets previous group-by settings and disables group-by mode in the
+    # current state, so that subsequent +AddQuery+ calls can perform non-grouping
+    # searches.
+    #
+    # Usage example:
+    #
+    #   sphinx.ResetGroupBy
+    #
     def ResetGroupBy
       @groupby       = ''
       @groupfunc     = SPH_GROUPBY_DAY
