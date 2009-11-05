@@ -1,110 +1,233 @@
 require File.dirname(__FILE__) + '/spec_helper'
 
 describe Sphinx::Client, 'disconnected' do
-  context 'in Connect method' do
+  context 'in with_server method' do
     before :each do
       @sphinx = Sphinx::Client.new
-      @sock = mock('TCPSocket')
-      @io = mock('Sphinx::BufferedIO', :setsockopt => nil, :read_timeout= => nil)
+      @servers = [{:host => 'localhost', :port => 1}, {:host => 'localhost', :port => 2}]
     end
 
-    it 'should establish TCP connection to the server and initialize session' do
-      TCPSocket.should_receive(:new).with('localhost', 3312).and_return(@sock)
-      Sphinx::BufferedIO.should_receive(:new).with(@sock).and_return(@io)
-      @io.should_receive(:read).with(4).and_return([1].pack('N'))
-      @io.should_receive(:write).with([1].pack('N'))
-      @sphinx.send(:Connect).should be(@io)
+    context 'without retries' do
+      it 'should use single Server instance' do
+        2.times do
+          cnt = 0
+          @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0] }
+          cnt.should == 1
+        end
+      end
+      
+      it 'should raise an exception on error' do
+        2.times do
+          cnt = 0
+          expect {
+            @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0]; raise Sphinx::SphinxConnectError }
+          }.to raise_error(Sphinx::SphinxConnectError)
+          cnt.should == 1
+        end
+      end
+
+      it 'should round-robin servers on each call' do
+        @sphinx.SetServers(@servers)
+        cnt = 0
+        @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0] }
+        cnt.should == 1
+        cnt = 0
+        @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[1] }
+        cnt.should == 1
+        cnt = 0
+        @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0] }
+        cnt.should == 1
+      end
+
+      it 'should round-robin servers and raise an exception on error' do
+        @sphinx.SetServers(@servers)
+        cnt = 0
+        expect {
+          @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0]; raise Sphinx::SphinxConnectError }
+        }.to raise_error(Sphinx::SphinxConnectError)
+        cnt.should == 1
+        cnt = 0
+        expect {
+          @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[1]; raise Sphinx::SphinxConnectError }
+        }.to raise_error(Sphinx::SphinxConnectError)
+        cnt.should == 1
+        cnt = 0
+        expect {
+          @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0]; raise Sphinx::SphinxConnectError }
+        }.to raise_error(Sphinx::SphinxConnectError)
+        cnt.should == 1
+      end
     end
 
-    it 'should raise exception when searchd protocol is not 1+' do
-      TCPSocket.should_receive(:new).with('localhost', 3312).and_return(@sock)
-      Sphinx::BufferedIO.should_receive(:new).with(@sock).and_return(@io)
-      @io.should_receive(:write).with([1].pack('N'))
-      @io.should_receive(:read).with(4).and_return([0].pack('N'))
-      @io.should_receive(:close)
-      lambda { @sphinx.send(:Connect) }.should raise_error(Sphinx::SphinxConnectError)
-      @sphinx.GetLastError.should == 'expected searchd protocol version 1+, got version \'0\''
-    end
+    context 'with retries' do
+      before :each do
+        @sphinx.SetConnectTimeout(0, 3)
+      end
 
-    it 'should raise exception on connection error' do
-      TCPSocket.should_receive(:new).with('localhost', 3312).and_raise(Errno::EBADF)
-      lambda { @sphinx.send(:Connect) }.should raise_error(Sphinx::SphinxConnectError)
-      @sphinx.GetLastError.should == 'connection to localhost:3312 failed (errno=9, msg=Bad file descriptor)'
-      @sphinx.IsConnectError.should be_true
-    end
+      it 'should raise an exception on error' do
+        cnt = 0
+        expect {
+          @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0]; raise Sphinx::SphinxConnectError }
+        }.to raise_error(Sphinx::SphinxConnectError)
+        cnt.should == 3
+      end
 
-    it 'should use custom host and port' do
-      @sphinx.SetServer('anotherhost', 55555)
-      TCPSocket.should_receive(:new).with('anotherhost', 55555).and_raise(Errno::EBADF)
-      lambda { @sphinx.send(:Connect) }.should raise_error(Sphinx::SphinxConnectError)
-      @sphinx.IsConnectError.should be_true
-    end
-    
-    it 'should handle connection timeouts' do
-      TCPSocket.should_receive(:new).with('localhost', 3312).and_return { sleep(5) }
-      @sphinx.SetConnectTimeout(1)
-      lambda { @sphinx.send(:Connect) }.should raise_error(Sphinx::SphinxConnectError)
-      @sphinx.GetLastError.should == 'connection to localhost:3312 failed (msg=time\'s up!)'
-      @sphinx.IsConnectError.should be_true
+      it 'should round-robin servers and raise an exception on error' do
+        @sphinx.SetServers(@servers)
+        cnt = 0
+        expect {
+          @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[(cnt - 1) % 2]; raise Sphinx::SphinxConnectError }
+        }.to raise_error(Sphinx::SphinxConnectError)
+        cnt.should == 3
+      end
     end
   end
   
-  context 'in GetResponse method' do
+  context 'in with_socket method' do
     before :each do
       @sphinx = Sphinx::Client.new
-      @sock = mock('Sphinx::BufferedIO', :closed? => false)
-      @sock.should_receive(:close)
+      @socket = mock('TCPSocket')
+    end
+    
+    context 'without retries' do
+      before :each do
+        @server = mock('Server')
+        @server.should_receive(:get_socket).and_yield(@socket).and_return(@socket)
+        @server.should_receive(:free_socket).with(@socket).at_least(1)
+      end
+      
+      it 'should initialize session' do
+        @socket.should_receive(:write).with([1].pack('N'))
+        @socket.should_receive(:read).with(4).and_return([1].pack('N'))
+        cnt = 0
+        @sphinx.send(:with_socket, @server) { |socket| cnt += 1; socket.should == @socket }
+        cnt.should == 1
+      end
+
+      it 'should raise exception when searchd protocol is not 1+' do
+        @socket.should_receive(:write).with([1].pack('N'))
+        @socket.should_receive(:read).with(4).and_return([0].pack('N'))
+        cnt = 0
+        expect {
+          @sphinx.send(:with_socket, @server) { cnt += 1; }
+        }.to raise_error(Sphinx::SphinxConnectError, 'expected searchd protocol version 1+, got version \'0\'')
+        cnt.should == 0
+      end
+
+      it 'should handle request timeouts' do
+        @socket.should_receive(:write).with([1].pack('N'))
+        @socket.should_receive(:read).with(4).and_return([1].pack('N'))
+        @sphinx.SetRequestTimeout(1)
+        cnt = 0
+        expect {
+          @sphinx.send(:with_socket, @server) { cnt += 1; sleep 2 }
+        }.to raise_error(Sphinx::SphinxResponseError, 'failed to read searchd response (msg=time\'s up!)')
+        cnt.should == 1
+
+        @sphinx.GetLastError.should == 'failed to read searchd response (msg=time\'s up!)'
+        @sphinx.IsConnectError.should be_false
+      end
+
+      it 'should re-reaise Sphinx errors' do
+        @socket.should_receive(:write).with([1].pack('N'))
+        @socket.should_receive(:read).with(4).and_return([1].pack('N'))
+        cnt = 0
+        expect {
+          @sphinx.send(:with_socket, @server) { cnt += 1; raise Sphinx::SphinxInternalError, 'hello' }
+        }.to raise_error(Sphinx::SphinxInternalError, 'hello')
+        cnt.should == 1
+
+        @sphinx.GetLastError.should == 'hello'
+        @sphinx.IsConnectError.should be_false
+      end
+    end
+
+    context 'with retries' do
+      before :each do
+        @sphinx.SetRequestTimeout(0, 3)
+        # two more times yielding - retries
+        @server = mock('Server')
+        @server.should_receive(:get_socket).at_least(1).times.and_yield(@socket).and_return(@socket)
+        @server.should_receive(:free_socket).with(@socket).at_least(1)
+      end
+      
+      it 'should raise an exception on error' do
+        @socket.should_receive(:write).exactly(3).times.with([1].pack('N'))
+        @socket.should_receive(:read).exactly(3).times.with(4).and_return([1].pack('N'))
+        cnt = 0
+        expect {
+          @sphinx.send(:with_socket, @server) { cnt += 1; raise Sphinx::SphinxInternalError, 'hello' }
+        }.to raise_error(Sphinx::SphinxInternalError, 'hello')
+        cnt.should == 3
+
+        @sphinx.GetLastError.should == 'hello'
+        @sphinx.IsConnectError.should be_false
+      end
+    end
+  end
+    
+  context 'in parse_response method' do
+    before :each do
+      @sphinx = Sphinx::Client.new
+      @socket = mock('TCPSocket')
     end
 
     it 'should receive response' do
-      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_OK, 1, 4].pack('n2N'))
-      @sock.should_receive(:read).with(4, '', true).and_return([0].pack('N'))
-      @sphinx.send(:GetResponse, @sock, 1)
+      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_OK, 1, 4].pack('n2N'))
+      @socket.should_receive(:read).with(4).and_return([0].pack('N'))
+      @sphinx.send(:parse_response, @socket, 1)
     end
 
     it 'should raise exception on zero-sized response' do
-      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_OK, 1, 0].pack('n2N'))
-      lambda { @sphinx.send(:GetResponse, @sock, 1) }.should raise_error(Sphinx::SphinxResponseError)
+      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_OK, 1, 0].pack('n2N'))
+      expect {
+        @sphinx.send(:parse_response, @socket, 1)
+      }.to raise_error(Sphinx::SphinxResponseError, 'received zero-sized searchd response')
     end
 
     it 'should raise exception when response is incomplete' do
-      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_OK, 1, 4].pack('n2N'))
-      @sock.should_receive(:read).with(4, '', true).and_return('')
-      lambda { @sphinx.send(:GetResponse, @sock, 1) }.should raise_error(Sphinx::SphinxResponseError)
+      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_OK, 1, 4].pack('n2N'))
+      @socket.should_receive(:read).with(4).and_return('')
+      expect {
+        @sphinx.send(:parse_response, @socket, 1)
+      }.to raise_error(Sphinx::SphinxResponseError)
     end
 
     it 'should set warning message when SEARCHD_WARNING received' do
-      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_WARNING, 1, 14].pack('n2N'))
-      @sock.should_receive(:read).with(14, '', true).and_return([5].pack('N') + 'helloworld')
-      @sphinx.send(:GetResponse, @sock, 1).should == 'world'
+      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_WARNING, 1, 14].pack('n2N'))
+      @socket.should_receive(:read).with(14).and_return([5].pack('N') + 'helloworld')
+      @sphinx.send(:parse_response, @socket, 1).should == 'world'
       @sphinx.GetLastWarning.should == 'hello'
     end
 
     it 'should raise exception when SEARCHD_ERROR received' do
-      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_ERROR, 1, 9].pack('n2N'))
-      @sock.should_receive(:read).with(9, '', true).and_return([1].pack('N') + 'hello')
-      lambda { @sphinx.send(:GetResponse, @sock, 1) }.should raise_error(Sphinx::SphinxInternalError)
-      @sphinx.GetLastError.should == 'searchd error: hello'
+      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_ERROR, 1, 9].pack('n2N'))
+      @socket.should_receive(:read).with(9).and_return([1].pack('N') + 'hello')
+      expect {
+        @sphinx.send(:parse_response, @socket, 1)
+      }.to raise_error(Sphinx::SphinxInternalError, 'searchd error: hello')
     end
 
     it 'should raise exception when SEARCHD_RETRY received' do
-      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_RETRY, 1, 9].pack('n2N'))
-      @sock.should_receive(:read).with(9, '', true).and_return([1].pack('N') + 'hello')
-      lambda { @sphinx.send(:GetResponse, @sock, 1) }.should raise_error(Sphinx::SphinxTemporaryError)
-      @sphinx.GetLastError.should == 'temporary searchd error: hello'
+      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_RETRY, 1, 9].pack('n2N'))
+      @socket.should_receive(:read).with(9).and_return([1].pack('N') + 'hello')
+      expect {
+        @sphinx.send(:parse_response, @socket, 1)
+      }.to raise_error(Sphinx::SphinxTemporaryError, 'temporary searchd error: hello')
     end
 
     it 'should raise exception when unknown status received' do
-      @sock.should_receive(:read).with(8, '', true).and_return([65535, 1, 9].pack('n2N'))
-      @sock.should_receive(:read).with(9, '', true).and_return([1].pack('N') + 'hello')
-      lambda { @sphinx.send(:GetResponse, @sock, 1) }.should raise_error(Sphinx::SphinxUnknownError)
-      @sphinx.GetLastError.should == 'unknown status code: \'65535\''
+      @socket.should_receive(:read).with(8).and_return([65535, 1, 9].pack('n2N'))
+      @socket.should_receive(:read).with(9).and_return([1].pack('N') + 'hello')
+      expect {
+        @sphinx.send(:parse_response, @socket, 1)
+      }.to raise_error(Sphinx::SphinxUnknownError, 'unknown status code: \'65535\'')
     end
 
     it 'should set warning when server is older than client' do
-      @sock.should_receive(:read).with(8, '', true).and_return([Sphinx::Client::SEARCHD_OK, 1, 9].pack('n2N'))
-      @sock.should_receive(:read).with(9, '', true).and_return([1].pack('N') + 'hello')
-      @sphinx.send(:GetResponse, @sock, 5)
+      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_OK, 1, 9].pack('n2N'))
+      @socket.should_receive(:read).with(9).and_return([1].pack('N') + 'hello')
+      @sphinx.send(:parse_response, @socket, 5)
       @sphinx.GetLastWarning.should == 'searchd command v.0.1 older than client\'s v.0.5, some options might not work'
     end
   end

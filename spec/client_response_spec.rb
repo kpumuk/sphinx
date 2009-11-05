@@ -24,7 +24,7 @@ describe Sphinx::Client, 'connected' do
 
     it 'should process errors in Query method' do
       @sphinx.Query('wifi', 'fakeindex').should be_false
-      @sphinx.GetLastError.length.should_not == 0
+      @sphinx.GetLastError.should_not be_empty
     end
   end
   
@@ -34,14 +34,14 @@ describe Sphinx::Client, 'connected' do
       @sphinx.AddQuery('gprs', 'test1')
       results = @sphinx.RunQueries
       results.should be_an_instance_of(Array)
-      results.length.should == 2
+      results.should have(2).items
       validate_results_wifi(results[0])
     end
 
     it 'should process errors in RunQueries method' do
       @sphinx.AddQuery('wifi', 'fakeindex')
       r = @sphinx.RunQueries
-      r[0]['error'].length.should_not == 0
+      r[0]['error'].should_not be_empty
     end
   end
 
@@ -85,39 +85,40 @@ describe Sphinx::Client, 'connected' do
   context 'in Open method' do
     it 'should open socket' do
       @sphinx.Open.should be_true
-      socket = @sphinx.instance_variable_get(:@socket)
+      socket = @sphinx.servers.first.instance_variable_get(:@socket)
+      socket.should_not be_nil
       socket.should be_kind_of(Sphinx::BufferedIO)
       socket.close
     end
-
+  
     it 'should produce an error when opened twice' do
       @sphinx.Open.should be_true
       @sphinx.Open.should be_false
       @sphinx.GetLastError.should == 'already connected'
-
-      socket = @sphinx.instance_variable_get(:@socket)
+  
+      socket = @sphinx.servers.first.instance_variable_get(:@socket)
       socket.should be_kind_of(Sphinx::BufferedIO)
       socket.close
     end
   end
-
+  
   context 'in Close method' do
     it 'should open socket' do
       @sphinx.Open.should be_true
       @sphinx.Close.should be_true
-      @sphinx.instance_variable_get(:@socket).should be_false
+      @sphinx.servers.first.instance_variable_get(:@socket).should be_nil
     end
-
+  
     it 'should produce socket is closed' do
       @sphinx.Close.should be_false
       @sphinx.GetLastError.should == 'not connected'
-      @sphinx.instance_variable_get(:@socket).should be_false
-
+      @sphinx.servers.first.instance_variable_get(:@socket).should be_nil
+  
       @sphinx.Open.should be_true
       @sphinx.Close.should be_true
       @sphinx.Close.should be_false
       @sphinx.GetLastError.should == 'not connected'
-      @sphinx.instance_variable_get(:@socket).should be_false
+      @sphinx.servers.first.instance_variable_get(:@socket).should be_nil
     end
   end
 

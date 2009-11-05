@@ -28,7 +28,6 @@ module Sphinx
   # :stopdoc:
 
   class SphinxError < StandardError; end
-  class SphinxArgumentError < SphinxError; end
   class SphinxConnectError < SphinxError; end
   class SphinxResponseError < SphinxError; end
   class SphinxInternalError < SphinxError; end
@@ -38,7 +37,6 @@ module Sphinx
   # :startdoc:
 
   class Client
-  
     # :stopdoc:
   
     # Known searchd commands
@@ -89,6 +87,11 @@ module Sphinx
     SEARCHD_RETRY   = 2
     # general success, warning message and command-specific reply follow 
     SEARCHD_WARNING = 3    
+
+    attr_reader :timeout
+    attr_reader :retries
+    attr_reader :reqtimeout
+    attr_reader :reqretries
     
     # :startdoc:
   
@@ -189,12 +192,6 @@ module Sphinx
     
     # Constructs the <tt>Sphinx::Client</tt> object and sets options to their default values. 
     def initialize
-      # per-client-object settings
-      @host          = 'localhost'             # searchd host (default is "localhost")
-      @port          = 3312                    # searchd port (default is 3312)
-      @path          = false
-      @socket        = false
-      
       # per-query settings
       @offset        = 0                       # how many records to seek from result-set start (default is 0)
       @limit         = 20                      # how many records to return from result-set starting at offset (default is 20)
@@ -232,6 +229,11 @@ module Sphinx
       @retries       = 1                       # number of connect retries in case of emergency
       @reqtimeout    = 0                       # request timeout
       @reqretries    = 1                       # number of request retries in case of emergency
+
+      # per-client-object settings
+      # searchd servers list
+      @servers       = [Sphinx::Server.new(self, 'localhost', 3312, false)].freeze
+      @lastserver    = -1
     end
   
     # Get last error message.
@@ -247,7 +249,7 @@ module Sphinx
     # Get last error flag (to tell network connection errors from
     # searchd errors or broken responses)
     def IsConnectError
-      @connerror
+      @connerror || false
     end
     
     # Set searchd host name (string) and port (integer).
@@ -259,19 +261,54 @@ module Sphinx
     def SetServer(host, port)
       raise ArgumentError, '"host" argument must be String' unless host.kind_of?(String)
       
+      path = nil
       # Check if UNIX socket should be used
       if host[0] == ?/
-        @path = host
-        return
+        path = host
       elsif host[0, 7] == 'unix://'
-        @path = host[7..-1]
-        return
+        path = host[7..-1]
+      else
+        raise ArgumentError, '"port" argument must be Integer' unless port.respond_to?(:integer?) and port.integer?
       end
-      
-      raise ArgumentError, '"port" argument must be Integer' unless port.respond_to?(:integer?) and port.integer?
 
-      @host = host
-      @port = port
+      host = port = nil unless path.nil?
+
+      @servers = [Sphinx::Server.new(self, host, port, path)].freeze
+    end
+
+    attr_reader :servers
+
+    # Set searchd host name (string) and port (integer).
+    #
+    # You can specify an absolute path to Sphinx's UNIX socket as +host+, in this
+    # case pass port as +0+ or +nil+.
+    #
+    # Otherwise +host+ should contain a host name or IP address.
+    def SetServers(servers)
+      raise ArgumentError, '"servers" argument must be Array'     unless servers.kind_of?(Array)
+      raise ArgumentError, '"servers" argument must be not empty' if servers.empty?
+      
+      @servers = servers.map do |server|
+        raise ArgumentError, '"servers" argument must be Array of Hashes' unless server.kind_of?(Hash)
+
+        host = server[:path] || server['path'] || server[:host] || server['host']
+        port = server[:port] || server['port']
+        path = nil
+        raise ArgumentError, '"host" argument must be String' unless host.kind_of?(String)
+
+        # Check if UNIX socket should be used
+        if host[0] == ?/
+          path = host
+        elsif host[0, 7] == 'unix://'
+          path = host[7..-1]
+        else
+          raise ArgumentError, '"port" argument must be Integer' unless port.respond_to?(:integer?) and port.integer?
+        end
+
+        host = port = nil unless path.nil?
+        
+        Sphinx::Server.new(self, host, port, path)
+      end.freeze
     end
     
     # Set connection timeout in seconds.
@@ -816,6 +853,7 @@ module Sphinx
     #
     # * <tt>'error'</tt> -- search error for this query
     # * <tt>'words'</tt> -- hash which maps query terms (stemmed!) to ( "docs", "hits" ) hash
+    #
     def RunQueries
       if @reqs.empty?
         @error = 'No queries defined, issue AddQuery() first'
@@ -825,7 +863,7 @@ module Sphinx
       req = @reqs.join('')
       nreqs = @reqs.length
       @reqs = []
-      response = PerformRequest(:search, req, nreqs)
+      response = perform_request(:search, req, nreqs)
      
       # parse response
       begin
@@ -961,6 +999,7 @@ module Sphinx
     #
     # Returns false on failure.
     # Returns an array of string excerpts on success.
+    #
     def BuildExcerpts(docs, index, words, opts = {})
       raise ArgumentError, '"docs" argument must be Array'   unless docs.kind_of?(Array)
       raise ArgumentError, '"index" argument must be String' unless index.kind_of?(String) or index.kind_of?(Symbol)
@@ -1008,9 +1047,9 @@ module Sphinx
       
       # documents
       request.put_int docs.size
-      request.put_string *docs
+      request.put_string(*docs)
       
-      response = PerformRequest(:excerpt, request)
+      response = perform_request(:excerpt, request)
       
       # parse response
       begin
@@ -1040,7 +1079,7 @@ module Sphinx
       request.put_string index # req index
       request.put_int hits ? 1 : 0
 
-      response = PerformRequest(:keywords, request)
+      response = perform_request(:keywords, request)
       
       # parse response
       begin
@@ -1076,6 +1115,8 @@ module Sphinx
     #
     # Usage example:
     #    sphinx.UpdateAttributes('test1', ['group_id'], { 1 => [456] })
+    #    sphinx.UpdateAttributes('test1', ['group_id'], { 1 => [[456, 789]] }, true)
+    #
     def UpdateAttributes(index, attrs, values, mva = false)
       # verify everything
       raise ArgumentError, '"index" argument must be String' unless index.kind_of?(String) or index.kind_of?(Symbol)
@@ -1123,7 +1164,7 @@ module Sphinx
         end
       end
       
-      response = PerformRequest(:update, request)
+      response = perform_request(:update, request)
       
       # parse response
       begin
@@ -1136,35 +1177,57 @@ module Sphinx
     
     # persistent connections
     
+    # Opens persistent connection to the server.
+    #
     def Open
-      unless @socket === false
-        @error = 'already connected'
+      if @servers.size > 1
+        @error = 'too many servers. persistent socket allowed only for a single server.'
         return false
+      end
+      
+      if @servers.first.persistent?
+        @error = 'already connected'
+        return false;
       end
       
       request = Request.new
       request.put_int(1)
-      @socket = PerformRequest(:persist, request, nil, true)
+
+      perform_request(:persist, request, nil) do |server, socket|
+        server.make_persistent!(socket)
+      end
 
       true
     end
     
+    # Closes previously opened persistent connection.
+    #
     def Close
-      if @socket === false
+      if @servers.size > 1
+        @error = 'too many servers. persistent socket allowed only for a single server.'
+        return false
+      end
+      
+      unless @servers.first.persistent?
         @error = 'not connected'
         return false;
       end
       
-      @socket.close if !@socket.closed?
-      @socket = false
-      
-      true
+      @servers.first.close_persistent!
     end
     
+    # Queries searchd status, and returns an array of status variable name
+    # and value pairs.
+    #
+    # Usage example:
+    #
+    #   status = sphinx.Status
+    #   puts status.map { |key, value| "#{key.rjust(20)}: #{value}" }
+    #
     def Status
       request = Request.new
       request.put_int(1)
-      response = PerformRequest(:status, request)
+      response = perform_request(:status, request)
 
       # parse response
       begin
@@ -1187,7 +1250,7 @@ module Sphinx
     
     def FlushAttrs
       request = Request.new
-      response = PerformRequest(:flushattrs, request)
+      response = perform_request(:flushattrs, request)
 
       # parse response
       begin
@@ -1198,97 +1261,76 @@ module Sphinx
     end
   
     protected
-    
-      # Connect to searchd server.
-      def Connect
-        return @socket unless @socket === false
-        
-        sock = io = nil
-        Sphinx::safe_execute(@timeout, @retries) do
-          if @path
-            sock = UNIXSocket.new(@path)
-          else
-            sock = TCPSocket.new(@host, @port)
-          end
-
-          io = Sphinx::BufferedIO.new(sock)
-          io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
-          if @reqtimeout > 0
-            io.read_timeout = @reqtimeout
-          
-            # This is a part of memcache-client library.
-            #
-            # Getting reports from several customers, including 37signals,
-            # that the non-blocking timeouts in 1.7.5 don't seem to be reliable.
-            # It can't hurt to set the underlying socket timeout also, if possible.
-            if timeout
-              secs = Integer(timeout)
-              usecs = Integer((timeout - secs) * 1_000_000)
-              optval = [secs, usecs].pack("l_2")
-              begin
-                io.setsockopt Socket::SOL_SOCKET, Socket::SO_RCVTIMEO, optval
-                io.setsockopt Socket::SOL_SOCKET, Socket::SO_SNDTIMEO, optval
-              rescue Exception => ex
-                # Solaris, for one, does not like/support socket timeouts.
-                @warning = "Unable to use raw socket timeouts: #{ex.class.name}: #{ex.message}"
-              end
-            end
-          else
-            io.read_timeout = false
-          end
-
-          # send my version
-          # this is a subtle part. we must do it before (!) reading back from searchd.
-          # because otherwise under some conditions (reported on FreeBSD for instance)
-          # TCP stack could throttle write-write-read pattern because of Nagle.
-          io.write([1].pack('N'))
-          v = io.read(4).unpack('N*').first
-
-          if v < 1
-            io.close
-            @error = "expected searchd protocol version 1+, got version '#{v}'"
-            raise SphinxConnectError, @error
-          end
-
-          io
-        end
-      rescue SocketError, SystemCallError, IOError, EOFError, ::Timeout::Error => e
-        # Close previously opened socket (in case of it has been really opened)
-        if io and !io.closed?
-          io.close
-        elsif sock and !sock.closed?
-          sock.close
-        end
-        
-        location = @path || "#{@host}:#{@port}"
-        @error = "connection to #{location} failed ("
-        if e.kind_of?(SystemCallError)
-          @error << "errno=#{e.class::Errno}, "
-        end
-        @error << "msg=#{e.message})"
-        @connerror = true
-        raise SphinxConnectError, @error
-      end
       
-      # Get and check response packet from searchd server.
-      def GetResponse(sock, client_version)
+      # Connect, send query, get response.
+      #
+      # Use this method to communicate with Sphinx server. It ensures connection
+      # will be instantiated properly, all headers will be generated properly, etc.
+      #
+      # Parameters:
+      # * +command+ -- searchd command to perform (<tt>:search</tt>, <tt>:excerpt</tt>,
+      #   <tt>:update</tt>, <tt>:keywords</tt>, <tt>:persist</tt>, <tt>:status</tt>,
+      #   <tt>:query</tt>, <tt>:flushattrs</tt>. See <tt>SEARCHD_COMMAND_*</tt> for details).
+      # * +request+ -- an instance of <tt>Sphinx::Request</tt> class. Contains request body.
+      # * +additional+ -- additional integer data to be placed between header and body.
+      # * +block+ -- if given, response will not be parsed, plain socket will be
+      #   passed instead. this is special mode used for persistent connections,
+      #   do not use for other tasks.
+      #
+      def perform_request(command, request, additional = nil, &block)
+        with_server do |server|
+          cmd = command.to_s.upcase
+          command_id = Sphinx::Client.const_get("SEARCHD_COMMAND_#{cmd}")
+          command_ver = Sphinx::Client.const_get("VER_COMMAND_#{cmd}")
+
+          with_socket(server) do |socket|
+            len = request.to_s.length + (additional.nil? ? 0 : 4)
+            header = [command_id, command_ver, len].pack('nnN')
+            header << [additional].pack('N') unless additional.nil?
+
+            socket.write(header + request.to_s)
+
+            if block_given?
+              yield server, socket
+            else
+              parse_response(socket, command_ver)
+            end
+          end
+        end
+      end
+
+      # This is internal method which gets and parses response packet from
+      # searchd server.
+      #
+      # There are several exceptions which could be thrown in this method:
+      #
+      # * various network errors -- should be handled by caller (see +with_socket+).
+      # * +SphinxResponseError+ -- incomplete reply from searchd.
+      # * +SphinxInternalError+ -- searchd error.
+      # * +SphinxTemporaryError+ -- temporary searchd error.
+      # * +SphinxUnknownError+ -- unknows searchd error.
+      #
+      # Method returns an instance of <tt>Sphinx::Response</tt> class, which
+      # could be used for context-based parsing of reply from the server.
+      #
+      def parse_response(socket, client_version)
         response = ''
-        len = 0
+        status = ver = len = 0
         
-        header = sock.read(8, '', true)
+        # Read server reply from server. All exceptions are handled by +with_socket+.
+        header = socket.read(8)
         if header.length == 8
           status, ver, len = header.unpack('n2N')
-          response = sock.read(len, '', true) if len > 0
+          response = socket.read(len) if len > 0
         end
-        sock.close if @socket === false and !sock.closed?
     
         # check response
         read = response.length
         if response.empty? or read != len.to_i
-          @error = len \
+          error = len > 0 \
             ? "failed to read searchd response (status=#{status}, ver=#{ver}, len=#{len}, read=#{read})" \
             : 'received zero-sized searchd response'
-          raise SphinxResponseError, @error
+          raise SphinxResponseError, error
         end
         
         # check status
@@ -1299,18 +1341,18 @@ module Sphinx
         end
 
         if status == SEARCHD_ERROR
-          @error = 'searchd error: ' + response[4, response.length - 4]
-          raise SphinxInternalError, @error
+          error = 'searchd error: ' + response[4, response.length - 4]
+          raise SphinxInternalError, error
         end
     
         if status == SEARCHD_RETRY
-          @error = 'temporary searchd error: ' + response[4, response.length - 4]
-          raise SphinxTemporaryError, @error
+          error = 'temporary searchd error: ' + response[4, response.length - 4]
+          raise SphinxTemporaryError, error
         end
     
         unless status == SEARCHD_OK
-          @error = "unknown status code: '#{status}'"
-          raise SphinxUnknownError, @error
+          error = "unknown status code: '#{status}'"
+          raise SphinxUnknownError, error
         end
         
         # check version
@@ -1319,24 +1361,110 @@ module Sphinx
             "v.#{client_version >> 8}.#{client_version & 0xff}, some options might not work"
         end
         
-        return response
+        Response.new(response)
       end
       
-      # Connect, send query, get response.
-      def PerformRequest(command, request, additional = nil, skip_response = false)
-        cmd = command.to_s.upcase
-        command_id = Sphinx::Client.const_get('SEARCHD_COMMAND_' + cmd)
-        command_ver = Sphinx::Client.const_get('VER_COMMAND_' + cmd)
+      # This is internal method which selects next server (round-robin)
+      # and yields it to the block passed.
+      #
+      # In case of connection error, it will try next server several times
+      # (see +SetConnectionTimeout+ method details). If all servers are down,
+      # it will set +error+ attribute value with the last exception message,
+      # and <tt>connection_timeout?</tt> method will return true. Also,
+      # +SphinxConnectErorr+ exception will be raised.
+      #
+      def with_server
+        attempts = @retries
+        begin
+          # Get the next server
+          @lastserver = (@lastserver + 1) % @servers.size
+          server = @servers[@lastserver]
+          yield server
+        rescue SphinxConnectError => e
+          # Connection error! Do we need to try it again?
+          attempts -= 1
+          retry if attempts > 0
+
+          # Re-raise original exception
+          @error = e.message
+          @connerror = true
+          raise
+        end
+      end
+      
+      # This is internal method which retrieves socket for a given server,
+      # initiates Sphinx session, and yields this socket to a block passed.
+      #
+      # In case of any problems with session initiation, +SphinxConnectError+
+      # will be raised, because this is part of connection establishing. See
+      # +with_server+ method details to get more infromation about how this
+      # exception is handled.
+      #
+      # Socket retrieving routine is wrapped in a block with it's own
+      # timeout value (see +SetConnectTimeout+). This is done in
+      # <tt>Server#get_socket</tt> method, so check it for details.
+      #
+      # Request execution is wrapped with block with another timeout
+      # (see +SetRequestTimeout+). This ensures no Sphinx request will
+      # take unreasonable time.
+      #
+      # In case of any Sphinx error (incomplete reply, internal or temporary
+      # error), connection to the server will be re-established, and request
+      # will be retried (see +SetRequestTimeout+). Of course, if connection
+      # could not be established, next server will be selected (see explanation
+      # above).
+      #
+      def with_socket(server)
+        attempts = @reqretries
+        socket = nil
+
+        begin
+          s = server.get_socket do |sock|
+            # Remember socket to close it in case of emergency
+            socket = sock
+
+            # send my version
+            # this is a subtle part. we must do it before (!) reading back from searchd.
+            # because otherwise under some conditions (reported on FreeBSD for instance)
+            # TCP stack could throttle write-write-read pattern because of Nagle.
+            sock.write([1].pack('N'))
+            v = sock.read(4).unpack('N*').first
+
+            # Ouch, invalid protocol!
+            if v < 1
+              raise SphinxConnectError, "expected searchd protocol version 1+, got version '#{v}'"
+            end
+          end
+
+          Sphinx::safe_execute(@reqtimeout) do
+            yield s
+          end
+        rescue SocketError, SystemCallError, IOError, ::Errno::EPIPE => e
+          # Ouch, communication problem, will be treated as a connection problem.
+          raise SphinxConnectError, "failed to read searchd response (msg=#{e.message})"
+        rescue SphinxResponseError, SphinxInternalError, SphinxTemporaryError, SphinxUnknownError, ::Timeout::Error, EOFError => e
+          # EOFError should not occur in ideal world, because we compare response length
+          # with a value passed by Sphinx. But we want to ensure that client will not
+          # fail with unexpected error when Sphinx implementation has bugs, aren't we?
+          if e.kind_of?(EOFError) or e.kind_of?(::Timeout::Error)
+            new_e = SphinxResponseError.new("failed to read searchd response (msg=#{e.message})")
+            new_e.set_backtrace(e.backtrace)
+            e = new_e
+          end
         
-        sock = self.Connect
-        len = request.to_s.length + (additional != nil ? 4 : 0)
-        header = [command_id, command_ver, len].pack('nnN')
-        header << [additional].pack('N') if additional != nil
+          # Close previously opened socket (in case of it has been really opened)
+          server.free_socket(socket)
+
+          # Request error! Do we need to try it again?
+          attempts -= 1
+          retry if attempts > 0
         
-        Sphinx::safe_execute(@reqtimeout, @reqretries) do
-          sock.write(header + request.to_s)
-        
-          skip_response ? sock : Response.new(self.GetResponse(sock, command_ver))
+          # Re-raise original exception
+          @error = e.message
+          raise e
+        ensure
+          # Close previously opened socket on any other error
+          server.free_socket(socket)
         end
       end
   end

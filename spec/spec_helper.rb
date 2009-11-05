@@ -10,9 +10,11 @@ end
 
 def sphinx_create_client
   @sphinx = Sphinx::Client.new
-  @sock = mock('TCPSocketMock')
-  @sphinx.stub!(:Connect).and_return(@sock)
-  @sphinx.stub!(:GetResponse).and_raise(SphinxSpecError)
+  @sock = mock('SocketMock')
+
+  servers = @sphinx.instance_variable_get(:@servers)
+  servers.first.stub(:get_socket => @sock, :free_socket => nil)
+  @sphinx.stub!(:parse_response).and_raise(SphinxSpecError)
   return @sphinx
 end
 

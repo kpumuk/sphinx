@@ -18,15 +18,9 @@ module Sphinx
     Timeout = ::Timeout
   end
   
-  def self.safe_execute(timeout = 5, attempts = 3, &block)
+  def self.safe_execute(timeout = 5, &block)
     if timeout > 0
-      begin
-        Sphinx::Timeout.timeout(timeout, &block)
-      rescue ::Timeout::Error, ::Errno::EPIPE
-        attempts -= 1
-        raise if attempts <= 0
-        retry
-      end
+      Sphinx::Timeout.timeout(timeout, &block)
     else
       yield
     end
