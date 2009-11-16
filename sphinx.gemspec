@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{sphinx}
-  s.version = "0.9.10"
+  s.version = "0.9.10.2043"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Dmytro Shteflyuk"]
-  s.date = %q{2009-11-04}
+  s.date = %q{2009-11-16}
   s.description = %q{An easy interface to Sphinx standalone full-text search engine. It is implemented as plugin for Ruby on Rails, but can be easily used as standalone library.}
   s.email = %q{kpumuk@kpumuk.info}
   s.extra_rdoc_files = [
@@ -21,13 +21,16 @@ Gem::Specification.new do |s|
      "Rakefile",
      "VERSION.yml",
      "init.rb",
-     "install.rb",
      "lib/sphinx.rb",
+     "lib/sphinx/buffered_io.rb",
      "lib/sphinx/client.rb",
      "lib/sphinx/request.rb",
      "lib/sphinx/response.rb",
+     "lib/sphinx/server.rb",
+     "lib/sphinx/timeout.rb",
      "spec/client_response_spec.rb",
      "spec/client_spec.rb",
+     "spec/client_validations_spec.rb",
      "spec/fixtures/default_search.php",
      "spec/fixtures/default_search_index.php",
      "spec/fixtures/excerpt_custom.php",
@@ -92,12 +95,11 @@ Gem::Specification.new do |s|
      "spec/fixtures/update_attributes.php",
      "spec/fixtures/update_attributes_mva.php",
      "spec/fixtures/weights.php",
+     "spec/spec_helper.rb",
      "spec/sphinx/sphinx-id64.conf",
      "spec/sphinx/sphinx.conf",
      "spec/sphinx/sphinx_test.sql",
-     "sphinx.gemspec",
-     "sphinx.yml.tpl",
-     "tasks/sphinx.rake"
+     "sphinx.gemspec"
   ]
   s.homepage = %q{http://github.com/kpumuk/sphinx}
   s.rdoc_options = ["--charset=UTF-8"]
@@ -106,7 +108,9 @@ Gem::Specification.new do |s|
   s.summary = %q{Sphinx Client API for Ruby}
   s.test_files = [
     "spec/client_response_spec.rb",
-     "spec/client_spec.rb"
+     "spec/client_spec.rb",
+     "spec/client_validations_spec.rb",
+     "spec/spec_helper.rb"
   ]
 
   if s.respond_to? :specification_version then
