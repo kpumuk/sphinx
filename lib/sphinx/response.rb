@@ -1,6 +1,8 @@
 module Sphinx
   # Unpack internal Sphinx representation of ints, floats, strings, and arrays.
   # needed by Sphinx search engine.
+  #
+  # @private
   class Response
     # Initialize new request.
     def initialize(response)

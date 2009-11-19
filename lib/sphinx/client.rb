@@ -9,12 +9,12 @@
 # This library is distributed under the terms of the Ruby license.
 # You can freely distribute/modify this library.
 
-# ==Sphinx Client API
+# == Sphinx Client API
 #
 # The Sphinx Client API is used to communicate with <tt>searchd</tt>
 # daemon and get search results from Sphinx.
 #
-# ===Usage
+# === Usage
 #
 #   sphinx = Sphinx::Client.new
 #   result = sphinx.Query('test')
@@ -25,78 +25,118 @@
 #   excerpts = sphinx.BuildExcerpts(docs, 'index', 'test')
 
 module Sphinx
-  # :stopdoc:
-
+  # Base class for all Sphinx errors
   class SphinxError < StandardError; end
+  # Connect error occurred on the API side.
   class SphinxConnectError < SphinxError; end
+  # Request error occurred on the API side.
   class SphinxResponseError < SphinxError; end
+  # Internal error occurred inside searchd.
   class SphinxInternalError < SphinxError; end
+  # Temporary error occurred inside searchd.
   class SphinxTemporaryError < SphinxError; end
+  # Unknown error occurred inside searchd.
   class SphinxUnknownError < SphinxError; end
 
-  # :startdoc:
-
   class Client
-    # :stopdoc:
-
+    #=================================================================
     # Known searchd commands
+    #=================================================================
 
     # search command
+    # @private
     SEARCHD_COMMAND_SEARCH     = 0
     # excerpt command
+    # @private
     SEARCHD_COMMAND_EXCERPT    = 1
     # update command
+    # @private
     SEARCHD_COMMAND_UPDATE     = 2
     # keywords command
+    # @private
     SEARCHD_COMMAND_KEYWORDS   = 3
     # persist command
+    # @private
     SEARCHD_COMMAND_PERSIST    = 4
     # status command
+    # @private
     SEARCHD_COMMAND_STATUS     = 5
     # query command
+    # @private
     SEARCHD_COMMAND_QUERY      = 6
     # flushattrs command
+    # @private
     SEARCHD_COMMAND_FLUSHATTRS = 7
 
+    #=================================================================
     # Current client-side command implementation versions
+    #=================================================================
 
     # search command version
+    # @private
     VER_COMMAND_SEARCH     = 0x117
     # excerpt command version
+    # @private
     VER_COMMAND_EXCERPT    = 0x100
     # update command version
+    # @private
     VER_COMMAND_UPDATE     = 0x102
     # keywords command version
+    # @private
     VER_COMMAND_KEYWORDS   = 0x100
     # persist command version
+    # @private
     VER_COMMAND_PERSIST    = 0x000
     # status command version
+    # @private
     VER_COMMAND_STATUS     = 0x100
     # query command version
+    # @private
     VER_COMMAND_QUERY      = 0x100
     # flushattrs command version
+    # @private
     VER_COMMAND_FLUSHATTRS = 0x100
 
+    #=================================================================
     # Known searchd status codes
+    #=================================================================
 
     # general success, command-specific reply follows
+    # @private
     SEARCHD_OK      = 0
     # general failure, command-specific reply may follow
+    # @private
     SEARCHD_ERROR   = 1
     # temporaty failure, client should retry later
+    # @private
     SEARCHD_RETRY   = 2
     # general success, warning message and command-specific reply follow
+    # @private
     SEARCHD_WARNING = 3
 
+    #=================================================================
+    # Some internal attributes to use inside client API
+    #=================================================================
+
+    # List of searchd servers to connect to.
+    # @private
     attr_reader :servers
+    # Connection timeout in seconds.
+    # @private
     attr_reader :timeout
+    # Number of connection retries.
+    # @private
     attr_reader :retries
+    # Request timeout in seconds.
+    # @private
     attr_reader :reqtimeout
+    # Number of request retries.
+    # @private
     attr_reader :reqretries
 
-    # :startdoc:
-
+    #=================================================================
     # Known match modes
+    #=================================================================
 
     # match all query words
     SPH_MATCH_ALL       = 0
@@ -113,7 +153,9 @@ module Sphinx
     # extended engine V2 (TEMPORARY, WILL BE REMOVED IN 0.9.8-RELEASE)
     SPH_MATCH_EXTENDED2 = 6
 
+    #=================================================================
     # Known ranking modes (ext2 only)
+    #=================================================================
 
     # default mode, phrase proximity major factor and BM25 minor one
     SPH_RANK_PROXIMITY_BM25 = 0
@@ -132,7 +174,9 @@ module Sphinx
     # codename SPH04, phrase proximity + bm25 + head/exact boost
     SPH_RANK_SPH04          = 7
 
+    #=================================================================
     # Known sort modes
+    #=================================================================
 
     # sort by document relevance desc, then by date
     SPH_SORT_RELEVANCE     = 0
@@ -147,7 +191,9 @@ module Sphinx
     # sort by arithmetic expression in descending order (eg. "@id + max(@weight,1000)*boost + log(price)")
     SPH_SORT_EXPR          = 5
 
+    #=================================================================
     # Known filter types
+    #=================================================================
 
     # filter by integer values set
     SPH_FILTER_VALUES      = 0
@@ -156,7 +202,9 @@ module Sphinx
     # filter by float range
     SPH_FILTER_FLOATRANGE  = 2
 
+    #=================================================================
     # Known attribute types
+    #=================================================================
 
     # this attr is just an integer
     SPH_ATTR_INTEGER   = 1
@@ -176,7 +224,9 @@ module Sphinx
     # this attr has multiple values (0 or more)
     SPH_ATTR_MULTI     = 0x40000000
 
+    #=================================================================
     # Known grouping functions
+    #=================================================================
 
     # group by day
     SPH_GROUPBY_DAY      = 0
@@ -237,15 +287,27 @@ module Sphinx
       @lastserver    = -1
     end
 
+    #=================================================================
+    # General API functions
+    #=================================================================
+
     # Returns last error message, as a string, in human readable format. If there
     # were no errors during the previous API call, empty string is returned.
     #
-    # You should call it when any other function (such as +Query+) fails (typically,
+    # You should call it when any other function (such as {#Query}) fails (typically,
     # the failing function returns false). The returned string will contain the
     # error description.
     #
     # The error message is not reset by this call; so you can safely call it
     # several times if needed.
+    #
+    # @return [String] last error message.
+    #
+    # @example
+    #   puts sphinx.GetLastError
+    #
+    # @see #GetLastWarning
+    # @see #IsConnectError
     #
     def GetLastError
       @error
@@ -254,13 +316,21 @@ module Sphinx
     # Returns last warning message, as a string, in human readable format. If there
     # were no warnings during the previous API call, empty string is returned.
     #
-    # You should call it to verify whether your request (such as +Query+) was
+    # You should call it to verify whether your request (such as {#Query}) was
     # completed but with warnings. For instance, search query against a distributed
     # index might complete succesfully even if several remote agents timed out.
     # In that case, a warning message would be produced.
     #
     # The warning message is not reset by this call; so you can safely call it
     # several times if needed.
+    #
+    # @return [String] last warning message.
+    #
+    # @example
+    #   puts sphinx.GetLastWarning
+    #
+    # @see #GetLastError
+    # @see #IsConnectError
     #
     def GetLastWarning
       @warning
@@ -270,6 +340,15 @@ module Sphinx
     # remote error reported by searchd. Returns true if the last connection
     # attempt to searchd failed on API side, false otherwise (if the error
     # was remote, or there were no connection attempts at all).
+    #
+    # @return [Boolean] the value indicating whether last error was a
+    #   nework error on API side.
+    #
+    # @example
+    #   puts "Connection failed!" if sphinx.IsConnectError
+    #
+    # @see #GetLastError
+    # @see #GetLastWarning
     #
     def IsConnectError
       @connerror || false
@@ -281,6 +360,21 @@ module Sphinx
     #
     # Also, you can specify an absolute path to Sphinx's UNIX socket as +host+,
     # in this case pass port as +0+ or +nil+.
+    #
+    # @param [String] host the searchd host name or UNIX socket absolute path.
+    # @param [Integer] port the searchd port name (could be any if UNIX
+    #   socket path specified).
+    # @return [Sphinx::Server] an instance of <tt>Sphinx::Server</tt>
+    #   with given parameters.
+    #
+    # @example
+    #   sphinx.SetServer('localhost', 3312)
+    #   sphinx.SetServer('/opt/sphinx/var/run/sphinx.sock')
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    # @see #SetServers
+    # @see #SetConnectTimeout
+    # @see #SetRequestTimeout
     #
     def SetServer(host, port)
       raise ArgumentError, '"host" argument must be String' unless host.kind_of?(String)
@@ -298,23 +392,37 @@ module Sphinx
       host = port = nil unless path.nil?
 
       @servers = [Sphinx::Server.new(self, host, port, path)].freeze
+      @servers.first
     end
 
     # Sets the list of searchd servers. Each subsequent request will use next
     # server in list (round-robin). In case of one server failure, request could
-    # be retried on another server (see +SetConnectTimeout+ and +SetRequestTimeout+).
+    # be retried on another server (see {#SetConnectTimeout} and
+    # {#SetRequestTimeout}).
     #
-    # Method accepts an +Array+ of +Hash+es, each of them should have :host
-    # and :port (to connect to searchd through network) or :path (an absolute path
-    # to UNIX socket) specified.
+    # Method accepts an +Array+ of +Hash+es, each of them should have <tt>:host</tt>
+    # and <tt>:port</tt> (to connect to searchd through network) or <tt>:path</tt>
+    # (an absolute path to UNIX socket) specified.
     #
-    # Usage example:
+    # @param [Array<Hash>] servers an +Array+ of +Hash+ objects with servers parameters.
+    # @option servers [String] :host the searchd host name or UNIX socket absolute path.
+    # @option servers [String] :path the searchd UNIX socket absolute path.
+    # @option servers [Integer] :port the searchd port name (skiped when UNIX
+    #   socket path specified)
+    # @return [Array<Sphinx::Server>] an +Array+ of instance of <tt>Sphinx::Server</tt>
+    #   with given parameters.
     #
+    # @example
     #   sphinx.SetServers([
     #     { :host => 'browse01.local', :port => 3312 },
     #     { :host => 'browse02.local', :port => 3312 },
-    #     { :host => 'browse03.local', :port => 3312 }
+    #     { :path => '/opt/sphinx/var/run/sphinx.sock' }
     #   ])
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    # @see #SetServer
+    # @see #SetConnectTimeout
+    # @see #SetRequestTimeout
     #
     def SetServers(servers)
       raise ArgumentError, '"servers" argument must be Array'     unless servers.kind_of?(Array)
@@ -350,13 +458,24 @@ module Sphinx
     # be returned back to the application in order for application-level error
     # handling to advise the user.
     #
-    # When multiple servers configured through +SetServers+ method, and +retries+
+    # When multiple servers configured through {#SetServers} method, and +retries+
     # number is greater than 1, library will try to connect to another server.
     # In case of single server configured, it will try to reconnect +retries+
     # times.
     #
     # Please note, this timeout will only be used for connection establishing, not
     # for regular API requests.
+    #
+    # @param [Integer] timeout a connection timeout in seconds.
+    # @param [Integer] retries number of connect retries.
+    #
+    # @example Set connection timeout to 1 second and number of retries to 5
+    #   sphinx.SetConnectTimeout(1, 5)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    # @see #SetServer
+    # @see #SetServers
+    # @see #SetRequestTimeout
     #
     def SetConnectTimeout(timeout, retries = 1)
       raise ArgumentError, '"timeout" argument must be Integer'        unless timeout.respond_to?(:integer?) and timeout.integer?
@@ -377,10 +496,21 @@ module Sphinx
     # When multiple servers configured through +SetServers+ method, and +retries+
     # number is greater than 1, library will try to do another try with this server
     # (with full reconnect). If connection would fail, behavior depends on
-    # +SetConnectTimeout+ settings.
+    # {#SetConnectTimeout} settings.
     #
     # Please note, this timeout will only be used for request performing, not
     # for connection establishing.
+    #
+    # @param [Integer] timeout a request timeout in seconds.
+    # @param [Integer] retries number of request retries.
+    #
+    # @example Set request timeout to 1 second and number of retries to 5
+    #   sphinx.SetRequestTimeout(1, 5)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    # @see #SetServer
+    # @see #SetServers
+    # @see #SetConnectTimeout
     #
     def SetRequestTimeout(timeout, retries = 1)
       raise ArgumentError, '"timeout" argument must be Integer'        unless timeout.respond_to?(:integer?) and timeout.integer?
@@ -390,6 +520,37 @@ module Sphinx
       @reqtimeout = timeout
       @reqretries = retries
     end
+
+    # Sets distributed retry count and delay.
+    #
+    # On temporary failures searchd will attempt up to +count+ retries
+    # per agent. +delay+ is the delay between the retries, in milliseconds.
+    # Retries are disabled by default. Note that this call will not make
+    # the API itself retry on temporary failure; it only tells searchd
+    # to do so. Currently, the list of temporary failures includes all
+    # kinds of connection failures and maxed out (too busy) remote agents.
+    #
+    # @param [Integer] count a number of retries to perform.
+    # @param [Integer] delay a delay between the retries.
+    #
+    # @example Perform 5 retries with 200 ms between them
+    #   sphinx.SetRetries(5, 200)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    # @see #SetConnectTimeout
+    # @see #SetRequestTimeout
+    #
+    def SetRetries(count, delay = 0)
+      raise ArgumentError, '"count" argument must be Integer' unless count.respond_to?(:integer?) and count.integer?
+      raise ArgumentError, '"delay" argument must be Integer' unless delay.respond_to?(:integer?) and delay.integer?
+
+      @retrycount = count
+      @retrydelay = delay
+    end
+
+    #=================================================================
+    # General query settings
+    #=================================================================
 
     # Sets offset into server-side result set (+offset+) and amount of matches to
     # return to client starting from that offset (+limit+). Can additionally control
@@ -423,6 +584,16 @@ module Sphinx
     # searchd to forcibly stop search query once $cutoff matches had been found
     # and processed.
     #
+    # @param [Integer] offset an offset into server-side result set.
+    # @param [Integer] limit an amount of matches to return.
+    # @param [Integer] max a maximum server-side result set size.
+    # @param [Integer] cutoff a threshold amount of matches to stop searching at.
+    #
+    # @example
+    #   sphinx.SetLimits(100, 50, 1000, 5000)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
     def SetLimits(offset, limit, max = 0, cutoff = 0)
       raise ArgumentError, '"offset" argument must be Integer' unless offset.respond_to?(:integer?) and offset.integer?
       raise ArgumentError, '"limit" argument must be Integer'  unless limit.respond_to?(:integer?)  and limit.integer?
@@ -449,296 +620,18 @@ module Sphinx
     # a search which queries several local indexes, this limit applies to each
     # index separately.
     #
+    # @param [Integer] max maximum search query time in milliseconds.
+    #
+    # @example
+    #   sphinx.SetMaxQueryTime(200)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
     def SetMaxQueryTime(max)
       raise ArgumentError, '"max" argument must be Integer' unless max.respond_to?(:integer?) and max.integer?
       raise ArgumentError, '"max" argument should be greater or equal to zero' unless max >= 0
 
       @maxquerytime = max
-    end
-
-    # Sets full-text query matching mode.
-    #
-    # Parameter must be a +Fixnum+ constant specifying one of the known modes
-    # (+SPH_MATCH_ALL+, +SPH_MATCH_ANY+, etc), +String+ with identifier (<tt>"all"</tt>,
-    # <tt>"any"</tt>, etc), or a +Symbol+ (<tt>:all</tt>, <tt>:any</tt>, etc).
-    #
-    # Corresponding sections in Sphinx reference manual:
-    # * {Section 4.1, "Matching modes"}[http://www.sphinxsearch.com/docs/current.html#matching-modes] for details.
-    # * {Section 6.3.1, "SetMatchMode"}[http://www.sphinxsearch.com/docs/current.html#api-func-setmatchmode] for details.
-    #
-    def SetMatchMode(mode)
-      case mode
-        when String, Symbol
-          begin
-            mode = self.class.const_get("SPH_MATCH_#{mode.to_s.upcase}")
-          rescue NameError
-            raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid"
-          end
-        when Fixnum
-          raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid" unless (SPH_MATCH_ALL..SPH_MATCH_EXTENDED2).include?(mode)
-        else
-          raise ArgumentError, '"mode" argument must be Fixnum, String, or Symbol'
-      end
-
-      @mode = mode
-    end
-
-    # Set ranking mode.
-    #
-    # You can specify ranking mode as String ("proximity_bm25", "bm25", etc),
-    # Symbol (:proximity_bm25, :bm25, etc), or
-    # Fixnum constant (SPH_RANK_PROXIMITY_BM25, SPH_RANK_BM25, etc).
-    #
-    def SetRankingMode(ranker)
-      case ranker
-        when String, Symbol
-          begin
-            ranker = self.class.const_get("SPH_RANK_#{ranker.to_s.upcase}")
-          rescue NameError
-            raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid"
-          end
-        when Fixnum
-          raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid" unless (SPH_RANK_PROXIMITY_BM25..SPH_RANK_SPH04).include?(ranker)
-        else
-          raise ArgumentError, '"ranker" argument must be Fixnum, String, or Symbol'
-      end
-
-      @ranker = ranker
-    end
-
-    # Set matches sorting mode.
-    #
-    # You can specify sorting mode as String ("relevance", "attr_desc", etc),
-    # Symbol (:relevance, :attr_desc, etc), or
-    # Fixnum constant (SPH_SORT_RELEVANCE, SPH_SORT_ATTR_DESC, etc).
-    #
-    def SetSortMode(mode, sortby = '')
-      case mode
-        when String, Symbol
-          begin
-            mode = self.class.const_get("SPH_SORT_#{mode.to_s.upcase}")
-          rescue NameError
-            raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid"
-          end
-        when Fixnum
-          raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid" unless (SPH_SORT_RELEVANCE..SPH_SORT_EXPR).include?(mode)
-        else
-          raise ArgumentError, '"mode" argument must be Fixnum, String, or Symbol'
-      end
-
-      raise ArgumentError, '"sortby" argument must be String' unless sortby.kind_of?(String)
-      raise ArgumentError, '"sortby" should not be empty unless mode is SPH_SORT_RELEVANCE' unless mode == SPH_SORT_RELEVANCE or !sortby.empty?
-
-      @sort = mode
-      @sortby = sortby
-    end
-
-    # Bind per-field weights by order.
-    #
-    # DEPRECATED; use SetFieldWeights() instead.
-    #
-    def SetWeights(weights)
-      raise ArgumentError, '"weights" argument must be Array' unless weights.kind_of?(Array)
-      weights.each do |weight|
-        raise ArgumentError, '"weights" argument must be Array of integers' unless weight.respond_to?(:integer?) and weight.integer?
-      end
-
-      @weights = weights
-    end
-
-    # Bind per-field weights by name.
-    #
-    # Takes string (field name) to integer (field weight) hash as an argument.
-    # * Takes precedence over SetWeights().
-    # * Unknown names will be silently ignored.
-    # * Unbound fields will be silently given a weight of 1.
-    #
-    def SetFieldWeights(weights)
-      raise ArgumentError, '"weights" argument must be Hash' unless weights.kind_of?(Hash)
-      weights.each do |name, weight|
-        unless (name.kind_of?(String) or name.kind_of?(Symbol)) and (weight.respond_to?(:integer?) and weight.integer?)
-          raise ArgumentError, '"weights" argument must be Hash map of strings to integers'
-        end
-      end
-
-      @fieldweights = weights
-    end
-
-    # Bind per-index weights by name.
-    #
-    def SetIndexWeights(weights)
-      raise ArgumentError, '"weights" argument must be Hash' unless weights.kind_of?(Hash)
-      weights.each do |index, weight|
-        unless (index.kind_of?(String) or index.kind_of?(Symbol)) and (weight.respond_to?(:integer?) and weight.integer?)
-          raise ArgumentError, '"weights" argument must be Hash map of strings to integers'
-        end
-      end
-
-      @indexweights = weights
-    end
-
-    # Set IDs range to match.
-    #
-    # Only match records if document ID is beetwen <tt>min_id</tt> and <tt>max_id</tt> (inclusive).
-    #
-    def SetIDRange(min, max)
-      raise ArgumentError, '"min" argument must be Integer' unless min.respond_to?(:integer?) and min.integer?
-      raise ArgumentError, '"max" argument must be Integer' unless max.respond_to?(:integer?) and max.integer?
-      raise ArgumentError, '"max" argument greater or equal to "min"' unless min <= max
-
-      @min_id = min
-      @max_id = max
-    end
-
-    # Set values filter.
-    #
-    # Only match those records where <tt>attribute</tt> column values
-    # are in specified set.
-    #
-    def SetFilter(attribute, values, exclude = false)
-      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
-      raise ArgumentError, '"values" argument must be Array'               unless values.kind_of?(Array)
-      raise ArgumentError, '"values" argument must not be empty'           if values.empty?
-      raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
-
-      values.each do |value|
-        raise ArgumentError, '"values" argument must be Array of Integer' unless value.respond_to?(:integer?) and value.integer?
-      end
-
-      @filters << { 'type' => SPH_FILTER_VALUES, 'attr' => attribute.to_s, 'exclude' => exclude, 'values' => values }
-    end
-
-    # Set range filter.
-    #
-    # Only match those records where <tt>attribute</tt> column value
-    # is beetwen <tt>min</tt> and <tt>max</tt> (including <tt>min</tt> and <tt>max</tt>).
-    def SetFilterRange(attribute, min, max, exclude = false)
-      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
-      raise ArgumentError, '"min" argument must be Integer'                unless min.respond_to?(:integer?) and min.integer?
-      raise ArgumentError, '"max" argument must be Integer'                unless max.respond_to?(:integer?) and max.integer?
-      raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
-      raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
-
-      @filters << { 'type' => SPH_FILTER_RANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min, 'max' => max }
-    end
-
-    # Set float range filter.
-    #
-    # Only match those records where <tt>attribute</tt> column value
-    # is beetwen <tt>min</tt> and <tt>max</tt> (including <tt>min</tt> and <tt>max</tt>).
-    #
-    def SetFilterFloatRange(attribute, min, max, exclude = false)
-      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
-      raise ArgumentError, '"min" argument must be Float or Integer'       unless min.kind_of?(Float) or (min.respond_to?(:integer?) and min.integer?)
-      raise ArgumentError, '"max" argument must be Float or Integer'       unless max.kind_of?(Float) or (max.respond_to?(:integer?) and max.integer?)
-      raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
-      raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
-
-      @filters << { 'type' => SPH_FILTER_FLOATRANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min.to_f, 'max' => max.to_f }
-    end
-
-    # Setup anchor point for geosphere distance calculations.
-    #
-    # Required to use <tt>@geodist</tt> in filters and sorting
-    # distance will be computed to this point. Latitude and longitude
-    # must be in radians.
-    #
-    # * <tt>attrlat</tt> -- is the name of latitude attribute
-    # * <tt>attrlong</tt> -- is the name of longitude attribute
-    # * <tt>lat</tt> -- is anchor point latitude, in radians
-    # * <tt>long</tt> -- is anchor point longitude, in radians
-    #
-    def SetGeoAnchor(attrlat, attrlong, lat, long)
-      raise ArgumentError, '"attrlat" argument must be String or Symbol'  unless attrlat.kind_of?(String)  or attrlat.kind_of?(Symbol)
-      raise ArgumentError, '"attrlong" argument must be String or Symbol' unless attrlong.kind_of?(String) or attrlong.kind_of?(Symbol)
-      raise ArgumentError, '"lat" argument must be Float or Integer'      unless lat.kind_of?(Float)  or (lat.respond_to?(:integer?)  and lat.integer?)
-      raise ArgumentError, '"long" argument must be Float or Integer'     unless long.kind_of?(Float) or (long.respond_to?(:integer?) and long.integer?)
-
-      @anchor = { 'attrlat' => attrlat.to_s, 'attrlong' => attrlong.to_s, 'lat' => lat.to_f, 'long' => long.to_f }
-    end
-
-    # Set grouping attribute and function.
-    #
-    # In grouping mode, all matches are assigned to different groups
-    # based on grouping function value.
-    #
-    # Each group keeps track of the total match count, and the best match
-    # (in this group) according to current sorting function.
-    #
-    # The final result set contains one best match per group, with
-    # grouping function value and matches count attached.
-    #
-    # Groups in result set could be sorted by any sorting clause,
-    # including both document attributes and the following special
-    # internal Sphinx attributes:
-    #
-    # * @id - match document ID;
-    # * @weight, @rank, @relevance -  match weight;
-    # * @group - groupby function value;
-    # * @count - amount of matches in group.
-    #
-    # the default mode is to sort by groupby value in descending order,
-    # ie. by '@group desc'.
-    #
-    # 'total_found' would contain total amount of matching groups over
-    # the whole index.
-    #
-    # WARNING: grouping is done in fixed memory and thus its results
-    # are only approximate; so there might be more groups reported
-    # in total_found than actually present. @count might also
-    # be underestimated.
-    #
-    # For example, if sorting by relevance and grouping by "published"
-    # attribute with SPH_GROUPBY_DAY function, then the result set will
-    # contain one most relevant match per each day when there were any
-    # matches published, with day number and per-day match count attached,
-    # and sorted by day number in descending order (ie. recent days first).
-    #
-    def SetGroupBy(attribute, func, groupsort = '@group desc')
-      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
-      raise ArgumentError, '"groupsort" argument must be String'           unless groupsort.kind_of?(String)
-
-      case func
-        when String, Symbol
-          begin
-            func = self.class.const_get("SPH_GROUPBY_#{func.to_s.upcase}")
-          rescue NameError
-            raise ArgumentError, "\"func\" argument value \"#{func}\" is invalid"
-          end
-        when Fixnum
-          raise ArgumentError, "\"func\" argument value \"#{func}\" is invalid" unless (SPH_GROUPBY_DAY..SPH_GROUPBY_ATTRPAIR).include?(func)
-        else
-          raise ArgumentError, '"func" argument must be Fixnum, String, or Symbol'
-      end
-
-      @groupby = attribute.to_s
-      @groupfunc = func
-      @groupsort = groupsort
-    end
-
-    # Set count-distinct attribute for group-by queries.
-    #
-    def SetGroupDistinct(attribute)
-      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
-
-      @groupdistinct = attribute.to_s
-    end
-
-    # Sets distributed retry count and delay.
-    #
-    # On temporary failures searchd will attempt up to +count+ retries per
-    # agent. +delay+ is the delay between the retries, in milliseconds. Retries
-    # are disabled by default. Note that this call will not make the API itself
-    # retry on temporary failure; it only tells searchd to do so. Currently,
-    # the list of temporary failures includes all kinds of +connect+
-    # failures and maxed out (too busy) remote agents.
-    #
-    def SetRetries(count, delay = 0)
-      raise ArgumentError, '"count" argument must be Integer' unless count.respond_to?(:integer?) and count.integer?
-      raise ArgumentError, '"delay" argument must be Integer' unless delay.respond_to?(:integer?) and delay.integer?
-
-      @retrycount = count
-      @retrydelay = delay
     end
 
     # Sets temporary (per-query) per-document attribute value overrides. Only
@@ -757,8 +650,23 @@ module Sphinx
     # temporary override it with 1 for documents 123, 456 and 789 (recommended
     # by exactly the friends of current user), and use that value when ranking.
     #
-    def SetOverride(attrname, attrtype, values)
-      raise ArgumentError, '"attrname" argument must be String or Symbol' unless attrname.kind_of?(String) or attrname.kind_of?(Symbol)
+    # You can specify attribute type as String ("integer", "float", etc),
+    # Symbol (:integer, :float, etc), or
+    # Fixnum constant (SPH_ATTR_INTEGER, SPH_ATTR_FLOAT, etc).
+    #
+    # @param [String, Symbol] attribute an attribute name to override values of.
+    # @param [Integer, String, Symbol] attrtype attribute type.
+    # @param [Hash] values a +Hash+ that maps document IDs to overridden attribute values.
+    #
+    # @example
+    #   sphinx.SetOverride(:friends_weight, :integer, {123 => 1, 456 => 1, 789 => 1})
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setoverride Section 6.2.3, "SetOverride"
+    #
+    def SetOverride(attribute, attrtype, values)
+      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
 
       case attrtype
         when String, Symbol
@@ -788,7 +696,7 @@ module Sphinx
         end
       end
 
-      @overrides << { 'attr' => attrname.to_s, 'type' => attrtype, 'values' => values }
+      @overrides << { 'attr' => attribute.to_s, 'type' => attrtype, 'values' => values }
     end
 
     # Sets the select clause, listing specific attributes to fetch, and
@@ -801,7 +709,7 @@ module Sphinx
     # to a correct identifier (consisting of letters and digits) using +AS+
     # keyword. SQL also lets you do that but does not require to. Sphinx enforces
     # aliases so that the computation results can always be returned under a
-    #{ }"normal" name in the result set, used in other clauses, etc.
+    # "normal" name in the result set, used in other clauses, etc.
     #
     # Everything else is basically identical to SQL. Star ('*') is supported.
     # Functions are supported. Arbitrary amount of expressions is supported.
@@ -817,11 +725,18 @@ module Sphinx
     # using this computed expressions mechanism, using magic names '<tt>@expr</tt>'
     # and '<tt>@geodist</tt>' respectively.
     #
-    # Usage example:
+    # @param [String] select a select clause, listing specific attributes to fetch.
     #
+    # @example
     #   sphinx.SetSelect('*, @weight+(user_karma+ln(pageviews))*0.1 AS myweight')
     #   sphinx.SetSelect('exp_years, salary_gbp*{$gbp_usd_rate} AS salary_usd, IF(age>40,1,0) AS over40')
     #   sphinx.SetSelect('*, AVG(price) AS avgprice')
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#sort-expr Section 4.5, "SPH_SORT_EXPR mode"
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setgeoanchor Section 6.4.5, "SetGeoAnchor"
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setselect Section 6.2.4, "SetSelect"
     #
     def SetSelect(select)
       raise ArgumentError, '"select" argument must be String' unless select.kind_of?(String)
@@ -829,15 +744,561 @@ module Sphinx
       @select = select
     end
 
+    #=================================================================
+    # Full-text search query settings
+    #=================================================================
+
+    # Sets full-text query matching mode.
+    #
+    # Parameter must be a +Fixnum+ constant specifying one of the known modes
+    # (+SPH_MATCH_ALL+, +SPH_MATCH_ANY+, etc), +String+ with identifier (<tt>"all"</tt>,
+    # <tt>"any"</tt>, etc), or a +Symbol+ (<tt>:all</tt>, <tt>:any</tt>, etc).
+    #
+    # @param [Integer, String, Symbol] mode full-text query matching mode.
+    #
+    # @example
+    #   sphinx.SetMatchMode(Sphinx::Client::SPH_MATCH_ALL)
+    #   sphinx.SetMatchMode(:all)
+    #   sphinx.SetMatchMode('all')
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#matching-modes Section 4.1, "Matching modes"
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setmatchmode Section 6.3.1, "SetMatchMode"
+    #
+    def SetMatchMode(mode)
+      case mode
+        when String, Symbol
+          begin
+            mode = self.class.const_get("SPH_MATCH_#{mode.to_s.upcase}")
+          rescue NameError
+            raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid"
+          end
+        when Fixnum
+          raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid" unless (SPH_MATCH_ALL..SPH_MATCH_EXTENDED2).include?(mode)
+        else
+          raise ArgumentError, '"mode" argument must be Fixnum, String, or Symbol'
+      end
+
+      @mode = mode
+    end
+
+    # Sets ranking mode. Only available in +SPH_MATCH_EXTENDED2+
+    # matching mode at the time of this writing. Parameter must be a
+    # constant specifying one of the known modes.
+    #
+    # You can specify ranking mode as String ("proximity_bm25", "bm25", etc),
+    # Symbol (:proximity_bm25, :bm25, etc), or
+    # Fixnum constant (SPH_RANK_PROXIMITY_BM25, SPH_RANK_BM25, etc).
+    #
+    # @param [Integer, String, Symbol] ranker ranking mode.
+    #
+    # @example
+    #   sphinx.SetRankingMode(Sphinx::Client::SPH_RANK_BM25)
+    #   sphinx.SetMatchMode(:bm25)
+    #   sphinx.SetMatchMode('bm25')
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#matching-modes Section 4.1, "Matching modes"
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setmatchmode Section 6.3.1, "SetMatchMode"
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setrankingmode Section 6.3.2, "SetRankingMode"
+    #
+    def SetRankingMode(ranker)
+      case ranker
+        when String, Symbol
+          begin
+            ranker = self.class.const_get("SPH_RANK_#{ranker.to_s.upcase}")
+          rescue NameError
+            raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid"
+          end
+        when Fixnum
+          raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid" unless (SPH_RANK_PROXIMITY_BM25..SPH_RANK_SPH04).include?(ranker)
+        else
+          raise ArgumentError, '"ranker" argument must be Fixnum, String, or Symbol'
+      end
+
+      @ranker = ranker
+    end
+
+    # Set matches sorting mode.
+    #
+    # You can specify sorting mode as String ("relevance", "attr_desc", etc),
+    # Symbol (:relevance, :attr_desc, etc), or
+    # Fixnum constant (SPH_SORT_RELEVANCE, SPH_SORT_ATTR_DESC, etc).
+    #
+    # @param [Integer, String, Symbol] mode matches sorting mode.
+    # @param [String] sortby sorting clause, with the syntax depending on
+    #   specific mode. Should be specified unless sorting mode is
+    #   +SPH_SORT_RELEVANCE+.
+    #
+    # @example
+    #   sphinx.SetSortMode(Sphinx::Client::SPH_SORT_ATTR_ASC, 'attr')
+    #   sphinx.SetSortMode(:attr_asc, 'attr')
+    #   sphinx.SetSortMode('attr_asc', 'attr')
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#sorting-modes Section 4.5, "Sorting modes"
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setsortmode Section 6.3.3, "SetSortMode"
+    #
+    def SetSortMode(mode, sortby = '')
+      case mode
+        when String, Symbol
+          begin
+            mode = self.class.const_get("SPH_SORT_#{mode.to_s.upcase}")
+          rescue NameError
+            raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid"
+          end
+        when Fixnum
+          raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid" unless (SPH_SORT_RELEVANCE..SPH_SORT_EXPR).include?(mode)
+        else
+          raise ArgumentError, '"mode" argument must be Fixnum, String, or Symbol'
+      end
+
+      raise ArgumentError, '"sortby" argument must be String' unless sortby.kind_of?(String)
+      raise ArgumentError, '"sortby" should not be empty unless mode is SPH_SORT_RELEVANCE' unless mode == SPH_SORT_RELEVANCE or !sortby.empty?
+
+      @sort = mode
+      @sortby = sortby
+    end
+
+    # Binds per-field weights in the order of appearance in the index.
+    #
+    # @param [Array<Integer>] weights an +Array+ of integer per-field weights.
+    #
+    # @example
+    #   sphinx.SetWeights([1, 3, 5])
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @deprecated Use {#SetFieldWeights} instead.
+    # @see #SetFieldWeights
+    #
+    def SetWeights(weights)
+      raise ArgumentError, '"weights" argument must be Array' unless weights.kind_of?(Array)
+      weights.each do |weight|
+        raise ArgumentError, '"weights" argument must be Array of integers' unless weight.respond_to?(:integer?) and weight.integer?
+      end
+
+      @weights = weights
+    end
+
+    # Binds per-field weights by name. Parameter must be a +Hash+
+    # mapping string field names to integer weights.
+    #
+    # Match ranking can be affected by per-field weights. For instance,
+    # see Section 4.4, "Weighting" for an explanation how phrase
+    # proximity ranking is affected. This call lets you specify what
+    # non-default weights to assign to different full-text fields.
+    #
+    # The weights must be positive 32-bit integers. The final weight
+    # will be a 32-bit integer too. Default weight value is 1. Unknown
+    # field names will be silently ignored.
+    #
+    # There is no enforced limit on the maximum weight value at the
+    # moment. However, beware that if you set it too high you can
+    # start hitting 32-bit wraparound issues. For instance, if
+    # you set a weight of 10,000,000 and search in extended mode,
+    # then maximum possible weight will be equal to 10 million (your
+    # weight) by 1 thousand (internal BM25 scaling factor, see
+    # Section 4.4, “Weighting”) by 1 or more (phrase proximity rank).
+    # The result is at least 10 billion that does not fit in 32 bits
+    # and will be wrapped around, producing unexpected results.
+    #
+    # @param [Hash] weights a +Hash+ mapping string field names to
+    #   integer weights.
+    #
+    # @example
+    #   sphinx.SetFieldWeights(:title => 20, :text => 10)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#weighting Section 4.4, "Weighting"
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setfieldweights Section 6.3.5, "SetFieldWeights"
+    #
+    def SetFieldWeights(weights)
+      raise ArgumentError, '"weights" argument must be Hash' unless weights.kind_of?(Hash)
+      weights.each do |name, weight|
+        unless (name.kind_of?(String) or name.kind_of?(Symbol)) and (weight.respond_to?(:integer?) and weight.integer?)
+          raise ArgumentError, '"weights" argument must be Hash map of strings to integers'
+        end
+      end
+
+      @fieldweights = weights
+    end
+
+    # Sets per-index weights, and enables weighted summing of match
+    # weights across different indexes. Parameter must be a hash
+    # (associative array) mapping string index names to integer
+    # weights. Default is empty array that means to disable weighting
+    # summing.
+    #
+    # When a match with the same document ID is found in several
+    # different local indexes, by default Sphinx simply chooses the
+    # match from the index specified last in the query. This is to
+    # support searching through partially overlapping index partitions.
+    #
+    # However in some cases the indexes are not just partitions,
+    # and you might want to sum the weights across the indexes
+    # instead of picking one. {#SetIndexWeights} lets you do that.
+    # With summing enabled, final match weight in result set will be
+    # computed as a sum of match weight coming from the given index
+    # multiplied by respective per-index weight specified in this
+    # call. Ie. if the document 123 is found in index A with the
+    # weight of 2, and also in index B with the weight of 3, and
+    # you called {#SetIndexWeights} with <tt>{"A"=>100, "B"=>10}</tt>,
+    # the final weight return to the client will be 2*100+3*10 = 230.
+    #
+    # @param [Hash] weights a +Hash+ mapping string index names to
+    #   integer weights.
+    #
+    # @example
+    #   sphinx.SetFieldWeights(:fresh => 20, :archived => 10)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setindexweights Section 6.3.6, "SetIndexWeights"
+    #
+    def SetIndexWeights(weights)
+      raise ArgumentError, '"weights" argument must be Hash' unless weights.kind_of?(Hash)
+      weights.each do |index, weight|
+        unless (index.kind_of?(String) or index.kind_of?(Symbol)) and (weight.respond_to?(:integer?) and weight.integer?)
+          raise ArgumentError, '"weights" argument must be Hash map of strings to integers'
+        end
+      end
+
+      @indexweights = weights
+    end
+    
+    #=================================================================
+    # Result set filtering settings
+    #=================================================================
+
+    # Sets an accepted range of document IDs. Parameters must be integers.
+    # Defaults are 0 and 0; that combination means to not limit by range.
+    #
+    # After this call, only those records that have document ID between
+    # +min+ and +max+ (including IDs exactly equal to +min+ or +max+)
+    # will be matched.
+    #
+    # @param [Integer] min min document ID.
+    # @param [Integer] min max document ID.
+    #
+    # @example
+    #   sphinx.SetIDRange(10, 1000)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setidrange Section 6.4.1, "SetIDRange"
+    #
+    def SetIDRange(min, max)
+      raise ArgumentError, '"min" argument must be Integer' unless min.respond_to?(:integer?) and min.integer?
+      raise ArgumentError, '"max" argument must be Integer' unless max.respond_to?(:integer?) and max.integer?
+      raise ArgumentError, '"max" argument greater or equal to "min"' unless min <= max
+
+      @min_id = min
+      @max_id = max
+    end
+
+    # Adds new integer values set filter.
+    #
+    # On this call, additional new filter is added to the existing
+    # list of filters. $attribute must be a string with attribute
+    # name. +values+ must be a plain array containing integer
+    # values. +exclude+ must be a boolean value; it controls
+    # whether to accept the matching documents (default mode, when
+    # +exclude+ is +false+) or reject them.
+    #
+    # Only those documents where +attribute+ column value stored in
+    # the index matches any of the values from +values+ array will
+    # be matched (or rejected, if +exclude+ is +true+).
+    #
+    # @param [String, Symbol] attribute an attribute name to filter by.
+    # @param [Array<Integer>] values an +Array+ of integers with given attribute values.
+    # @param [Boolean] exclude indicating whether documents with given attribute
+    #   matching specified values should be excluded from search results.
+    #
+    # @example
+    #   sphinx.SetFilter(:group_id, [10, 15, 20])
+    #   sphinx.SetFilter(:group_id, [10, 15, 20], true)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setfilter Section 6.4.2, "SetFilter"
+    # @see #SetFilterRange
+    # @see #SetFilterFloatRange
+    #
+    def SetFilter(attribute, values, exclude = false)
+      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
+      raise ArgumentError, '"values" argument must be Array'               unless values.kind_of?(Array)
+      raise ArgumentError, '"values" argument must not be empty'           if values.empty?
+      raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
+
+      values.each do |value|
+        raise ArgumentError, '"values" argument must be Array of Integer' unless value.respond_to?(:integer?) and value.integer?
+      end
+
+      @filters << { 'type' => SPH_FILTER_VALUES, 'attr' => attribute.to_s, 'exclude' => exclude, 'values' => values }
+    end
+
+    # Adds new integer range filter.
+    #
+    # On this call, additional new filter is added to the existing
+    # list of filters. +attribute+ must be a string with attribute
+    # name. +min+ and +max+ must be integers that define the acceptable
+    # attribute values range (including the boundaries). +exclude+
+    # must be a boolean value; it controls whether to accept the
+    # matching documents (default mode, when +exclude+ is false) or
+    # reject them.
+    #
+    # Only those documents where +attribute+ column value stored
+    # in the index is between +min+ and +max+ (including values
+    # that are exactly equal to +min+ or +max+) will be matched
+    # (or rejected, if +exclude+ is true).
+    #
+    # @param [String, Symbol] attribute an attribute name to filter by.
+    # @param [Integer] min min value of the given attribute.
+    # @param [Integer] max max value of the given attribute.
+    # @param [Boolean] exclude indicating whether documents with given attribute
+    #   matching specified boundaries should be excluded from search results.
+    #
+    # @example
+    #   sphinx.SetFilterRange(:group_id, 10, 20)
+    #   sphinx.SetFilterRange(:group_id, 10, 20, true)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setfilterrange Section 6.4.3, "SetFilterRange"
+    # @see #SetFilter
+    # @see #SetFilterFloatRange
+    #
+    def SetFilterRange(attribute, min, max, exclude = false)
+      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
+      raise ArgumentError, '"min" argument must be Integer'                unless min.respond_to?(:integer?) and min.integer?
+      raise ArgumentError, '"max" argument must be Integer'                unless max.respond_to?(:integer?) and max.integer?
+      raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
+      raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
+
+      @filters << { 'type' => SPH_FILTER_RANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min, 'max' => max }
+    end
+
+    # Adds new float range filter.
+    #
+    # On this call, additional new filter is added to the existing
+    # list of filters. +attribute+ must be a string with attribute name.
+    # +min+ and +max+ must be floats that define the acceptable
+    # attribute values range (including the boundaries). +exclude+ must
+    # be a boolean value; it controls whether to accept the matching
+    # documents (default mode, when +exclude+ is false) or reject them.
+    #
+    # Only those documents where +attribute+ column value stored in
+    # the index is between +min+ and +max+ (including values that are
+    # exactly equal to +min+ or +max+) will be matched (or rejected,
+    # if +exclude+ is true).
+    #
+    # @param [String, Symbol] attribute an attribute name to filter by.
+    # @param [Integer, Float] min min value of the given attribute.
+    # @param [Integer, Float] max max value of the given attribute.
+    # @param [Boolean] exclude indicating whether documents with given attribute
+    #   matching specified boundaries should be excluded from search results.
+    #
+    # @example
+    #   sphinx.SetFilterFloatRange(:group_id, 10.5, 20)
+    #   sphinx.SetFilterFloatRange(:group_id, 10.5, 20, true)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setfilterfloatrange Section 6.4.4, "SetFilterFloatRange"
+    # @see #SetFilter
+    # @see #SetFilterRange
+    #
+    def SetFilterFloatRange(attribute, min, max, exclude = false)
+      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
+      raise ArgumentError, '"min" argument must be Float or Integer'       unless min.kind_of?(Float) or (min.respond_to?(:integer?) and min.integer?)
+      raise ArgumentError, '"max" argument must be Float or Integer'       unless max.kind_of?(Float) or (max.respond_to?(:integer?) and max.integer?)
+      raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
+      raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
+
+      @filters << { 'type' => SPH_FILTER_FLOATRANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min.to_f, 'max' => max.to_f }
+    end
+
+    # Sets anchor point for and geosphere distance (geodistance)
+    # calculations, and enable them.
+    #
+    # +attrlat+ and +attrlong+ must be strings that contain the names
+    # of latitude and longitude attributes, respectively. +lat+ and
+    # +long+ are floats that specify anchor point latitude and
+    # longitude, in radians.
+    #
+    # Once an anchor point is set, you can use magic <tt>"@geodist"</tt>
+    # attribute name in your filters and/or sorting expressions.
+    # Sphinx will compute geosphere distance between the given anchor
+    # point and a point specified by latitude and lognitude attributes
+    # from each full-text match, and attach this value to the resulting
+    # match. The latitude and longitude values both in {#SetGeoAnchor}
+    # and the index attribute data are expected to be in radians.
+    # The result will be returned in meters, so geodistance value of
+    # 1000.0 means 1 km. 1 mile is approximately 1609.344 meters.
+    #
+    # @param [String, Symbol] attrlat a name of latitude attribute.
+    # @param [String, Symbol] attrlong a name of longitude attribute.
+    # @param [Integer, Float] lat an anchor point latitude, in radians.
+    # @param [Integer, Float] long an anchor point longitude, in radians.
+    #
+    # @example
+    #   sphinx.SetGeoAnchor(:latitude, :longitude, 192.5, 143.5)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setgeoanchor Section 6.4.5, "SetGeoAnchor"
+    #
+    def SetGeoAnchor(attrlat, attrlong, lat, long)
+      raise ArgumentError, '"attrlat" argument must be String or Symbol'  unless attrlat.kind_of?(String)  or attrlat.kind_of?(Symbol)
+      raise ArgumentError, '"attrlong" argument must be String or Symbol' unless attrlong.kind_of?(String) or attrlong.kind_of?(Symbol)
+      raise ArgumentError, '"lat" argument must be Float or Integer'      unless lat.kind_of?(Float)  or (lat.respond_to?(:integer?)  and lat.integer?)
+      raise ArgumentError, '"long" argument must be Float or Integer'     unless long.kind_of?(Float) or (long.respond_to?(:integer?) and long.integer?)
+
+      @anchor = { 'attrlat' => attrlat.to_s, 'attrlong' => attrlong.to_s, 'lat' => lat.to_f, 'long' => long.to_f }
+    end
+    
+    #=================================================================
+    # GROUP BY settings
+    #=================================================================
+
+    # Sets grouping attribute, function, and groups sorting mode; and
+    # enables grouping (as described in Section 4.6, "Grouping (clustering) search results").
+    #
+    # +attribute+ is a string that contains group-by attribute name.
+    # +func+ is a constant that chooses a function applied to the
+    # attribute value in order to compute group-by key. +groupsort+
+    # is a clause that controls how the groups will be sorted. Its
+    # syntax is similar to that described in Section 4.5,
+    # "SPH_SORT_EXTENDED mode".
+    #
+    # Grouping feature is very similar in nature to <tt>GROUP BY</tt> clause
+    # from SQL. Results produces by this function call are going to
+    # be the same as produced by the following pseudo code:
+    #
+    #   SELECT ... GROUP BY func(attribute) ORDER BY groupsort
+    #
+    # Note that it's +groupsort+ that affects the order of matches in
+    # the final result set. Sorting mode (see {#SetSortMode}) affect
+    # the ordering of matches within group, ie. what match will be
+    # selected as the best one from the group. So you can for instance
+    # order the groups by matches count and select the most relevant
+    # match within each group at the same time.
+    #
+    # Starting with version 0.9.9-rc2, aggregate functions (<tt>AVG()</tt>,
+    # <tt>MIN()</tt>, <tt>MAX()</tt>, <tt>SUM()</tt>) are supported
+    # through {#SetSelect} API call when using <tt>GROUP BY</tt>.
+    #
+    # You can specify group function and attribute as String
+    # ("attr", "day", etc), Symbol (:attr, :day, etc), or
+    # Fixnum constant (SPH_GROUPBY_ATTR, SPH_GROUPBY_DAY, etc).
+    #
+    # @param [String, Symbol] attribute an attribute name to group by.
+    # @param [Integer, String, Symbol] func a grouping function.
+    # @param [String] groupsort a groups sorting mode.
+    #
+    # @example
+    #   sphinx.SetGroupBy(:tag_id, :attr)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#clustering Section 4.6, "Grouping (clustering) search results"
+    # @see http://www.sphinxsearch.com/docs/current.html#sort-extended Section 4.5, "SPH_SORT_EXTENDED mode"
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setgroupby Section 6.5.1, "SetGroupBy"
+    # @see #SetSortMode
+    # @see #SetSelect
+    # @see #SetGroupDistinct
+    #
+    def SetGroupBy(attribute, func, groupsort = '@group desc')
+      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
+      raise ArgumentError, '"groupsort" argument must be String'           unless groupsort.kind_of?(String)
+
+      case func
+        when String, Symbol
+          begin
+            func = self.class.const_get("SPH_GROUPBY_#{func.to_s.upcase}")
+          rescue NameError
+            raise ArgumentError, "\"func\" argument value \"#{func}\" is invalid"
+          end
+        when Fixnum
+          raise ArgumentError, "\"func\" argument value \"#{func}\" is invalid" unless (SPH_GROUPBY_DAY..SPH_GROUPBY_ATTRPAIR).include?(func)
+        else
+          raise ArgumentError, '"func" argument must be Fixnum, String, or Symbol'
+      end
+
+      @groupby = attribute.to_s
+      @groupfunc = func
+      @groupsort = groupsort
+    end
+
+    # Sets attribute name for per-group distinct values count
+    # calculations. Only available for grouping queries.
+    #
+    # +attribute+ is a string that contains the attribute name. For
+    # each group, all values of this attribute will be stored (as
+    # RAM limits permit), then the amount of distinct values will
+    # be calculated and returned to the client. This feature is
+    # similar to <tt>COUNT(DISTINCT)</tt> clause in standard SQL;
+    # so these Sphinx calls:
+    #
+    #   sphinx.SetGroupBy(:category, :attr, '@count desc')
+    #   sphinx.SetGroupDistinct(:vendor)
+    #
+    # can be expressed using the following SQL clauses:
+    #
+    #   SELECT id, weight, all-attributes,
+    #     COUNT(DISTINCT vendor) AS @distinct,
+    #     COUNT(*) AS @count
+    #   FROM products
+    #   GROUP BY category
+    #   ORDER BY @count DESC
+    #
+    # In the sample pseudo code shown just above, {#SetGroupDistinct}
+    # call corresponds to <tt>COUNT(DISINCT vendor)</tt> clause only.
+    # <tt>GROUP BY</tt>, <tt>ORDER BY</tt>, and <tt>COUNT(*)</tt>
+    # clauses are all an equivalent of {#SetGroupBy} settings. Both
+    # queries will return one matching row for each category. In
+    # addition to indexed attributes, matches will also contain
+    # total per-category matches count, and the count of distinct
+    # vendor IDs within each category.
+    #
+    # @param [String, Symbol] attribute an attribute name.
+    #
+    # @example
+    #   sphinx.SetGroupDistinct(:category_id)
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-setgroupdistinct Section 6.5.2, "SetGroupDistinct"
+    # @see #SetGroupBy
+    #
+    def SetGroupDistinct(attribute)
+      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
+
+      @groupdistinct = attribute.to_s
+    end
+
+    #=================================================================
+    # Querying
+    #=================================================================
+
     # Clears all currently set filters.
     #
     # This call is only normally required when using multi-queries. You might want
     # to set different filters for different queries in the batch. To do that,
-    # you should call +ResetFilters+ and add new filters using the respective calls.
+    # you should call {#ResetFilters} and add new filters using the respective calls.
     #
-    # Usage example:
-    #
+    # @example
     #   sphinx.ResetFilters
+    #
+    # @see #SetFilter
+    # @see #SetFilterRange
+    # @see #SetFilterFloatRange
+    # @see #SetGeoAnchor
     #
     def ResetFilters
       @filters = []
@@ -847,15 +1308,17 @@ module Sphinx
     # Clears all currently group-by settings, and disables group-by.
     #
     # This call is only normally required when using multi-queries. You can
-    # change individual group-by settings using +SetGroupBy+ and +SetGroupDistinct+
-    # calls, but you can not disable group-by using those calls. +ResetGroupBy+
+    # change individual group-by settings using {#SetGroupBy} and {#SetGroupDistinct}
+    # calls, but you can not disable group-by using those calls. {#ResetGroupBy}
     # fully resets previous group-by settings and disables group-by mode in the
-    # current state, so that subsequent +AddQuery+ calls can perform non-grouping
+    # current state, so that subsequent {#AddQuery} calls can perform non-grouping
     # searches.
     #
-    # Usage example:
-    #
+    # @example
     #   sphinx.ResetGroupBy
+    #
+    # @see #SetGroupBy
+    # @see #SetGroupDistinct
     #
     def ResetGroupBy
       @groupby       = ''
@@ -865,36 +1328,95 @@ module Sphinx
     end
 
     # Clear all attribute value overrides (for multi-queries).
+    #
+    # This call is only normally required when using multi-queries. You might want
+    # to set field overrides for different queries in the batch. To do that,
+    # you should call {#ResetOverrides} and add new overrides using the
+    # respective calls.
+    #
+    # @example
+    #   sphinx.ResetOverrides
+    #
+    # @see #SetOverrides
+    #
     def ResetOverrides
       @overrides = []
     end
 
-    # Connect to searchd server and run given search query.
+    # Connects to searchd server, runs given search query with
+    # current settings, obtains and returns the result set.
     #
-    # <tt>query</tt> is query string
-
-    # <tt>index</tt> is index name (or names) to query. default value is "*" which means
-    # to query all indexes. Accepted characters for index names are letters, numbers,
-    # dash, and underscore; everything else is considered a separator. Therefore,
-    # all the following calls are valid and will search two indexes:
+    # +query+ is a query string. +index+ is an index name (or names)
+    # string. Returns false and sets {#GetLastError} message on general
+    # error. Returns search result set on success. Additionally,
+    # the contents of +comment+ are sent to the query log, marked in
+    # square brackets, just before the search terms, which can be very
+    # useful for debugging. Currently, the comment is limited to 128
+    # characters.
+    #
+    # Default value for +index+ is <tt>"*"</tt> that means to query
+    # all local indexes. Characters allowed in index names include
+    # Latin letters (a-z), numbers (0-9), minus sign (-), and
+    # underscore (_); everything else is considered a separator.
+    # Therefore, all of the following samples calls are valid and
+    # will search the same two indexes:
     #
     #   sphinx.Query('test query', 'main delta')
     #   sphinx.Query('test query', 'main;delta')
-    #   sphinx.Query('test query', 'main, delta')
+    #   sphinx.Query('test query', 'main, delta');
     #
-    # Index order matters. If identical IDs are found in two or more indexes,
-    # weight and attribute values from the very last matching index will be used
-    # for sorting and returning to client. Therefore, in the example above,
-    # matches from "delta" index will always "win" over matches from "main".
+    # Index specification order matters. If document with identical
+    # IDs are found in two or more indexes, weight and attribute
+    # values from the very last matching index will be used for
+    # sorting and returning to client (unless explicitly overridden
+    # with {#SetIndexWeights}). Therefore, in the example above,
+    # matches from "delta" index will always win over matches
+    # from "main".
     #
-    # Returns false on failure.
-    # Returns hash which has the following keys on success:
+    # On success, {#Query} returns a result set that contains some
+    # of the found matches (as requested by {#SetLimits}) and
+    # additional general per-query statistics. The result set
+    # is an +Hash+ with the following keys and values:
     #
-    # * <tt>'matches'</tt> -- array of hashes {'weight', 'group', 'id'}, where 'id' is document_id.
-    # * <tt>'total'</tt> -- total amount of matches retrieved (upto SPH_MAX_MATCHES, see sphinx.h)
-    # * <tt>'total_found'</tt> -- total amount of matching documents in index
-    # * <tt>'time'</tt> -- search time
-    # * <tt>'words'</tt> -- hash which maps query terms (stemmed!) to ('docs', 'hits') hash
+    # <tt>"matches"</tt>::
+    #   Array with small +Hash+es containing document weight and
+    #   attribute values.
+    # <tt>"total"</tt>::
+    #   Total amount of matches retrieved on server (ie. to the server
+    #   side result set) by this query. You can retrieve up to this
+    #   amount of matches from server for this query text with current
+    #   query settings.
+    # <tt>"total_found"</tt>::
+    #   Total amount of matching documents in index (that were found
+    #   and procesed on server).
+    # <tt>"words"</tt>::
+    #   Hash which maps query keywords (case-folded, stemmed, and
+    #   otherwise processed) to a small Hash with per-keyword statitics
+    #   ("docs", "hits").
+    # <tt>"error"</tt>::
+    #   Query error message reported by searchd (string, human readable).
+    #   Empty if there were no errors.
+    # <tt>"warning"</tt>::
+    #   Query warning message reported by searchd (string, human readable).
+    #   Empty if there were no warnings.
+    #
+    # It should be noted that {#Query} carries out the same actions as
+    # {#AddQuery} and {#RunQueries} without the intermediate steps; it
+    # is analoguous to a single {#AddQuery} call, followed by a
+    # corresponding {#RunQueries}, then returning the first array
+    # element of matches (from the first, and only, query.)
+    #
+    # @param [String] query a query string.
+    # @param [String] index an index name (or names).
+    # @param [String] comment a comment to be sent to the query log.
+    # @return [Hash, false] result set described above or +false+ on error.
+    #
+    # @example
+    #   sphinx.Query('some search text', '*', 'search page')
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-query Section 6.6.1, "Query"
+    # @see #AddQuery
+    # @see #RunQueries
     #
     def Query(query, index = '*', comment = '')
       @reqs = []
@@ -912,18 +1434,88 @@ module Sphinx
       return results[0]
     end
 
-    # Add query to batch.
+    # Adds additional query with current settings to multi-query batch.
+    # +query+ is a query string. +index+ is an index name (or names)
+    # string. Additionally if provided, the contents of +comment+ are
+    # sent to the query log, marked in square brackets, just before
+    # the search terms, which can be very useful for debugging.
+    # Currently, this is limited to 128 characters. Returns index
+    # to results array returned from {#RunQueries}.
     #
-    # Batch queries enable searchd to perform internal optimizations,
-    # if possible; and reduce network connection overheads in all cases.
+    # Batch queries (or multi-queries) enable searchd to perform
+    # internal optimizations if possible. They also reduce network
+    # connection overheads and search process creation overheads in all
+    # cases. They do not result in any additional overheads compared
+    # to simple queries. Thus, if you run several different queries
+    # from your web page, you should always consider using multi-queries.
+    # 
+    # For instance, running the same full-text query but with different
+    # sorting or group-by settings will enable searchd to perform
+    # expensive full-text search and ranking operation only once, but
+    # compute multiple group-by results from its output.
+    # 
+    # This can be a big saver when you need to display not just plain
+    # search results but also some per-category counts, such as the
+    # amount of products grouped by vendor. Without multi-query, you
+    # would have to run several queries which perform essentially the
+    # same search and retrieve the same matches, but create result
+    # sets differently. With multi-query, you simply pass all these
+    # queries in a single batch and Sphinx optimizes the redundant
+    # full-text search internally.
+    # 
+    # {#AddQuery} internally saves full current settings state along
+    # with the query, and you can safely change them afterwards for
+    # subsequent {#AddQuery} calls. Already added queries will not
+    # be affected; there's actually no way to change them at all.
+    # Here's an example:
+    # 
+    #   sphinx.SetSortMode(:relevance)
+    #   sphinx.AddQuery("hello world", "documents")
+    # 
+    #   sphinx.SetSortMode(:attr_desc, :price)
+    #   sphinx.AddQuery("ipod", "products")
     #
-    # For instance, running exactly the same query with different
-    # groupby settings will enable searched to perform expensive
-    # full-text search and ranking operation only once, but compute
-    # multiple groupby results from its output.
+    #   sphinx.AddQuery("harry potter", "books")
+    # 
+    #   results = sphinx.RunQueries
     #
-    # Parameters are exactly the same as in <tt>Query</tt> call.
-    # Returns index to results array returned by <tt>RunQueries</tt> call.
+    # With the code above, 1st query will search for "hello world"
+    # in "documents" index and sort results by relevance, 2nd query
+    # will search for "ipod" in "products" index and sort results
+    # by price, and 3rd query will search for "harry potter" in
+    # "books" index while still sorting by price. Note that 2nd
+    # {#SetSortMode} call does not affect the first query (because
+    # it's already added) but affects both other subsequent queries.
+    # 
+    # Additionally, any filters set up before an {#AddQuery} will
+    # fall through to subsequent queries. So, if {#SetFilter} is
+    # called before the first query, the same filter will be in
+    # place for the second (and subsequent) queries batched through
+    # {#AddQuery} unless you call {#ResetFilters} first. Alternatively,
+    # you can add additional filters as well.
+    # 
+    # This would also be true for grouping options and sorting options;
+    # no current sorting, filtering, and grouping settings are affected
+    # by this call; so subsequent queries will reuse current query settings.
+    # 
+    # {#AddQuery} returns an index into an array of results that will
+    # be returned from {#RunQueries} call. It is simply a sequentially
+    # increasing 0-based integer, ie. first call will return 0, second
+    # will return 1, and so on. Just a small helper so you won't have
+    # to track the indexes manualy if you need then.
+    #
+    # @param [String] query a query string.
+    # @param [String] index an index name (or names).
+    # @param [String] comment a comment to be sent to the query log.
+    # @return [Integer] an index into an array of results that will
+    #   be returned from {#RunQueries} call.
+    #
+    # @example
+    #   sphinx.AddQuery('some search text', '*', 'search page')
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-addquery Section 6.6.2, "AddQuery"
+    # @see #Query
+    # @see #RunQueries
     #
     def AddQuery(query, index = '*', comment = '')
       # build request
@@ -1025,16 +1617,38 @@ module Sphinx
       return @reqs.length - 1
     end
 
-    # Run queries batch.
+    # Connect to searchd, runs a batch of all queries added using
+    # {#AddQuery}, obtains and returns the result sets. Returns
+    # +false+ and sets {#GetLastError} message on general error
+    # (such as network I/O failure). Returns a plain array of
+    # result sets on success.
     #
-    # Returns an array of result sets on success.
-    # Returns false on network IO failure.
+    # Each result set in the returned array is exactly the same as
+    # the result set returned from {#Query}.
     #
-    # Each result set in returned array is a hash which containts
-    # the same keys as the hash returned by <tt>Query</tt>, plus:
+    # Note that the batch query request itself almost always succeds —
+    # unless there's a network error, blocking index rotation in
+    # progress, or another general failure which prevents the whole
+    # request from being processed.
     #
-    # * <tt>'error'</tt> -- search error for this query
-    # * <tt>'words'</tt> -- hash which maps query terms (stemmed!) to ( "docs", "hits" ) hash
+    # However individual queries within the batch might very well
+    # fail. In this case their respective result sets will contain
+    # non-empty "error" message, but no matches or query statistics.
+    # In the extreme case all queries within the batch could fail.
+    # There still will be no general error reported, because API
+    # was able to succesfully connect to searchd, submit the batch,
+    # and receive the results — but every result set will have a
+    # specific error message.
+    #
+    # @return [Array<Hash>] an +Array+ of +Hash+es which are exactly
+    #   the same as the result set returned from {#Query}.
+    #
+    # @example
+    #   sphinx.AddQuery('some search text', '*', 'search page')
+    #   results = sphinx.RunQueries
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-runqueries Section 6.6.3, "RunQueries"
+    # @see #AddQuery
     #
     def RunQueries
       if @reqs.empty?
@@ -1154,28 +1768,60 @@ module Sphinx
 
       return results
     end
+    
+    #=================================================================
+    # Additional functionality
+    #=================================================================
 
-    # Connect to searchd server and generate exceprts from given documents.
+    # Excerpts (snippets) builder function. Connects to searchd, asks
+    # it to generate excerpts (snippets) from given documents, and
+    # returns the results.
     #
-    # * <tt>docs</tt> -- an array of strings which represent the documents' contents
-    # * <tt>index</tt> -- a string specifiying the index which settings will be used
-    # for stemming, lexing and case folding
-    # * <tt>words</tt> -- a string which contains the words to highlight
-    # * <tt>opts</tt> is a hash which contains additional optional highlighting parameters.
+    # +docs+ is a plain array of strings that carry the documents'
+    # contents. +index+ is an index name string. Different settings
+    # (such as charset, morphology, wordforms) from given index will
+    # be used. +words+ is a string that contains the keywords to
+    # highlight. They will be processed with respect to index settings.
+    # For instance, if English stemming is enabled in the index,
+    # "shoes" will be highlighted even if keyword is "shoe". Starting
+    # with version 0.9.9-rc1, keywords can contain wildcards, that
+    # work similarly to star-syntax available in queries.
     #
-    # You can use following parameters:
-    # * <tt>'before_match'</tt> -- a string to insert before a set of matching words, default is "<b>"
-    # * <tt>'after_match'</tt> -- a string to insert after a set of matching words, default is "<b>"
-    # * <tt>'chunk_separator'</tt> -- a string to insert between excerpts chunks, default is " ... "
-    # * <tt>'limit'</tt> -- max excerpt size in symbols (codepoints), default is 256
-    # * <tt>'around'</tt> -- how much words to highlight around each match, default is 5
-    # * <tt>'exact_phrase'</tt> -- whether to highlight exact phrase matches only, default is <tt>false</tt>
-    # * <tt>'single_passage'</tt> -- whether to extract single best passage only, default is false
-    # * <tt>'use_boundaries'</tt> -- whether to extract passages by phrase boundaries setup in tokenizer
-    # * <tt>'weight_order'</tt> -- whether to order best passages in document (default) or weight order
+    # @param [Array<String>] docs an array of strings which represent
+    #   the documents' contents.
+    # @param [String] index an index which settings will be used for
+    #   stemming, lexing and case folding.
+    # @param [String] words a string which contains the words to highlight.
+    # @param [Hash] opts a +Hash+ which contains additional optional
+    #   highlighting parameters.
+    # @option opts [String] 'before_match' ("<b>") a string to insert before a
+    #   keyword match.
+    # @option opts [String] 'after_match' ("</b>") a string to insert after a
+    #   keyword match.
+    # @option opts [String] 'chunk_separator' (" ... ") a string to insert
+    #   between snippet chunks (passages).
+    # @option opts [Integer] 'limit' (256) maximum snippet size, in symbols
+    #   (codepoints).
+    # @option opts [Integer] 'around' (5) how many words to pick around
+    #   each matching keywords block.
+    # @option opts [Boolean] 'exact_phrase' (false) whether to highlight exact
+    #   query phrase matches only instead of individual keywords.
+    # @option opts [Boolean] 'single_passage' (false) whether to extract single
+    #   best passage only.
+    # @option opts [Boolean] 'use_boundaries' (false) whether to extract
+    #   passages by phrase boundaries setup in tokenizer.
+    # @option opts [Boolean] 'weight_order' (false) whether to sort the
+    #   extracted passages in order of relevance (decreasing weight),
+    #   or in order of appearance in the document (increasing position).
+    # @return [Array<String>, false] a plain array of strings with
+    #   excerpts (snippets) on success; otherwise, +false+.
     #
-    # Returns false on failure.
-    # Returns an array of string excerpts on success.
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @example
+    #   sphinx.BuildExcerpts(['hello world', 'hello me'], 'idx', 'hello')
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-buildexcerpts Section 6.7.1, "BuildExcerpts"
     #
     def BuildExcerpts(docs, index, words, opts = {})
       raise ArgumentError, '"docs" argument must be Array'   unless docs.kind_of?(Array)
@@ -1232,9 +1878,40 @@ module Sphinx
       docs.map { response.get_string }
     end
 
-    # Connect to searchd server, and generate keyword list for a given query.
+    # Extracts keywords from query using tokenizer settings for given
+    # index, optionally with per-keyword occurrence statistics.
+    # Returns an array of hashes with per-keyword information.
     #
-    # Returns an array of words on success.
+    # +query+ is a query to extract keywords from. +index+ is a name of
+    # the index to get tokenizing settings and keyword occurrence
+    # statistics from. +hits+ is a boolean flag that indicates whether
+    # keyword occurrence statistics are required.
+    #
+    # The result set consists of +Hash+es with the following keys and values:
+    #
+    # <tt>'tokenized'</tt>::
+    #   Tokenized keyword.
+    # <tt>'normalized'</tt>::
+    #   Normalized keyword.
+    # <tt>'docs'</tt>::
+    #   A number of documents where keyword is found (if +hits+ param is +true+).
+    # <tt>'hits'</tt>::
+    #   A number of keywords occurrences among all documents (if +hits+ param is +true+).
+    #
+    # @param [String] query a query string.
+    # @param [String] index an index to get tokenizing settings and
+    #   keyword occurrence statistics from.
+    # @param [Boolean] hits indicates whether keyword occurrence
+    #   statistics are required.
+    # @return [Array<Hash>] an +Array+ of +Hash+es in format specified
+    #   above.
+    #
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @example
+    #   keywords = sphinx.BuildKeywords("this.is.my query", "test1", false)
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-buildkeywords Section 6.7.3, "BuildKeywords"
     #
     def BuildKeywords(query, index, hits)
       raise ArgumentError, '"query" argument must be String' unless query.kind_of?(String)
@@ -1263,20 +1940,53 @@ module Sphinx
       end
     end
 
-    # Batch update given attributes in given rows in given indexes.
+    # Instantly updates given attribute values in given documents.
+    # Returns number of actually updated documents (0 or more) on
+    # success, or -1 on failure.
+    # 
+    # +index+ is a name of the index (or indexes) to be updated.
+    # +attrs+ is a plain array with string attribute names, listing
+    # attributes that are updated. +values+ is a Hash where key is
+    # document ID, and value is a plain array of new attribute values.
+    # 
+    # +index+ can be either a single index name or a list, like in
+    # {#Query}. Unlike {#Query}, wildcard is not allowed and all the
+    # indexes to update must be specified explicitly. The list of
+    # indexes can include distributed index names. Updates on
+    # distributed indexes will be pushed to all agents.
+    # 
+    # The updates only work with docinfo=extern storage strategy.
+    # They are very fast because they're working fully in RAM, but
+    # they can also be made persistent: updates are saved on disk
+    # on clean searchd shutdown initiated by SIGTERM signal. With
+    # additional restrictions, updates are also possible on MVA
+    # attributes; refer to mva_updates_pool directive for details.
     #
-    # * +index+ is a name of the index to be updated
-    # * +attrs+ is an array of attribute name strings.
-    # * +values+ is a hash where key is document id, and value is an array of
-    # * +mva+ identifies whether update MVA
-    # new attribute values
+    # The first sample statement will update document 1 in index
+    # "test1", setting "group_id" to 456. The second one will update
+    # documents 1001, 1002 and 1003 in index "products". For document
+    # 1001, the new price will be set to 123 and the new amount in
+    # stock to 5; for document 1002, the new price will be 37 and the
+    # new amount will be 11; etc. The third one updates document 1
+    # in index "test2", setting MVA attribute "group_id" to [456, 789].
+    # 
+    # @example
+    #   sphinx.UpdateAttributes("test1", ["group_id"], { 1 => [456] });
+    #   sphinx.UpdateAttributes("products", ["price", "amount_in_stock"],
+    #     { 1001 => [123, 5], 1002 => [37, 11], 1003 => [25, 129] });
+    #   sphinx.UpdateAttributes('test2', ['group_id'], { 1 => [[456, 789]] }, true)
     #
-    # Returns number of actually updated documents (0 or more) on success.
-    # Returns -1 on failure.
+    # @param [String] index a name of the index to be updated.
+    # @param [Array<String>] attrs an array of attribute name strings.
+    # @param [Hash] values is a hash where key is document id, and
+    #   value is an array of new attribute values.
+    # @param [Boolean] mva indicating whether to update MVA.
+    # @return [Integer] number of actually updated documents (0 or more) on success,
+    #   -1 on failure.
     #
-    # Usage example:
-    #    sphinx.UpdateAttributes('test1', ['group_id'], { 1 => [456] })
-    #    sphinx.UpdateAttributes('test1', ['group_id'], { 1 => [[456, 789]] }, true)
+    # @raise [ArgumentError] Occurred when parameters are invalid.
+    #
+    # @see http://www.sphinxsearch.com/docs/current.html#api-func-updateatttributes Section 6.7.2, "UpdateAttributes"
     #
     def UpdateAttributes(index, attrs, values, mva = false)
       # verify everything
@@ -1331,9 +2041,67 @@ module Sphinx
       response.get_int
     end
 
-    # persistent connections
+    # Queries searchd status, and returns an array of status variable name
+    # and value pairs.
+    #
+    # @return [Array<Array>] a table containing searchd status information.
+    #
+    # @example
+    #   status = sphinx.Status
+    #   puts status.map { |key, value| "#{key.rjust(20)}: #{value}" }
+    #
+    def Status
+      request = Request.new
+      request.put_int(1)
+      response = perform_request(:status, request)
+
+      # parse response
+      rows, cols = response.get_ints(2)
+      (0...rows).map do
+        (0...cols).map { response.get_string }
+      end
+    end
+
+    # Force attribute flush, and block until it completes.
+    #
+    # @return current internal flush tag on success, -1 on failure.
+    #
+    # @example
+    #   sphinx.FlushAttrs
+    #
+    def FlushAttrs
+      request = Request.new
+      response = perform_request(:flushattrs, request)
+
+      # parse response
+      begin
+        response.get_int
+      rescue EOFError
+        -1
+      end
+    end
+
+    #=================================================================
+    # Persistent connections
+    #=================================================================
 
     # Opens persistent connection to the server.
+    #
+    # This method could be used only when a single searchd server
+    # configured.
+    #
+    # @return [Boolean] +true+ when persistent connection has been
+    #   established; otherwise, +false+.
+    #
+    # @example
+    #   begin
+    #     sphinx.Open
+    #     # perform several requests
+    #   ensure
+    #     sphinx.Close
+    #   end
+    #
+    # @see #Close
     #
     def Open
       if @servers.size > 1
@@ -1358,6 +2126,22 @@ module Sphinx
 
     # Closes previously opened persistent connection.
     #
+    # This method could be used only when a single searchd server
+    # configured.
+    #
+    # @return [Boolean] +true+ when persistent connection has been
+    #   closed; otherwise, +false+.
+    #
+    # @example
+    #   begin
+    #     sphinx.Open
+    #     # perform several requests
+    #   ensure
+    #     sphinx.Close
+    #   end
+    #
+    # @see #Open
+    #
     def Close
       if @servers.size > 1
         @error = 'too many servers. persistent socket allowed only for a single server.'
@@ -1372,38 +2156,6 @@ module Sphinx
       @servers.first.close_persistent!
     end
 
-    # Queries searchd status, and returns an array of status variable name
-    # and value pairs.
-    #
-    # Usage example:
-    #
-    #   status = sphinx.Status
-    #   puts status.map { |key, value| "#{key.rjust(20)}: #{value}" }
-    #
-    def Status
-      request = Request.new
-      request.put_int(1)
-      response = perform_request(:status, request)
-
-      # parse response
-      rows, cols = response.get_ints(2)
-      (0...rows).map do
-        (0...cols).map { response.get_string }
-      end
-    end
-
-    def FlushAttrs
-      request = Request.new
-      response = perform_request(:flushattrs, request)
-
-      # parse response
-      begin
-        response.get_int
-      rescue EOFError
-        -1
-      end
-    end
-
     protected
 
       # Connect, send query, get response.
@@ -1411,17 +2163,22 @@ module Sphinx
       # Use this method to communicate with Sphinx server. It ensures connection
       # will be instantiated properly, all headers will be generated properly, etc.
       #
-      # Parameters:
-      # * +command+ -- searchd command to perform (<tt>:search</tt>, <tt>:excerpt</tt>,
+      # @param [Symbol, String] command searchd command to perform (<tt>:search</tt>, <tt>:excerpt</tt>,
       #   <tt>:update</tt>, <tt>:keywords</tt>, <tt>:persist</tt>, <tt>:status</tt>,
       #   <tt>:query</tt>, <tt>:flushattrs</tt>. See <tt>SEARCHD_COMMAND_*</tt> for details).
-      # * +request+ -- an instance of <tt>Sphinx::Request</tt> class. Contains request body.
-      # * +additional+ -- additional integer data to be placed between header and body.
-      # * +block+ -- if given, response will not be parsed, plain socket will be
-      #   passed instead. this is special mode used for persistent connections,
-      #   do not use for other tasks.
+      # @param [Sphinx::Request] request contains request body.
+      # @param [nil, Integer] additional additional integer data to be placed between header and body.
       #
-      def perform_request(command, request, additional = nil, &block)
+      # @yield if block given, response will not be parsed, plain socket
+      #   will be yielded instead. This is special mode used for
+      #   persistent connections, do not use for other tasks.
+      # @yieldparam [Sphinx::Server] server a server where request was performed on.
+      # @yieldparam [Sphinx::BufferedIO] socket a socket used to perform the request.
+      # @return [Sphinx::Response] contains response body.
+      #
+      # @see #parse_response
+      #
+      def perform_request(command, request, additional = nil)
         with_server do |server|
           cmd = command.to_s.upcase
           command_id = Sphinx::Client.const_get("SEARCHD_COMMAND_#{cmd}")
@@ -1448,14 +2205,19 @@ module Sphinx
       #
       # There are several exceptions which could be thrown in this method:
       #
-      # * various network errors -- should be handled by caller (see +with_socket+).
-      # * +SphinxResponseError+ -- incomplete reply from searchd.
-      # * +SphinxInternalError+ -- searchd error.
-      # * +SphinxTemporaryError+ -- temporary searchd error.
-      # * +SphinxUnknownError+ -- unknows searchd error.
+      # @param [Sphinx::BufferedIO] socket an input stream object.
+      # @param [Integer] client_version a command version which client supports.
+      # @return [Sphinx::Response] could be used for context-based
+      #   parsing of reply from the server.
       #
-      # Method returns an instance of <tt>Sphinx::Response</tt> class, which
-      # could be used for context-based parsing of reply from the server.
+      # @raise [SystemCallError, SocketError] should be handled by caller (see {#with_socket}).
+      # @raise [SphinxResponseError] incomplete reply from searchd.
+      # @raise [SphinxInternalError] searchd internal error.
+      # @raise [SphinxTemporaryError] searchd temporary error.
+      # @raise [SphinxUnknownError] searchd unknown error.
+      #
+      # @see #with_socket
+      # @private
       #
       def parse_response(socket, client_version)
         response = ''
@@ -1512,10 +2274,16 @@ module Sphinx
       # and yields it to the block passed.
       #
       # In case of connection error, it will try next server several times
-      # (see +SetConnectionTimeout+ method details). If all servers are down,
-      # it will set +error+ attribute value with the last exception message,
-      # and <tt>connection_timeout?</tt> method will return true. Also,
-      # +SphinxConnectErorr+ exception will be raised.
+      # (see {#SetConnectTimeout} method details). If all servers are down,
+      # it will set error attribute (could be retrieved with {#GetLastError}
+      # method) with the last exception message, and {#IsConnectError}
+      # method will return true. Also, {SphinxConnectError} exception
+      # will be raised.
+      #
+      # @yield a block which performs request on a given server.
+      # @yieldparam [Sphinx::Server] server contains information
+      #   about the server to perform request on.
+      # @raise [SphinxConnectError] on any connection error.
       #
       def with_server
         attempts = @retries
@@ -1557,6 +2325,16 @@ module Sphinx
       # will be retried (see +SetRequestTimeout+). Of course, if connection
       # could not be established, next server will be selected (see explanation
       # above).
+      #
+      # @param [Sphinx::Server] server contains information
+      #   about the server to perform request on.
+      # @yield a block which will actually perform the request.
+      # @yieldparam [Sphinx::BufferedIO] socket a socket used to
+      #   perform the request.
+      #
+      # @raise [SphinxResponseError, SphinxInternalError, SphinxTemporaryError, SphinxUnknownError]
+      #   on any response error.
+      # @raise [SphinxConnectError] on any connection error.
       #
       def with_socket(server)
         attempts = @reqretries

@@ -17,7 +17,10 @@ module Sphinx
     require 'timeout'
     Timeout = ::Timeout
   end
-  
+
+  # Executes specified block respecting timeout passed.
+  #
+  # @private
   def self.safe_execute(timeout = 5, &block)
     if timeout > 0
       Sphinx::Timeout.timeout(timeout, &block)

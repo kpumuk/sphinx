@@ -41,7 +41,11 @@ http://rdoc.info/projects/kpumuk/sphinx
 
 You can build the documentation locally by running:
 
-  rake rdoc
+  rake yard
+
+Please note: you should have yard gem installed on your system:
+
+  sudo gem install yard --source http://gemcutter.org
 
 Complete Sphinx API documentation could be found on Sphinx Search Engine
 site: http://www.sphinxsearch.com/docs/current.html

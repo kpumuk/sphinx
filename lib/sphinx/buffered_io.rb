@@ -1,3 +1,7 @@
+# A simple wrapper around <tt>Net::BufferedIO</tt> performing
+# non-blocking select.
+#
+# @private
 class Sphinx::BufferedIO < Net::BufferedIO # :nodoc:
   BUFSIZE = 1024 * 16
 

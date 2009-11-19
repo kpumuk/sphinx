@@ -1,3 +1,6 @@
+# Represents an instance of searchd server.
+#
+# @private
 class Sphinx::Server
   # The host the Sphinx server is running on
   attr_reader :host
