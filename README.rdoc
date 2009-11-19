@@ -123,6 +123,22 @@ constants:
   sphinx.SetMatchMode(:any)
   sphinx.SetMatchMode('any')
 
+== Example
+
+This simple example illustrates base connection establishing,
+search results retrieving, and excerpts building. Please note
+how does it perform database select using ActiveRecord to
+save the order of records established by Sphinx.
+
+  sphinx = Sphinx::Client.new
+  result = sphinx.Query('test')
+  ids = result['matches'].map { |match| match['id'] }
+  posts = Post.all :conditions => { :id => ids },
+                   :order => "FIELD(id,#{ids.join(',')})"
+
+  docs = posts.map(&:body)
+  excerpts = sphinx.BuildExcerpts(docs, 'index', 'test')
+
 == Support
 
 Source code:

@@ -1,29 +1,3 @@
-# = client.rb - Sphinx Client API
-#
-# Author::    Dmytro Shteflyuk <mailto:kpumuk@kpumuk.info>.
-# Copyright:: Copyright (c) 2006 — 2009 Dmytro Shteflyuk
-# License::   Distributes under the same terms as Ruby
-# Version::   0.9.10-r2086
-# Website::   http://kpumuk.info/projects/ror-plugins/sphinx
-#
-# This library is distributed under the terms of the Ruby license.
-# You can freely distribute/modify this library.
-
-# == Sphinx Client API
-#
-# The Sphinx Client API is used to communicate with <tt>searchd</tt>
-# daemon and get search results from Sphinx.
-#
-# === Usage
-#
-#   sphinx = Sphinx::Client.new
-#   result = sphinx.Query('test')
-#   ids = result['matches'].map { |match| match['id'] }.join(',')
-#   posts = Post.find :all, :conditions => "id IN (#{ids})"
-#
-#   docs = posts.map(&:body)
-#   excerpts = sphinx.BuildExcerpts(docs, 'index', 'test')
-
 module Sphinx
   # Base class for all Sphinx errors
   class SphinxError < StandardError; end
@@ -38,6 +12,19 @@ module Sphinx
   # Unknown error occurred inside searchd.
   class SphinxUnknownError < SphinxError; end
 
+  # The Sphinx Client API is used to communicate with <tt>searchd</tt>
+  # daemon and perform requests.
+  #
+  # @example
+  #   sphinx = Sphinx::Client.new
+  #   result = sphinx.Query('test')
+  #   ids = result['matches'].map { |match| match['id'] }
+  #   posts = Post.all :conditions => { :id => ids },
+  #                    :order => "FIELD(id,#{ids.join(',')})"
+  #
+  #   docs = posts.map(&:body)
+  #   excerpts = sphinx.BuildExcerpts(docs, 'index', 'test')
+  #
   class Client
     #=================================================================
     # Known searchd commands
