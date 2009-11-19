@@ -1,10 +1,10 @@
-=Sphinx Client API 0.9.10
+= Sphinx Client API 0.9.10
 
 This document gives an overview of what is Sphinx itself and how to use in 
 within Ruby on Rails. For more information or documentation, 
 please go to http://www.sphinxsearch.com
 
-==Sphinx
+== Sphinx
 
 Sphinx is a standalone full-text search engine, meant to provide fast, 
 size-efficient and relevant fulltext search functions to other applications. 
@@ -15,31 +15,116 @@ either via direct connection to MySQL, or from an XML pipe.
 Simplest way to communicate with Sphinx is to use <tt>searchd</tt> -
 a daemon to search through fulltext indices from external software.
 
-==Compatibility
+== Installation
 
-This version supports all API features of Sphinx 0.9.10-r2043. Full compatibility list:
+There are two options when approaching sphinx plugin installation:
 
-* <tt>0.9.10</tt> — Sphinx 0.9.10-r2043
-* <tt>0.9.9</tt> — Sphinx 0.9.9-r1299
+* using the gem (recommended)
+* install as a Rails plugin
 
-==Documentation
+To install as a gem, add this to your environment.rb:
 
-You can create the documentation by running:
+  config.gem 'sphinx', :source => 'http://gemcutter.org'
 
-	rake rdoc
+And then run the command:
 
-==Latest version
+  sudo rake gems:install
 
-You can always get latest version from
+To install Sphinx as a Rails plugin use this:
+
+  script/plugin install git://github.com/kpumuk/sphinx.git
+
+== Documentation
+
+Complete Sphinx plugin documentation is hosted by rdoc.info:
+http://rdoc.info/projects/kpumuk/sphinx
+
+You can build the documentation locally by running:
+
+  rake rdoc
+
+Complete Sphinx API documentation could be found on Sphinx Search Engine
+site: http://www.sphinxsearch.com/docs/current.html
+This plugin is fully compatible with original PHP API implementation.
+
+== Ruby implementation specific methods
+
+Since we actively use this plugin in our Scribd development workflow,
+there are several methods have been added to accommodate our needs.
+You can find documentation on Ruby-specific methods in documentation:
+http://rdoc.info/projects/kpumuk/sphinx
+
+First of all, we added support of multiple Sphinx servers to balance
+load between them. Also it means that in case of any problems with one
+of servers, library will try to fetch the results from another one.
+Every consequence request will be executed on the next server in list
+(round-robin technique).
+
+  sphinx.SetServers([
+    { :host => 'browse01.local', :port => 3312 },
+    { :host => 'browse02.local', :port => 3312 },
+    { :host => 'browse03.local', :port => 3312 }
+  ])
+
+By default library will try to fetch results from a single server, and
+fail if it does not respond. To setup number of retries being performed,
+you can use second (additional) parameter of the <tt>SetConnectTimeout</tt>
+and <tt>SetRequestTimeout</tt> methods:
+
+  sphinx.SetConnectTimeout(1, 3)
+  sphinx.SetRequestTimeout(1, 3)
+
+There is a big difference between these two methods. First will affect
+only on requests experiencing problems with connection (socket error,
+pipe error, etc), second will be used when request is broken somehow
+(temporary searchd error, incomplete reply, etc). The workflow looks like
+this:
+
+1. Increase retries number. If is less or equal to configured value,
+   try to connect to the next server. Otherwise, raise an error.
+2. In case of connection problem go to 1.
+3. Increase request retries number. If it less or equal to configured
+   value, try to perform request. Otherwise, raise an error.
+4. In case of connection problem go to 1.
+5. In case of request problem, go to 3.
+
+Withdrawals:
+
+1. Request could be performed <tt>connect_retries</tt> * <tt>request_retries</tt>
+   times. E.g., it could be tried <tt>request_retries</tt> times on each
+   of <tt>connect_retries</tt> servers (when you have 1 server configured,
+   but <tt>connect_retries</tt> is 5, library will try to connect to this
+   server 5 times).
+2. Request could be tried to execute on each server <tt>1..request_retries</tt>
+   times. In case of connection problem, request will be moved to another
+   server immediately.
+
+Usually you will set <tt>connect_retries</tt> equal to servers number,
+so you will be sure each failing request will be performed on all servers.
+This means that if one of servers is live, but others are dead, you request
+will be finally executed successfully.
+
+== Support
+
+Source code:
+http://github.com/kpumuk/sphinx/
+
+To suggest a feature or report a bug:
+http://github.com/kpumuk/sphinx/issues/
+
+Project home page:
 http://kpumuk.info/projects/ror-plugins/sphinx
 
-==Credits
+== Credits
 
 Dmytro Shteflyuk <kpumuk@kpumuk.info> http://kpumuk.info
 
 Andrew Aksyonoff http://sphinxsearch.com/
 
 Special thanks to Alexey Kovyrin <alexey@kovyrin.net> http://blog.kovyrin.net
+
+Special thanks to Mike Perham http://www.mikeperham.com/ for his awesome
+memcache-client gem, where latest Sphinx gem got new sockets handling from.
 
 ==License
 

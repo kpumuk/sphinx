@@ -308,6 +308,14 @@ module Sphinx
     # and :port (to connect to searchd through network) or :path (an absolute path
     # to UNIX socket) specified.
     #
+    # Usage example:
+    #
+    #   sphinx.SetServers([
+    #     { :host => 'browse01.local', :port => 3312 },
+    #     { :host => 'browse02.local', :port => 3312 },
+    #     { :host => 'browse03.local', :port => 3312 }
+    #   ])
+    #
     def SetServers(servers)
       raise ArgumentError, '"servers" argument must be Array'     unless servers.kind_of?(Array)
       raise ArgumentError, '"servers" argument must be not empty' if servers.empty?
@@ -480,6 +488,7 @@ module Sphinx
     # You can specify ranking mode as String ("proximity_bm25", "bm25", etc),
     # Symbol (:proximity_bm25, :bm25, etc), or
     # Fixnum constant (SPH_RANK_PROXIMITY_BM25, SPH_RANK_BM25, etc).
+    #
     def SetRankingMode(ranker)
       case ranker
         when String, Symbol
@@ -502,6 +511,7 @@ module Sphinx
     # You can specify sorting mode as String ("relevance", "attr_desc", etc),
     # Symbol (:relevance, :attr_desc, etc), or
     # Fixnum constant (SPH_SORT_RELEVANCE, SPH_SORT_ATTR_DESC, etc).
+    #
     def SetSortMode(mode, sortby = '')
       case mode
         when String, Symbol
@@ -526,6 +536,7 @@ module Sphinx
     # Bind per-field weights by order.
     #
     # DEPRECATED; use SetFieldWeights() instead.
+    #
     def SetWeights(weights)
       raise ArgumentError, '"weights" argument must be Array' unless weights.kind_of?(Array)
       weights.each do |weight|
@@ -541,6 +552,7 @@ module Sphinx
     # * Takes precedence over SetWeights().
     # * Unknown names will be silently ignored.
     # * Unbound fields will be silently given a weight of 1.
+    #
     def SetFieldWeights(weights)
       raise ArgumentError, '"weights" argument must be Hash' unless weights.kind_of?(Hash)
       weights.each do |name, weight|
@@ -553,6 +565,7 @@ module Sphinx
     end
 
     # Bind per-index weights by name.
+    #
     def SetIndexWeights(weights)
       raise ArgumentError, '"weights" argument must be Hash' unless weights.kind_of?(Hash)
       weights.each do |index, weight|
@@ -567,6 +580,7 @@ module Sphinx
     # Set IDs range to match.
     #
     # Only match records if document ID is beetwen <tt>min_id</tt> and <tt>max_id</tt> (inclusive).
+    #
     def SetIDRange(min, max)
       raise ArgumentError, '"min" argument must be Integer' unless min.respond_to?(:integer?) and min.integer?
       raise ArgumentError, '"max" argument must be Integer' unless max.respond_to?(:integer?) and max.integer?
@@ -580,6 +594,7 @@ module Sphinx
     #
     # Only match those records where <tt>attribute</tt> column values
     # are in specified set.
+    #
     def SetFilter(attribute, values, exclude = false)
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
       raise ArgumentError, '"values" argument must be Array'               unless values.kind_of?(Array)
@@ -611,6 +626,7 @@ module Sphinx
     #
     # Only match those records where <tt>attribute</tt> column value
     # is beetwen <tt>min</tt> and <tt>max</tt> (including <tt>min</tt> and <tt>max</tt>).
+    #
     def SetFilterFloatRange(attribute, min, max, exclude = false)
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
       raise ArgumentError, '"min" argument must be Float or Integer'       unless min.kind_of?(Float) or (min.respond_to?(:integer?) and min.integer?)
@@ -631,6 +647,7 @@ module Sphinx
     # * <tt>attrlong</tt> -- is the name of longitude attribute
     # * <tt>lat</tt> -- is anchor point latitude, in radians
     # * <tt>long</tt> -- is anchor point longitude, in radians
+    #
     def SetGeoAnchor(attrlat, attrlong, lat, long)
       raise ArgumentError, '"attrlat" argument must be String or Symbol'  unless attrlat.kind_of?(String)  or attrlat.kind_of?(Symbol)
       raise ArgumentError, '"attrlong" argument must be String or Symbol' unless attrlong.kind_of?(String) or attrlong.kind_of?(Symbol)
@@ -676,6 +693,7 @@ module Sphinx
     # contain one most relevant match per each day when there were any
     # matches published, with day number and per-day match count attached,
     # and sorted by day number in descending order (ie. recent days first).
+    #
     def SetGroupBy(attribute, func, groupsort = '@group desc')
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
       raise ArgumentError, '"groupsort" argument must be String'           unless groupsort.kind_of?(String)
@@ -699,6 +717,7 @@ module Sphinx
     end
 
     # Set count-distinct attribute for group-by queries.
+    #
     def SetGroupDistinct(attribute)
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
 
@@ -876,6 +895,7 @@ module Sphinx
     # * <tt>'total_found'</tt> -- total amount of matching documents in index
     # * <tt>'time'</tt> -- search time
     # * <tt>'words'</tt> -- hash which maps query terms (stemmed!) to ('docs', 'hits') hash
+    #
     def Query(query, index = '*', comment = '')
       @reqs = []
 
@@ -904,6 +924,7 @@ module Sphinx
     #
     # Parameters are exactly the same as in <tt>Query</tt> call.
     # Returns index to results array returned by <tt>RunQueries</tt> call.
+    #
     def AddQuery(query, index = '*', comment = '')
       # build request
 
@@ -1208,12 +1229,13 @@ module Sphinx
       response = perform_request(:excerpt, request)
 
       # parse response
-      docs.map { |doc| response.get_string }
+      docs.map { response.get_string }
     end
 
     # Connect to searchd server, and generate keyword list for a given query.
     #
     # Returns an array of words on success.
+    #
     def BuildKeywords(query, index, hits)
       raise ArgumentError, '"query" argument must be String' unless query.kind_of?(String)
       raise ArgumentError, '"index" argument must be String' unless index.kind_of?(String) or index.kind_of?(Symbol)
@@ -1365,8 +1387,8 @@ module Sphinx
 
       # parse response
       rows, cols = response.get_ints(2)
-      (0...rows).map do |i|
-        (0...cols).map { |j| response.get_string }
+      (0...rows).map do
+        (0...cols).map { response.get_string }
       end
     end
 
