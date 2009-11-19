@@ -1039,7 +1039,7 @@ expressions to compute and fetch.
 
     
       <li class="public ">
-  <span class="summary_signature"><a href="#SetServer-instance_method" title="#SetServer (instance method)">- (Sphinx::Server) <strong>SetServer</strong>(host, port) </a>
+  <span class="summary_signature"><a href="#SetServer-instance_method" title="#SetServer (instance method)">- (Sphinx::Server) <strong>SetServer</strong>(host, port = 9312) </a>
   
   </span>
   
@@ -1304,7 +1304,7 @@ a new instance of <tt>Client</tt>
 
   <span class='comment val'># per-client-object settings</span>
   <span class='comment val'># searchd servers list</span>
-  <span class='@servers ivar id'>@servers</span>       <span class='assign token'>=</span> <span class='lbrack token'>[</span><span class='Sphinx constant id'>Sphinx</span><span class='colon2 op'>::</span><span class='Server constant id'>Server</span><span class='dot token'>.</span><span class='new identifier id'>new</span><span class='lparen token'>(</span><span class='self self kw'>self</span><span class='comma token'>,</span> <span class='string val'>'localhost'</span><span class='comma token'>,</span> <span class='integer val'>3312</span><span class='comma token'>,</span> <span class='false false kw'>false</span><span class='rparen token'>)</span><span class='rbrack token'>]</span><span class='dot token'>.</span><span class='freeze identifier id'>freeze</span>
+  <span class='@servers ivar id'>@servers</span>       <span class='assign token'>=</span> <span class='lbrack token'>[</span><span class='Sphinx constant id'>Sphinx</span><span class='colon2 op'>::</span><span class='Server constant id'>Server</span><span class='dot token'>.</span><span class='new identifier id'>new</span><span class='lparen token'>(</span><span class='self self kw'>self</span><span class='comma token'>,</span> <span class='string val'>'localhost'</span><span class='comma token'>,</span> <span class='integer val'>9312</span><span class='comma token'>,</span> <span class='false false kw'>false</span><span class='rparen token'>)</span><span class='rbrack token'>]</span><span class='dot token'>.</span><span class='freeze identifier id'>freeze</span>
   <span class='@lastserver ivar id'>@lastserver</span>    <span class='assign token'>=</span> <span class='integer val'>-1</span>
 <span class='end end kw'>end</span>
 </pre>
@@ -8065,7 +8065,7 @@ Occurred when parameters are invalid.
       <div class="method_details ">
   <p class="signature " id="SetServer-instance_method">
   
-    - (<tt><a href="Server.html" title="Sphinx::Server">Sphinx::Server</a></tt>) <strong>SetServer</strong>(host, port) 
+    - (<tt><a href="Server.html" title="Sphinx::Server">Sphinx::Server</a></tt>) <strong>SetServer</strong>(host, port = 9312) 
   
 
   
@@ -8074,7 +8074,7 @@ Occurred when parameters are invalid.
     <p>
 Sets searchd host name and TCP port. All subsequent requests will use the
 new host and port settings. Default <tt>host</tt> and <tt>port</tt> are
-&#8216;localhost&#8217; and 3312, respectively.
+&#8216;localhost&#8217; and 9312, respectively.
 </p>
 <p>
 Also, you can specify an absolute path to Sphinx&#8217;s UNIX socket as
@@ -8090,7 +8090,7 @@ Also, you can specify an absolute path to Sphinx&#8217;s UNIX socket as
     <h3>Examples:</h3>
     
       <h4></h4>
-      <pre class="example code">  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetServer constant id'>SetServer</span><span class='lparen token'>(</span><span class='string val'>'localhost'</span><span class='comma token'>,</span> <span class='integer val'>3312</span><span class='rparen token'>)</span>
+      <pre class="example code">  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetServer constant id'>SetServer</span><span class='lparen token'>(</span><span class='string val'>'localhost'</span><span class='comma token'>,</span> <span class='integer val'>9312</span><span class='rparen token'>)</span>
   <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetServer constant id'>SetServer</span><span class='lparen token'>(</span><span class='string val'>'/opt/sphinx/var/run/sphinx.sock'</span><span class='rparen token'>)</span>
 </pre>
     
@@ -8122,6 +8122,8 @@ the searchd host name or UNIX socket absolute path.
       
         <span class='name'>port</span>
       
+      
+        <em class="default">(defaults to: <tt>9312</tt>)</em>
       
       
         &mdash;
@@ -8211,7 +8213,7 @@ Occurred when parameters are invalid.
     <td>
       <pre class="code"><span class="info file"># File 'lib/sphinx/client.rb', line 366</span>
 
-<span class='def def kw'>def</span> <span class='SetServer constant id'>SetServer</span><span class='lparen token'>(</span><span class='host identifier id'>host</span><span class='comma token'>,</span> <span class='port identifier id'>port</span><span class='rparen token'>)</span>
+<span class='def def kw'>def</span> <span class='SetServer constant id'>SetServer</span><span class='lparen token'>(</span><span class='host identifier id'>host</span><span class='comma token'>,</span> <span class='port identifier id'>port</span> <span class='assign token'>=</span> <span class='integer val'>9312</span><span class='rparen token'>)</span>
   <span class='raise identifier id'>raise</span> <span class='ArgumentError constant id'>ArgumentError</span><span class='comma token'>,</span> <span class='string val'>'&quot;host&quot; argument must be String'</span> <span class='unless unless_mod kw'>unless</span> <span class='host identifier id'>host</span><span class='dot token'>.</span><span class='kind_of? fid id'>kind_of?</span><span class='lparen token'>(</span><span class='String constant id'>String</span><span class='rparen token'>)</span>
 
   <span class='path identifier id'>path</span> <span class='assign token'>=</span> <span class='nil nil kw'>nil</span>
@@ -8266,8 +8268,8 @@ network) or <tt>:path</tt> (an absolute path to UNIX socket) specified.
     
       <h4></h4>
       <pre class="example code">  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetServers constant id'>SetServers</span><span class='lparen token'>(</span><span class='lbrack token'>[</span>
-    <span class='lbrace token'>{</span> <span class='symbol val'>:host</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='string val'>'browse01.local'</span><span class='comma token'>,</span> <span class='symbol val'>:port</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='integer val'>3312</span> <span class='rbrace token'>}</span><span class='comma token'>,</span>
-    <span class='lbrace token'>{</span> <span class='symbol val'>:host</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='string val'>'browse02.local'</span><span class='comma token'>,</span> <span class='symbol val'>:port</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='integer val'>3312</span> <span class='rbrace token'>}</span><span class='comma token'>,</span>
+    <span class='lbrace token'>{</span> <span class='symbol val'>:host</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='string val'>'browse01.local'</span> <span class='rbrace token'>}</span><span class='comma token'>,</span> <span class='comment val'># default port is 9312</span>
+    <span class='lbrace token'>{</span> <span class='symbol val'>:host</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='string val'>'browse02.local'</span><span class='comma token'>,</span> <span class='symbol val'>:port</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='integer val'>9312</span> <span class='rbrace token'>}</span><span class='comma token'>,</span>
     <span class='lbrace token'>{</span> <span class='symbol val'>:path</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='string val'>'/opt/sphinx/var/run/sphinx.sock'</span> <span class='rbrace token'>}</span>
   <span class='rbrack token'>]</span><span class='rparen token'>)</span>
 </pre>
@@ -8334,7 +8336,8 @@ the searchd UNIX socket absolute path.
           <span class="name">:port</span>
           <span class="default">
             
-              <span class="na">N/A</span>
+              &mdash; default:
+              <tt>9312</tt>
             
           </span>
           &mdash;
@@ -8440,7 +8443,7 @@ Occurred when parameters are invalid.
     <span class='raise identifier id'>raise</span> <span class='ArgumentError constant id'>ArgumentError</span><span class='comma token'>,</span> <span class='string val'>'&quot;servers&quot; argument must be Array of Hashes'</span> <span class='unless unless_mod kw'>unless</span> <span class='server identifier id'>server</span><span class='dot token'>.</span><span class='kind_of? fid id'>kind_of?</span><span class='lparen token'>(</span><span class='Hash constant id'>Hash</span><span class='rparen token'>)</span>
 
     <span class='host identifier id'>host</span> <span class='assign token'>=</span> <span class='server identifier id'>server</span><span class='lbrack token'>[</span><span class='symbol val'>:path</span><span class='rbrack token'>]</span> <span class='orop op'>||</span> <span class='server identifier id'>server</span><span class='lbrack token'>[</span><span class='string val'>'path'</span><span class='rbrack token'>]</span> <span class='orop op'>||</span> <span class='server identifier id'>server</span><span class='lbrack token'>[</span><span class='symbol val'>:host</span><span class='rbrack token'>]</span> <span class='orop op'>||</span> <span class='server identifier id'>server</span><span class='lbrack token'>[</span><span class='string val'>'host'</span><span class='rbrack token'>]</span>
-    <span class='port identifier id'>port</span> <span class='assign token'>=</span> <span class='server identifier id'>server</span><span class='lbrack token'>[</span><span class='symbol val'>:port</span><span class='rbrack token'>]</span> <span class='orop op'>||</span> <span class='server identifier id'>server</span><span class='lbrack token'>[</span><span class='string val'>'port'</span><span class='rbrack token'>]</span>
+    <span class='port identifier id'>port</span> <span class='assign token'>=</span> <span class='server identifier id'>server</span><span class='lbrack token'>[</span><span class='symbol val'>:port</span><span class='rbrack token'>]</span> <span class='orop op'>||</span> <span class='server identifier id'>server</span><span class='lbrack token'>[</span><span class='string val'>'port'</span><span class='rbrack token'>]</span> <span class='orop op'>||</span> <span class='integer val'>9312</span>
     <span class='path identifier id'>path</span> <span class='assign token'>=</span> <span class='nil nil kw'>nil</span>
     <span class='raise identifier id'>raise</span> <span class='ArgumentError constant id'>ArgumentError</span><span class='comma token'>,</span> <span class='string val'>'&quot;host&quot; argument must be String'</span> <span class='unless unless_mod kw'>unless</span> <span class='host identifier id'>host</span><span class='dot token'>.</span><span class='kind_of? fid id'>kind_of?</span><span class='lparen token'>(</span><span class='String constant id'>String</span><span class='rparen token'>)</span>
 
@@ -9124,7 +9127,7 @@ Occurred when parameters are invalid.
 </div>
     
     <div id="footer">
-  Generated on Thu Nov 19 18:03:00 2009 by 
+  Generated on Thu Nov 19 19:15:06 2009 by 
   <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool">yard</a>
   0.4.0 (ruby-1.8.7).
 </div>
