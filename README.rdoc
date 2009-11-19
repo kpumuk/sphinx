@@ -12,7 +12,7 @@ Sphinx was specially designed to integrate well with SQL databases and
 scripting languages. Currently built-in data sources support fetching data 
 either via direct connection to MySQL, or from an XML pipe.
  
-Simplest way to communicate with Sphinx is to use <tt>searchd</tt> -
+Simplest way to communicate with Sphinx is to use <tt>searchd</tt> —
 a daemon to search through fulltext indices from external software.
 
 == Installation
@@ -47,7 +47,7 @@ Complete Sphinx API documentation could be found on Sphinx Search Engine
 site: http://www.sphinxsearch.com/docs/current.html
 This plugin is fully compatible with original PHP API implementation.
 
-== Ruby implementation specific methods
+== Using multiple Sphinx servers
 
 Since we actively use this plugin in our Scribd development workflow,
 there are several methods have been added to accommodate our needs.
@@ -87,6 +87,7 @@ this:
    value, try to perform request. Otherwise, raise an error.
 4. In case of connection problem go to 1.
 5. In case of request problem, go to 3.
+6. Parse and return response.
 
 Withdrawals:
 
@@ -103,6 +104,20 @@ Usually you will set <tt>connect_retries</tt> equal to servers number,
 so you will be sure each failing request will be performed on all servers.
 This means that if one of servers is live, but others are dead, you request
 will be finally executed successfully.
+
+== Sphinx constants
+
+Most Sphinx API methods expecting for special constants will be passed.
+For example:
+
+  sphinx.SetMatchMode(Sphinx::Client::SPH_MATCH_ANY)
+
+Please note that these constants defined in a <tt>Sphinx::Client</tt>
+namespace. You can use symbols or strings instead of these awful
+constants:
+
+  sphinx.SetMatchMode(:any)
+  sphinx.SetMatchMode('any')
 
 == Support
 
