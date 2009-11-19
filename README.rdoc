@@ -36,7 +36,10 @@ To install Sphinx as a Rails plugin use this:
 
 == Documentation
 
-Complete Sphinx plugin documentation is hosted by rdoc.info:
+Complete Sphinx plugin documentation could be found here:
+http://kpumuk.github.com/sphinx
+
+Also you can find documentation on rdoc.info:
 http://rdoc.info/projects/kpumuk/sphinx
 
 You can build the documentation locally by running:
