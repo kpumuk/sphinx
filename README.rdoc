@@ -122,10 +122,10 @@ constants:
 == Support
 
 Source code:
-http://github.com/kpumuk/sphinx/
+http://github.com/kpumuk/sphinx
 
 To suggest a feature or report a bug:
-http://github.com/kpumuk/sphinx/issues/
+http://github.com/kpumuk/sphinx/issues
 
 Project home page:
 http://kpumuk.info/projects/ror-plugins/sphinx
@@ -134,15 +134,14 @@ http://kpumuk.info/projects/ror-plugins/sphinx
 
 Dmytro Shteflyuk <kpumuk@kpumuk.info> http://kpumuk.info
 
-Andrew Aksyonoff http://sphinxsearch.com/
+Andrew Aksyonoff http://sphinxsearch.com
 
 Special thanks to Alexey Kovyrin <alexey@kovyrin.net> http://blog.kovyrin.net
 
-Special thanks to Mike Perham http://www.mikeperham.com/ for his awesome
+Special thanks to Mike Perham http://www.mikeperham.com for his awesome
 memcache-client gem, where latest Sphinx gem got new sockets handling from.
 
 ==License
 
 This library is distributed under the terms of the Ruby license.
 You can freely distribute/modify this library.
-
