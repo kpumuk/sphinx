@@ -1,7 +1,7 @@
 = Sphinx Client API 0.9.10
 
-This document gives an overview of what is Sphinx itself and how to use in 
-within Ruby on Rails. For more information or documentation, 
+This document gives an overview of what is Sphinx itself and how to use it 
+from your Ruby on Rails application. For more information or documentation, 
 please go to http://www.sphinxsearch.com
 
 == Sphinx
@@ -13,7 +13,7 @@ scripting languages. Currently built-in data sources support fetching data
 either via direct connection to MySQL, or from an XML pipe.
  
 Simplest way to communicate with Sphinx is to use <tt>searchd</tt> —
-a daemon to search through fulltext indices from external software.
+a daemon to search through full text indexes from external software.
 
 == Installation
 
