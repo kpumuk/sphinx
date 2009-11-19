@@ -3,13 +3,15 @@ SQLyog Enterprise - MySQL GUI v5.20
 Host - 5.0.27-community-nt : Database - sphinx_test
 *********************************************************************
 Server version : 5.0.27-community-nt
-*/
+*/
+
 
 SET NAMES utf8;
 
 SET SQL_MODE='';
 
-CREATE database IF NOT EXISTS `sphinx_test`;
+DROP database `sphinx_test`;
+CREATE database `sphinx_test`;
 
 USE `sphinx_test`;
 

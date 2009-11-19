@@ -1,5 +1,5 @@
 # = client.rb - Sphinx Client API
-# 
+#
 # Author::    Dmytro Shteflyuk <mailto:kpumuk@kpumuk.info>.
 # Copyright:: Copyright (c) 2006 — 2009 Dmytro Shteflyuk
 # License::   Distributes under the same terms as Ruby
@@ -10,17 +10,17 @@
 # You can freely distribute/modify this library.
 
 # ==Sphinx Client API
-# 
+#
 # The Sphinx Client API is used to communicate with <tt>searchd</tt>
 # daemon and get search results from Sphinx.
-# 
+#
 # ===Usage
-# 
+#
 #   sphinx = Sphinx::Client.new
 #   result = sphinx.Query('test')
 #   ids = result['matches'].map { |match| match['id'] }.join(',')
 #   posts = Post.find :all, :conditions => "id IN (#{ids})"
-#   
+#
 #   docs = posts.map(&:body)
 #   excerpts = sphinx.BuildExcerpts(docs, 'index', 'test')
 
@@ -38,9 +38,9 @@ module Sphinx
 
   class Client
     # :stopdoc:
-  
+
     # Known searchd commands
-  
+
     # search command
     SEARCHD_COMMAND_SEARCH     = 0
     # excerpt command
@@ -57,9 +57,9 @@ module Sphinx
     SEARCHD_COMMAND_QUERY      = 6
     # flushattrs command
     SEARCHD_COMMAND_FLUSHATTRS = 7
-  
+
     # Current client-side command implementation versions
-    
+
     # search command version
     VER_COMMAND_SEARCH     = 0x117
     # excerpt command version
@@ -76,45 +76,45 @@ module Sphinx
     VER_COMMAND_QUERY      = 0x100
     # flushattrs command version
     VER_COMMAND_FLUSHATTRS = 0x100
-    
+
     # Known searchd status codes
-  
+
     # general success, command-specific reply follows
     SEARCHD_OK      = 0
     # general failure, command-specific reply may follow
     SEARCHD_ERROR   = 1
     # temporaty failure, client should retry later
     SEARCHD_RETRY   = 2
-    # general success, warning message and command-specific reply follow 
-    SEARCHD_WARNING = 3    
+    # general success, warning message and command-specific reply follow
+    SEARCHD_WARNING = 3
 
     attr_reader :servers
     attr_reader :timeout
     attr_reader :retries
     attr_reader :reqtimeout
     attr_reader :reqretries
-    
+
     # :startdoc:
-  
+
     # Known match modes
-  
+
     # match all query words
-    SPH_MATCH_ALL       = 0 
+    SPH_MATCH_ALL       = 0
     # match any query word
-    SPH_MATCH_ANY       = 1 
+    SPH_MATCH_ANY       = 1
     # match this exact phrase
-    SPH_MATCH_PHRASE    = 2 
+    SPH_MATCH_PHRASE    = 2
     # match this boolean query
-    SPH_MATCH_BOOLEAN   = 3 
+    SPH_MATCH_BOOLEAN   = 3
     # match this extended query
-    SPH_MATCH_EXTENDED  = 4 
+    SPH_MATCH_EXTENDED  = 4
     # match all document IDs w/o fulltext query, apply filters
     SPH_MATCH_FULLSCAN  = 5
     # extended engine V2 (TEMPORARY, WILL BE REMOVED IN 0.9.8-RELEASE)
     SPH_MATCH_EXTENDED2 = 6
-    
+
     # Known ranking modes (ext2 only)
-  
+
     # default mode, phrase proximity major factor and BM25 minor one
     SPH_RANK_PROXIMITY_BM25 = 0
     # statistical mode, BM25 ranking only (faster but worse quality)
@@ -131,9 +131,9 @@ module Sphinx
     SPH_RANK_FIELDMASK      = 6
     # codename SPH04, phrase proximity + bm25 + head/exact boost
     SPH_RANK_SPH04          = 7
-    
+
     # Known sort modes
-  
+
     # sort by document relevance desc, then by date
     SPH_SORT_RELEVANCE     = 0
     # sort by document date desc, then by relevance desc
@@ -146,23 +146,23 @@ module Sphinx
     SPH_SORT_EXTENDED      = 4
     # sort by arithmetic expression in descending order (eg. "@id + max(@weight,1000)*boost + log(price)")
     SPH_SORT_EXPR          = 5
-    
+
     # Known filter types
-    
+
     # filter by integer values set
     SPH_FILTER_VALUES      = 0
     # filter by integer range
     SPH_FILTER_RANGE       = 1
     # filter by float range
     SPH_FILTER_FLOATRANGE  = 2
-    
+
     # Known attribute types
-  
+
     # this attr is just an integer
     SPH_ATTR_INTEGER   = 1
     # this attr is a timestamp
     SPH_ATTR_TIMESTAMP = 2
-    # this attr is an ordinal string number (integer at search time, 
+    # this attr is an ordinal string number (integer at search time,
     # specially handled at indexing time)
     SPH_ATTR_ORDINAL   = 3
     # this attr is a boolean bit field
@@ -175,23 +175,23 @@ module Sphinx
     SPH_ATTR_STRING    = 7
     # this attr has multiple values (0 or more)
     SPH_ATTR_MULTI     = 0x40000000
-    
+
     # Known grouping functions
-  
+
     # group by day
     SPH_GROUPBY_DAY      = 0
     # group by week
-    SPH_GROUPBY_WEEK     = 1 
+    SPH_GROUPBY_WEEK     = 1
     # group by month
-    SPH_GROUPBY_MONTH    = 2 
+    SPH_GROUPBY_MONTH    = 2
     # group by year
     SPH_GROUPBY_YEAR     = 3
     # group by attribute value
     SPH_GROUPBY_ATTR     = 4
     # group by sequential attrs pair
     SPH_GROUPBY_ATTRPAIR = 5
-    
-    # Constructs the <tt>Sphinx::Client</tt> object and sets options to their default values. 
+
+    # Constructs the <tt>Sphinx::Client</tt> object and sets options to their default values.
     def initialize
       # per-query settings
       @offset        = 0                       # how many records to seek from result-set start (default is 0)
@@ -214,16 +214,16 @@ module Sphinx
       @anchor        = []                      # geographical anchor point
       @indexweights  = []                      # per-index weights
       @ranker        = SPH_RANK_PROXIMITY_BM25 # ranking mode (default is SPH_RANK_PROXIMITY_BM25)
-      @maxquerytime  = 0                       # max query time, milliseconds (default is 0, do not limit) 
+      @maxquerytime  = 0                       # max query time, milliseconds (default is 0, do not limit)
       @fieldweights  = {}                      # per-field-name weights
       @overrides     = []                      # per-query attribute values overrides
       @select        = '*'                     # select-list (attributes or expressions, with optional aliases)
-    
+
       # per-reply fields (for single-query case)
       @error         = ''                      # last error message
       @warning       = ''                      # last warning message
       @connerror     = false                   # connection error vs remote error flag
-      
+
       @reqs          = []                      # requests storage (for multi-query case)
       @mbenc         = ''                      # stored mbstring encoding
       @timeout       = 0                       # connect timeout
@@ -236,7 +236,7 @@ module Sphinx
       @servers       = [Sphinx::Server.new(self, 'localhost', 3312, false)].freeze
       @lastserver    = -1
     end
-  
+
     # Returns last error message, as a string, in human readable format. If there
     # were no errors during the previous API call, empty string is returned.
     #
@@ -250,7 +250,7 @@ module Sphinx
     def GetLastError
       @error
     end
-    
+
     # Returns last warning message, as a string, in human readable format. If there
     # were no warnings during the previous API call, empty string is returned.
     #
@@ -258,14 +258,14 @@ module Sphinx
     # completed but with warnings. For instance, search query against a distributed
     # index might complete succesfully even if several remote agents timed out.
     # In that case, a warning message would be produced.
-    # 
+    #
     # The warning message is not reset by this call; so you can safely call it
     # several times if needed.
     #
     def GetLastWarning
       @warning
     end
-    
+
     # Checks whether the last error was a network error on API side, or a
     # remote error reported by searchd. Returns true if the last connection
     # attempt to searchd failed on API side, false otherwise (if the error
@@ -274,7 +274,7 @@ module Sphinx
     def IsConnectError
       @connerror || false
     end
-    
+
     # Sets searchd host name and TCP port. All subsequent requests will
     # use the new host and port settings. Default +host+ and +port+ are
     # 'localhost' and 3312, respectively.
@@ -284,7 +284,7 @@ module Sphinx
     #
     def SetServer(host, port)
       raise ArgumentError, '"host" argument must be String' unless host.kind_of?(String)
-      
+
       path = nil
       # Check if UNIX socket should be used
       if host[0] == ?/
@@ -311,7 +311,7 @@ module Sphinx
     def SetServers(servers)
       raise ArgumentError, '"servers" argument must be Array'     unless servers.kind_of?(Array)
       raise ArgumentError, '"servers" argument must be not empty' if servers.empty?
-      
+
       @servers = servers.map do |server|
         raise ArgumentError, '"servers" argument must be Array of Hashes' unless server.kind_of?(Hash)
 
@@ -330,11 +330,11 @@ module Sphinx
         end
 
         host = port = nil unless path.nil?
-        
+
         Sphinx::Server.new(self, host, port, path)
       end.freeze
     end
-    
+
     # Sets the time allowed to spend connecting to the server before giving up
     # and number of retries to perform.
     #
@@ -354,11 +354,11 @@ module Sphinx
       raise ArgumentError, '"timeout" argument must be Integer'        unless timeout.respond_to?(:integer?) and timeout.integer?
       raise ArgumentError, '"retries" argument must be Integer'        unless retries.respond_to?(:integer?) and retries.integer?
       raise ArgumentError, '"retries" argument must be greater than 0' unless retries > 0
-      
+
       @timeout = timeout
       @retries = retries
     end
-    
+
     # Sets the time allowed to spend performing request to the server before giving up
     # and number of retries to perform.
     #
@@ -378,11 +378,11 @@ module Sphinx
       raise ArgumentError, '"timeout" argument must be Integer'        unless timeout.respond_to?(:integer?) and timeout.integer?
       raise ArgumentError, '"retries" argument must be Integer'        unless retries.respond_to?(:integer?) and retries.integer?
       raise ArgumentError, '"retries" argument must be greater than 0' unless retries > 0
-      
+
       @reqtimeout = timeout
       @reqretries = retries
     end
-   
+
     # Sets offset into server-side result set (+offset+) and amount of matches to
     # return to client starting from that offset (+limit+). Can additionally control
     # maximum server-side result set size for current query (+max_matches+) and the
@@ -393,7 +393,7 @@ module Sphinx
     # clause. They instruct searchd to return at most +limit+ matches starting from
     # match number +offset+. The default offset and limit settings are +0+ and +20+,
     # that is, to return first +20+ matches.
-    # 
+    #
     # +max_matches+ setting controls how much matches searchd will keep in RAM
     # while searching. All matching documents will be normally processed, ranked,
     # filtered, and sorted even if max_matches is set to +1+. But only best +N+
@@ -420,7 +420,7 @@ module Sphinx
       raise ArgumentError, '"limit" argument must be Integer'  unless limit.respond_to?(:integer?)  and limit.integer?
       raise ArgumentError, '"max" argument must be Integer'    unless max.respond_to?(:integer?)    and max.integer?
       raise ArgumentError, '"cutoff" argument must be Integer' unless cutoff.respond_to?(:integer?) and cutoff.integer?
-      
+
       raise ArgumentError, '"offset" argument should be greater or equal to zero' unless offset >= 0
       raise ArgumentError, '"limit" argument should be greater to zero'           unless limit > 0
       raise ArgumentError, '"max" argument should be greater or equal to zero'    unless max >= 0
@@ -431,7 +431,7 @@ module Sphinx
       @maxmatches = max if max > 0
       @cutoff = cutoff if cutoff > 0
     end
-    
+
     # Sets maximum search query time, in milliseconds. Parameter must be a
     # non-negative integer. Default valus is +0+ which means "do not limit".
     #
@@ -447,7 +447,7 @@ module Sphinx
 
       @maxquerytime = max
     end
-    
+
     # Sets full-text query matching mode.
     #
     # Parameter must be a +Fixnum+ constant specifying one of the known modes
@@ -474,7 +474,7 @@ module Sphinx
 
       @mode = mode
     end
-    
+
     # Set ranking mode.
     #
     # You can specify ranking mode as String ("proximity_bm25", "bm25", etc),
@@ -496,7 +496,7 @@ module Sphinx
 
       @ranker = ranker
     end
-    
+
     # Set matches sorting mode.
     #
     # You can specify sorting mode as String ("relevance", "attr_desc", etc),
@@ -522,7 +522,7 @@ module Sphinx
       @sort = mode
       @sortby = sortby
     end
-    
+
     # Bind per-field weights by order.
     #
     # DEPRECATED; use SetFieldWeights() instead.
@@ -551,7 +551,7 @@ module Sphinx
 
       @fieldweights = weights
     end
-    
+
     # Bind per-index weights by name.
     def SetIndexWeights(weights)
       raise ArgumentError, '"weights" argument must be Hash' unless weights.kind_of?(Hash)
@@ -560,13 +560,13 @@ module Sphinx
           raise ArgumentError, '"weights" argument must be Hash map of strings to integers'
         end
       end
-      
+
       @indexweights = weights
     end
-    
+
     # Set IDs range to match.
-    # 
-    # Only match records if document ID is beetwen <tt>min_id</tt> and <tt>max_id</tt> (inclusive). 
+    #
+    # Only match records if document ID is beetwen <tt>min_id</tt> and <tt>max_id</tt> (inclusive).
     def SetIDRange(min, max)
       raise ArgumentError, '"min" argument must be Integer' unless min.respond_to?(:integer?) and min.integer?
       raise ArgumentError, '"max" argument must be Integer' unless max.respond_to?(:integer?) and max.integer?
@@ -575,9 +575,9 @@ module Sphinx
       @min_id = min
       @max_id = max
     end
-    
+
     # Set values filter.
-    # 
+    #
     # Only match those records where <tt>attribute</tt> column values
     # are in specified set.
     def SetFilter(attribute, values, exclude = false)
@@ -589,12 +589,12 @@ module Sphinx
       values.each do |value|
         raise ArgumentError, '"values" argument must be Array of Integer' unless value.respond_to?(:integer?) and value.integer?
       end
-    
+
       @filters << { 'type' => SPH_FILTER_VALUES, 'attr' => attribute.to_s, 'exclude' => exclude, 'values' => values }
     end
-    
+
     # Set range filter.
-    # 
+    #
     # Only match those records where <tt>attribute</tt> column value
     # is beetwen <tt>min</tt> and <tt>max</tt> (including <tt>min</tt> and <tt>max</tt>).
     def SetFilterRange(attribute, min, max, exclude = false)
@@ -603,10 +603,10 @@ module Sphinx
       raise ArgumentError, '"max" argument must be Integer'                unless max.respond_to?(:integer?) and max.integer?
       raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
       raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
-    
+
       @filters << { 'type' => SPH_FILTER_RANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min, 'max' => max }
     end
-    
+
     # Set float range filter.
     #
     # Only match those records where <tt>attribute</tt> column value
@@ -617,14 +617,14 @@ module Sphinx
       raise ArgumentError, '"max" argument must be Float or Integer'       unless max.kind_of?(Float) or (max.respond_to?(:integer?) and max.integer?)
       raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
       raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
-    
+
       @filters << { 'type' => SPH_FILTER_FLOATRANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min.to_f, 'max' => max.to_f }
     end
-    
+
     # Setup anchor point for geosphere distance calculations.
     #
     # Required to use <tt>@geodist</tt> in filters and sorting
-    # distance will be computed to this point. Latitude and longitude 
+    # distance will be computed to this point. Latitude and longitude
     # must be in radians.
     #
     # * <tt>attrlat</tt> -- is the name of latitude attribute
@@ -639,7 +639,7 @@ module Sphinx
 
       @anchor = { 'attrlat' => attrlat.to_s, 'attrlong' => attrlong.to_s, 'lat' => lat.to_f, 'long' => long.to_f }
     end
-    
+
     # Set grouping attribute and function.
     #
     # In grouping mode, all matches are assigned to different groups
@@ -669,7 +669,7 @@ module Sphinx
     # WARNING: grouping is done in fixed memory and thus its results
     # are only approximate; so there might be more groups reported
     # in total_found than actually present. @count might also
-    # be underestimated. 
+    # be underestimated.
     #
     # For example, if sorting by relevance and grouping by "published"
     # attribute with SPH_GROUPBY_DAY function, then the result set will
@@ -697,14 +697,14 @@ module Sphinx
       @groupfunc = func
       @groupsort = groupsort
     end
-    
+
     # Set count-distinct attribute for group-by queries.
     def SetGroupDistinct(attribute)
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
 
       @groupdistinct = attribute.to_s
     end
-    
+
     # Sets distributed retry count and delay.
     #
     # On temporary failures searchd will attempt up to +count+ retries per
@@ -717,11 +717,11 @@ module Sphinx
     def SetRetries(count, delay = 0)
       raise ArgumentError, '"count" argument must be Integer' unless count.respond_to?(:integer?) and count.integer?
       raise ArgumentError, '"delay" argument must be Integer' unless delay.respond_to?(:integer?) and delay.integer?
-      
+
       @retrycount = count
       @retrydelay = delay
     end
-    
+
     # Sets temporary (per-query) per-document attribute value overrides. Only
     # supports scalar attributes. +values+ must be a +Hash+ that maps document
     # IDs to overridden attribute values.
@@ -755,7 +755,7 @@ module Sphinx
       end
 
       raise ArgumentError, '"values" argument must be Hash' unless values.kind_of?(Hash)
-      
+
       values.each do |id, value|
         raise ArgumentError, '"values" argument must be Hash map of Integer to Integer or Time' unless id.respond_to?(:integer?) and id.integer?
         case attrtype
@@ -809,7 +809,7 @@ module Sphinx
 
       @select = select
     end
-    
+
     # Clears all currently set filters.
     #
     # This call is only normally required when using multi-queries. You might want
@@ -824,7 +824,7 @@ module Sphinx
       @filters = []
       @anchor = []
     end
-    
+
     # Clears all currently group-by settings, and disables group-by.
     #
     # This call is only normally required when using multi-queries. You can
@@ -844,12 +844,12 @@ module Sphinx
       @groupsort     = '@group desc'
       @groupdistinct = ''
     end
-    
+
     # Clear all attribute value overrides (for multi-queries).
     def ResetOverrides
       @overrides = []
     end
-    
+
     # Connect to searchd server and run given search query.
     #
     # <tt>query</tt> is query string
@@ -870,7 +870,7 @@ module Sphinx
     #
     # Returns false on failure.
     # Returns hash which has the following keys on success:
-    # 
+    #
     # * <tt>'matches'</tt> -- array of hashes {'weight', 'group', 'id'}, where 'id' is document_id.
     # * <tt>'total'</tt> -- total amount of matches retrieved (upto SPH_MAX_MATCHES, see sphinx.h)
     # * <tt>'total_found'</tt> -- total amount of matching documents in index
@@ -878,20 +878,20 @@ module Sphinx
     # * <tt>'words'</tt> -- hash which maps query terms (stemmed!) to ('docs', 'hits') hash
     def Query(query, index = '*', comment = '')
       @reqs = []
-      
+
       self.AddQuery(query, index, comment)
       results = self.RunQueries
-      
+
       # probably network error; error message should be already filled
       return false unless results.instance_of?(Array)
-      
+
       @error = results[0]['error']
       @warning = results[0]['warning']
-      
+
       return false if results[0]['status'] == SEARCHD_ERROR
       return results[0]
     end
-    
+
     # Add query to batch.
     #
     # Batch queries enable searchd to perform internal optimizations,
@@ -906,7 +906,7 @@ module Sphinx
     # Returns index to results array returned by <tt>RunQueries</tt> call.
     def AddQuery(query, index = '*', comment = '')
       # build request
-  
+
       # mode and limits
       request = Request.new
       request.put_int @offset, @limit, @mode, @ranker, @sort
@@ -920,8 +920,8 @@ module Sphinx
       # id64 range marker
       request.put_int 1
       # id64 range
-      request.put_int64 @min_id.to_i, @max_id.to_i 
-      
+      request.put_int64 @min_id.to_i, @max_id.to_i
+
       # filters
       request.put_int @filters.length
       @filters.each do |filter|
@@ -940,7 +940,7 @@ module Sphinx
         end
         request.put_int filter['exclude'] ? 1 : 0
       end
-      
+
       # group-by clause, max-matches count, group-sort clause, cutoff count
       request.put_int @groupfunc
       request.put_string @groupby
@@ -948,7 +948,7 @@ module Sphinx
       request.put_string @groupsort
       request.put_int @cutoff, @retrycount, @retrydelay
       request.put_string @groupdistinct
-      
+
       # anchor point
       if @anchor.empty?
         request.put_int 0
@@ -957,27 +957,27 @@ module Sphinx
         request.put_string @anchor['attrlat'], @anchor['attrlong']
         request.put_float @anchor['lat'], @anchor['long']
       end
-      
+
       # per-index weights
       request.put_int @indexweights.length
       @indexweights.each do |idx, weight|
         request.put_string idx.to_s
         request.put_int weight
       end
-      
+
       # max query time
       request.put_int @maxquerytime
-      
+
       # per-field weights
       request.put_int @fieldweights.length
       @fieldweights.each do |field, weight|
         request.put_string field.to_s
         request.put_int weight
       end
-      
+
       # comment
       request.put_string comment
-      
+
       # attribute overrides
       request.put_int @overrides.length
       for entry in @overrides do
@@ -995,15 +995,15 @@ module Sphinx
           end
         end
       end
-      
+
       # select-list
       request.put_string @select
-      
+
       # store request to requests array
       @reqs << request.to_s;
       return @reqs.length - 1
     end
-    
+
     # Run queries batch.
     #
     # Returns an array of result sets on success.
@@ -1025,120 +1025,115 @@ module Sphinx
       nreqs = @reqs.length
       @reqs = []
       response = perform_request(:search, req, nreqs)
-     
+
       # parse response
-      begin
-        results = []
-        ires = 0
-        while ires < nreqs
-          ires += 1
-          result = {}
-          
-          result['error'] = ''
-          result['warning'] = ''
-          
-          # extract status
-          status = result['status'] = response.get_int
-          if status != SEARCHD_OK
-            message = response.get_string
-            if status == SEARCHD_WARNING
-              result['warning'] = message
-            else
-              result['error'] = message
-              results << result
-              next
-            end
+      results = []
+      ires = 0
+      while ires < nreqs
+        ires += 1
+        result = {}
+
+        result['error'] = ''
+        result['warning'] = ''
+
+        # extract status
+        status = result['status'] = response.get_int
+        if status != SEARCHD_OK
+          message = response.get_string
+          if status == SEARCHD_WARNING
+            result['warning'] = message
+          else
+            result['error'] = message
+            results << result
+            next
           end
-      
-          # read schema
-          fields = []
-          attrs = {}
-          attrs_names_in_order = []
-          
-          nfields = response.get_int
-          while nfields > 0
-            nfields -= 1
-            fields << response.get_string
-          end
-          result['fields'] = fields
-      
-          nattrs = response.get_int
-          while nattrs > 0
-            nattrs -= 1
-            attr = response.get_string
-            type = response.get_int
-            attrs[attr] = type
-            attrs_names_in_order << attr
-          end
-          result['attrs'] = attrs
-          
-          # read match count
-          count = response.get_int
-          id64 = response.get_int
-          
-          # read matches
-          result['matches'] = []
-          while count > 0
-            count -= 1
-            
-            if id64 != 0
-              doc = response.get_int64
-              weight = response.get_int
-            else
-              doc, weight = response.get_ints(2)
-            end
-      
-            r = {} # This is a single result put in the result['matches'] array
-            r['id'] = doc
-            r['weight'] = weight
-            attrs_names_in_order.each do |a|
-              r['attrs'] ||= {}
-  
-              case attrs[a]
-                when SPH_ATTR_BIGINT
-                  # handle 64-bit ints
-                  r['attrs'][a] = response.get_int64
-                when SPH_ATTR_FLOAT
-                  # handle floats
-                  r['attrs'][a] = response.get_float
-                when SPH_ATTR_STRING
-                  r['attrs'][a] = response.get_string
-                else
-                  # handle everything else as unsigned ints
-                  val = response.get_int
-                  if (attrs[a] & SPH_ATTR_MULTI) != 0
-                    r['attrs'][a] = []
-                    1.upto(val) do
-                      r['attrs'][a] << response.get_int
-                    end
-                  else
-                    r['attrs'][a] = val
-                  end
-              end
-            end
-            result['matches'] << r
-          end
-          result['total'], result['total_found'], msecs, words = response.get_ints(4)
-          result['time'] = '%.3f' % (msecs / 1000.0)
-  
-          result['words'] = {}
-          while words > 0
-            words -= 1
-            word = response.get_string
-            docs, hits = response.get_ints(2)
-            result['words'][word] = { 'docs' => docs, 'hits' => hits }
-          end
-          
-          results << result
         end
-      #rescue EOFError
-      #  @error = 'incomplete reply'
-      #  raise SphinxResponseError, @error
+
+        # read schema
+        fields = []
+        attrs = {}
+        attrs_names_in_order = []
+
+        nfields = response.get_int
+        while nfields > 0
+          nfields -= 1
+          fields << response.get_string
+        end
+        result['fields'] = fields
+
+        nattrs = response.get_int
+        while nattrs > 0
+          nattrs -= 1
+          attr = response.get_string
+          type = response.get_int
+          attrs[attr] = type
+          attrs_names_in_order << attr
+        end
+        result['attrs'] = attrs
+
+        # read match count
+        count = response.get_int
+        id64 = response.get_int
+
+        # read matches
+        result['matches'] = []
+        while count > 0
+          count -= 1
+
+          if id64 != 0
+            doc = response.get_int64
+            weight = response.get_int
+          else
+            doc, weight = response.get_ints(2)
+          end
+
+          r = {} # This is a single result put in the result['matches'] array
+          r['id'] = doc
+          r['weight'] = weight
+          attrs_names_in_order.each do |a|
+            r['attrs'] ||= {}
+
+            case attrs[a]
+              when SPH_ATTR_BIGINT
+                # handle 64-bit ints
+                r['attrs'][a] = response.get_int64
+              when SPH_ATTR_FLOAT
+                # handle floats
+                r['attrs'][a] = response.get_float
+              when SPH_ATTR_STRING
+                r['attrs'][a] = response.get_string
+              else
+                # handle everything else as unsigned ints
+                val = response.get_int
+                if (attrs[a] & SPH_ATTR_MULTI) != 0
+                  r['attrs'][a] = []
+                  1.upto(val) do
+                    r['attrs'][a] << response.get_int
+                  end
+                else
+                  r['attrs'][a] = val
+                end
+            end
+          end
+          result['matches'] << r
+        end
+        result['total'], result['total_found'], msecs, words = response.get_ints(4)
+        result['time'] = '%.3f' % (msecs / 1000.0)
+
+        result['words'] = {}
+        while words > 0
+          words -= 1
+          word = response.get_string
+          docs, hits = response.get_ints(2)
+          result['words'][word] = { 'docs' => docs, 'hits' => hits }
+        end
+
+        results << result
       end
-      
+
       return results
     end
-  
+
     # Connect to searchd server and generate exceprts from given documents.
     #
     # * <tt>docs</tt> -- an array of strings which represent the documents' contents
@@ -1146,7 +1141,7 @@ module Sphinx
     # for stemming, lexing and case folding
     # * <tt>words</tt> -- a string which contains the words to highlight
     # * <tt>opts</tt> is a hash which contains additional optional highlighting parameters.
-    # 
+    #
     # You can use following parameters:
     # * <tt>'before_match'</tt> -- a string to insert before a set of matching words, default is "<b>"
     # * <tt>'after_match'</tt> -- a string to insert after a set of matching words, default is "<b>"
@@ -1182,9 +1177,9 @@ module Sphinx
       opts['use_boundaries']  ||= opts[:use_boundaries]  || false
       opts['weight_order']    ||= opts[:weight_order]    || false
       opts['query_mode']      ||= opts[:query_mode]      || false
-      
+
       # build request
-      
+
       # v.1.0 req
       flags = 1
       flags |= 2  if opts['exact_phrase']
@@ -1192,39 +1187,30 @@ module Sphinx
       flags |= 8  if opts['use_boundaries']
       flags |= 16 if opts['weight_order']
       flags |= 32 if opts['query_mode']
-      
+
       request = Request.new
       request.put_int 0, flags # mode=0, flags=1 (remove spaces)
       # req index
       request.put_string index.to_s
       # req words
       request.put_string words
-  
+
       # options
       request.put_string opts['before_match']
       request.put_string opts['after_match']
       request.put_string opts['chunk_separator']
       request.put_int opts['limit'].to_i, opts['around'].to_i
-      
+
       # documents
       request.put_int docs.size
       request.put_string(*docs)
-      
+
       response = perform_request(:excerpt, request)
-      
+
       # parse response
-      begin
-        res = []
-        docs.each do |doc|
-          res << response.get_string
-        end
-      rescue EOFError
-        @error = 'incomplete reply'
-        raise SphinxResponseError, @error
-      end
-      return res
+      docs.map { |doc| response.get_string }
     end
-    
+
     # Connect to searchd server, and generate keyword list for a given query.
     #
     # Returns an array of words on success.
@@ -1232,7 +1218,7 @@ module Sphinx
       raise ArgumentError, '"query" argument must be String' unless query.kind_of?(String)
       raise ArgumentError, '"index" argument must be String' unless index.kind_of?(String) or index.kind_of?(Symbol)
       raise ArgumentError, '"hits" argument must be Boolean' unless hits.kind_of?(TrueClass) or hits.kind_of?(FalseClass)
-      
+
       # build request
       request = Request.new
       # v.1.0 req
@@ -1241,26 +1227,18 @@ module Sphinx
       request.put_int hits ? 1 : 0
 
       response = perform_request(:keywords, request)
-      
+
       # parse response
-      begin
-        res = []
-        nwords = response.get_int
-        0.upto(nwords - 1) do |i|
-          tokenized = response.get_string
-          normalized = response.get_string
-          
-          entry = { 'tokenized' => tokenized, 'normalized' => normalized }
-          entry['docs'], entry['hits'] = response.get_ints(2) if hits
-          
-          res << entry
-        end
-      rescue EOFError
-        @error = 'incomplete reply'
-        raise SphinxResponseError, @error
+      nwords = response.get_int
+      (0...nwords).map do
+        tokenized = response.get_string
+        normalized = response.get_string
+
+        entry = { 'tokenized' => tokenized, 'normalized' => normalized }
+        entry['docs'], entry['hits'] = response.get_ints(2) if hits
+
+        entry
       end
-      
-      return res
     end
 
     # Batch update given attributes in given rows in given indexes.
@@ -1282,12 +1260,12 @@ module Sphinx
       # verify everything
       raise ArgumentError, '"index" argument must be String' unless index.kind_of?(String) or index.kind_of?(Symbol)
       raise ArgumentError, '"mva" argument must be Boolean'  unless mva.kind_of?(TrueClass) or mva.kind_of?(FalseClass)
-      
+
       raise ArgumentError, '"attrs" argument must be Array' unless attrs.kind_of?(Array)
       attrs.each do |attr|
         raise ArgumentError, '"attrs" argument must be Array of Strings' unless attr.kind_of?(String) or attr.kind_of?(Symbol)
       end
-      
+
       raise ArgumentError, '"values" argument must be Hash' unless values.kind_of?(Hash)
       values.each do |id, entry|
         raise ArgumentError, '"values" argument must be Hash map of Integer to Array' unless id.respond_to?(:integer?) and id.integer?
@@ -1304,17 +1282,17 @@ module Sphinx
           end
         end
       end
-      
+
       # build request
       request = Request.new
       request.put_string index
-      
+
       request.put_int attrs.length
       for attr in attrs
         request.put_string attr
         request.put_int mva ? 1 : 0
       end
-      
+
       request.put_int values.length
       values.each do |id, entry|
         request.put_int64 id
@@ -1324,20 +1302,15 @@ module Sphinx
           request.put_int(*entry)
         end
       end
-      
+
       response = perform_request(:update, request)
-      
+
       # parse response
-      begin
-        return response.get_int
-      rescue EOFError
-        @error = 'incomplete reply'
-        raise SphinxResponseError, @error
-      end
+      response.get_int
     end
-    
+
     # persistent connections
-    
+
     # Opens persistent connection to the server.
     #
     def Open
@@ -1345,12 +1318,12 @@ module Sphinx
         @error = 'too many servers. persistent socket allowed only for a single server.'
         return false
       end
-      
+
       if @servers.first.persistent?
         @error = 'already connected'
         return false;
       end
-      
+
       request = Request.new
       request.put_int(1)
 
@@ -1360,7 +1333,7 @@ module Sphinx
 
       true
     end
-    
+
     # Closes previously opened persistent connection.
     #
     def Close
@@ -1368,15 +1341,15 @@ module Sphinx
         @error = 'too many servers. persistent socket allowed only for a single server.'
         return false
       end
-      
+
       unless @servers.first.persistent?
         @error = 'not connected'
         return false;
       end
-      
+
       @servers.first.close_persistent!
     end
-    
+
     # Queries searchd status, and returns an array of status variable name
     # and value pairs.
     #
@@ -1391,24 +1364,12 @@ module Sphinx
       response = perform_request(:status, request)
 
       # parse response
-      begin
-        rows, cols = response.get_ints(2)
-      
-        res = []
-        0.upto(rows - 1) do |i|
-          res[i] = []
-          0.upto(cols - 1) do |j|
-            res[i] << response.get_string
-          end
-        end
-      rescue EOFError
-        @error = 'incomplete reply'
-        raise SphinxResponseError, @error
+      rows, cols = response.get_ints(2)
+      (0...rows).map do |i|
+        (0...cols).map { |j| response.get_string }
       end
-      
-      res
     end
-    
+
     def FlushAttrs
       request = Request.new
       response = perform_request(:flushattrs, request)
@@ -1420,9 +1381,9 @@ module Sphinx
         -1
       end
     end
-  
+
     protected
-      
+
       # Connect, send query, get response.
       #
       # Use this method to communicate with Sphinx server. It ensures connection
@@ -1477,14 +1438,14 @@ module Sphinx
       def parse_response(socket, client_version)
         response = ''
         status = ver = len = 0
-        
+
         # Read server reply from server. All exceptions are handled by +with_socket+.
         header = socket.read(8)
         if header.length == 8
           status, ver, len = header.unpack('n2N')
           response = socket.read(len) if len > 0
         end
-    
+
         # check response
         read = response.length
         if response.empty? or read != len.to_i
@@ -1493,7 +1454,7 @@ module Sphinx
             : 'received zero-sized searchd response'
           raise SphinxResponseError, error
         end
-        
+
         # check status
         if (status == SEARCHD_WARNING)
           wlen = response[0, 4].unpack('N*').first
@@ -1505,26 +1466,26 @@ module Sphinx
           error = 'searchd error: ' + response[4, response.length - 4]
           raise SphinxInternalError, error
         end
-    
+
         if status == SEARCHD_RETRY
           error = 'temporary searchd error: ' + response[4, response.length - 4]
           raise SphinxTemporaryError, error
         end
-    
+
         unless status == SEARCHD_OK
           error = "unknown status code: '#{status}'"
           raise SphinxUnknownError, error
         end
-        
+
         # check version
         if ver < client_version
           @warning = "searchd command v.#{ver >> 8}.#{ver & 0xff} older than client's " +
             "v.#{client_version >> 8}.#{client_version & 0xff}, some options might not work"
         end
-        
+
         Response.new(response)
       end
-      
+
       # This is internal method which selects next server (round-robin)
       # and yields it to the block passed.
       #
@@ -1552,7 +1513,7 @@ module Sphinx
           raise
         end
       end
-      
+
       # This is internal method which retrieves socket for a given server,
       # initiates Sphinx session, and yields this socket to a block passed.
       #
@@ -1612,14 +1573,14 @@ module Sphinx
             new_e.set_backtrace(e.backtrace)
             e = new_e
           end
-        
+
           # Close previously opened socket (in case of it has been really opened)
           server.free_socket(socket)
 
           # Request error! Do we need to try it again?
           attempts -= 1
           retry if attempts > 0
-        
+
           # Re-raise original exception
           @error = e.message
           raise e

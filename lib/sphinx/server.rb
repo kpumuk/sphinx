@@ -66,7 +66,7 @@ class Sphinx::Server
       error << "errno=#{e.class::Errno}, "
     end
     error << "msg=#{e.message})"
-    raise SphinxConnectError, error
+    raise Sphinx::SphinxConnectError, error
   end
   
   # Closes previously opened socket.
