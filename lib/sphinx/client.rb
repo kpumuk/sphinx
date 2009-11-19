@@ -270,7 +270,7 @@ module Sphinx
 
       # per-client-object settings
       # searchd servers list
-      @servers       = [Sphinx::Server.new(self, 'localhost', 3312, false)].freeze
+      @servers       = [Sphinx::Server.new(self, 'localhost', 9312, false)].freeze
       @lastserver    = -1
     end
 
@@ -343,7 +343,7 @@ module Sphinx
 
     # Sets searchd host name and TCP port. All subsequent requests will
     # use the new host and port settings. Default +host+ and +port+ are
-    # 'localhost' and 3312, respectively.
+    # 'localhost' and 9312, respectively.
     #
     # Also, you can specify an absolute path to Sphinx's UNIX socket as +host+,
     # in this case pass port as +0+ or +nil+.
@@ -355,7 +355,7 @@ module Sphinx
     #   with given parameters.
     #
     # @example
-    #   sphinx.SetServer('localhost', 3312)
+    #   sphinx.SetServer('localhost', 9312)
     #   sphinx.SetServer('/opt/sphinx/var/run/sphinx.sock')
     #
     # @raise [ArgumentError] Occurred when parameters are invalid.
@@ -363,7 +363,7 @@ module Sphinx
     # @see #SetConnectTimeout
     # @see #SetRequestTimeout
     #
-    def SetServer(host, port)
+    def SetServer(host, port = 9312)
       raise ArgumentError, '"host" argument must be String' unless host.kind_of?(String)
 
       path = nil
@@ -394,15 +394,15 @@ module Sphinx
     # @param [Array<Hash>] servers an +Array+ of +Hash+ objects with servers parameters.
     # @option servers [String] :host the searchd host name or UNIX socket absolute path.
     # @option servers [String] :path the searchd UNIX socket absolute path.
-    # @option servers [Integer] :port the searchd port name (skiped when UNIX
+    # @option servers [Integer] :port (9312) the searchd port name (skiped when UNIX
     #   socket path specified)
     # @return [Array<Sphinx::Server>] an +Array+ of instance of <tt>Sphinx::Server</tt>
     #   with given parameters.
     #
     # @example
     #   sphinx.SetServers([
-    #     { :host => 'browse01.local', :port => 3312 },
-    #     { :host => 'browse02.local', :port => 3312 },
+    #     { :host => 'browse01.local' }, # default port is 9312
+    #     { :host => 'browse02.local', :port => 9312 },
     #     { :path => '/opt/sphinx/var/run/sphinx.sock' }
     #   ])
     #
@@ -419,7 +419,7 @@ module Sphinx
         raise ArgumentError, '"servers" argument must be Array of Hashes' unless server.kind_of?(Hash)
 
         host = server[:path] || server['path'] || server[:host] || server['host']
-        port = server[:port] || server['port']
+        port = server[:port] || server['port'] || 9312
         path = nil
         raise ArgumentError, '"host" argument must be String' unless host.kind_of?(String)
 
