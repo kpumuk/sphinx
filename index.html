@@ -1,0 +1,263 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=UTF-8" />
+<title>Sphinx Client API Documentation</title>
+<link rel="stylesheet" href="css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="js/app.js"></script>
+
+  </head>
+  <body>
+    <div id="header">
+      <div id="menu">
+  
+    <a href="_index.html" title="Index">Index</a> &raquo; 
+    <span class="title">File: README</span>
+  
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Namespace List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><div id='filecontents'><h1>Sphinx Client API 0.9.10</h1>
+<p>
+This document gives an overview of what is Sphinx itself and how to use it
+from your Ruby on Rails application. For more information or documentation,
+please go to http://www.sphinxsearch.com
+</p>
+<h2>Sphinx</h2>
+<p>
+Sphinx is a standalone full-text search engine, meant to provide fast,
+size-efficient and relevant fulltext search functions to other
+applications. Sphinx was specially designed to integrate well with SQL
+databases and scripting languages. Currently built-in data sources support
+fetching data either via direct connection to MySQL, or from an XML pipe.
+</p>
+<p>
+Simplest way to communicate with Sphinx is to use <tt>searchd</tt> — a
+daemon to search through full text indexes from external software.
+</p>
+<h2>Installation</h2>
+<p>
+There are two options when approaching sphinx plugin installation:
+</p>
+<ul>
+<li>using the gem (recommended)
+
+</li>
+<li>install as a Rails plugin
+
+</li>
+</ul>
+<p>
+To install as a gem, add this to your environment.rb:
+</p>
+<pre class="code">
+  <span class='config identifier id'>config</span><span class='dot token'>.</span><span class='gem identifier id'>gem</span> <span class='string val'>'sphinx'</span><span class='comma token'>,</span> <span class='symbol val'>:source</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='string val'>'http://gemcutter.org'</span>
+</pre>
+<p>
+And then run the command:
+</p>
+<pre class="code">
+  <span class='sudo identifier id'>sudo</span> <span class='rake identifier id'>rake</span> <span class='gems identifier id'>gems</span><span class='symbol val'>:install</span>
+</pre>
+<p>
+To install Sphinx as a Rails plugin use this:
+</p>
+<pre class="code">
+  <span class='script identifier id'>script</span><span class='div op'>/</span><span class='plugin identifier id'>plugin</span> <span class='install identifier id'>install</span> <span class='git identifier id'>git</span><span class='symbol val'>:/</span><span class='regexp val'>/github.com/</span><span class='kpumuk identifier id'>kpumuk</span><span class='div op'>/</span><span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='git identifier id'>git</span>
+</pre>
+<h2>Documentation</h2>
+<p>
+Complete Sphinx plugin documentation is hosted by rdoc.info:
+http://rdoc.info/projects/kpumuk/sphinx
+</p>
+<p>
+You can build the documentation locally by running:
+</p>
+<pre class="code">
+  <span class='rake identifier id'>rake</span> <span class='yard identifier id'>yard</span>
+</pre>
+<p>
+Please note: you should have yard gem installed on your system:
+</p>
+<pre class="code">
+  <span class='sudo identifier id'>sudo</span> <span class='gem identifier id'>gem</span> <span class='install identifier id'>install</span> <span class='yard identifier id'>yard</span> <span class='minus op'>-</span><span class='minus op'>-</span><span class='source identifier id'>source</span> <span class='http identifier id'>http</span><span class='symbol val'>:/</span><span class='regexp val'>/gemcutter.org
+</span></pre>
+<p>
+Complete Sphinx API documentation could be found on Sphinx Search Engine
+site: http://www.sphinxsearch.com/docs/current.html This plugin is fully
+compatible with original PHP API implementation.
+</p>
+<h2>Using multiple Sphinx servers</h2>
+<p>
+Since we actively use this plugin in our Scribd development workflow, there
+are several methods have been added to accommodate our needs. You can find
+documentation on Ruby-specific methods in documentation:
+http://rdoc.info/projects/kpumuk/sphinx
+</p>
+<p>
+First of all, we added support of multiple Sphinx servers to balance load
+between them. Also it means that in case of any problems with one of
+servers, library will try to fetch the results from another one. Every
+consequence request will be executed on the next server in list
+(round-robin technique).
+</p>
+<pre class="code">
+  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetServers constant id'>SetServers</span><span class='lparen token'>(</span><span class='lbrack token'>[</span>
+    <span class='lbrace token'>{</span> <span class='symbol val'>:host</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='string val'>'browse01.local'</span><span class='comma token'>,</span> <span class='symbol val'>:port</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='integer val'>3312</span> <span class='rbrace token'>}</span><span class='comma token'>,</span>
+    <span class='lbrace token'>{</span> <span class='symbol val'>:host</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='string val'>'browse02.local'</span><span class='comma token'>,</span> <span class='symbol val'>:port</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='integer val'>3312</span> <span class='rbrace token'>}</span><span class='comma token'>,</span>
+    <span class='lbrace token'>{</span> <span class='symbol val'>:host</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='string val'>'browse03.local'</span><span class='comma token'>,</span> <span class='symbol val'>:port</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='integer val'>3312</span> <span class='rbrace token'>}</span>
+  <span class='rbrack token'>]</span><span class='rparen token'>)</span>
+</pre>
+<p>
+By default library will try to fetch results from a single server, and fail
+if it does not respond. To setup number of retries being performed, you can
+use second (additional) parameter of the <tt>SetConnectTimeout</tt> and
+<tt>SetRequestTimeout</tt> methods:
+</p>
+<pre class="code">
+  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetConnectTimeout constant id'>SetConnectTimeout</span><span class='lparen token'>(</span><span class='integer val'>1</span><span class='comma token'>,</span> <span class='integer val'>3</span><span class='rparen token'>)</span>
+  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetRequestTimeout constant id'>SetRequestTimeout</span><span class='lparen token'>(</span><span class='integer val'>1</span><span class='comma token'>,</span> <span class='integer val'>3</span><span class='rparen token'>)</span>
+</pre>
+<p>
+There is a big difference between these two methods. First will affect only
+on requests experiencing problems with connection (socket error, pipe
+error, etc), second will be used when request is broken somehow (temporary
+searchd error, incomplete reply, etc). The workflow looks like this:
+</p>
+<ol>
+<li>Increase retries number. If is less or equal to configured value, try to
+connect to the next server. Otherwise, raise an error.
+
+</li>
+<li>In case of connection problem go to 1.
+
+</li>
+<li>Increase request retries number. If it less or equal to configured value,
+try to perform request. Otherwise, raise an error.
+
+</li>
+<li>In case of connection problem go to 1.
+
+</li>
+<li>In case of request problem, go to 3.
+
+</li>
+<li>Parse and return response.
+
+</li>
+</ol>
+<p>
+Withdrawals:
+</p>
+<ol>
+<li>Request could be performed <tt>connect_retries</tt> *
+<tt>request_retries</tt> times. E.g., it could be tried
+<tt>request_retries</tt> times on each of <tt>connect_retries</tt> servers
+(when you have 1 server configured, but <tt>connect_retries</tt> is 5,
+library will try to connect to this server 5 times).
+
+</li>
+<li>Request could be tried to execute on each server
+<tt>1..request_retries</tt> times. In case of connection problem, request
+will be moved to another server immediately.
+
+</li>
+</ol>
+<p>
+Usually you will set <tt>connect_retries</tt> equal to servers number, so
+you will be sure each failing request will be performed on all servers.
+This means that if one of servers is live, but others are dead, you request
+will be finally executed successfully.
+</p>
+<h2>Sphinx constants</h2>
+<p>
+Most Sphinx API methods expecting for special constants will be passed. For
+example:
+</p>
+<pre class="code">
+  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetMatchMode constant id'>SetMatchMode</span><span class='lparen token'>(</span><span class='Sphinx constant id'>Sphinx</span><span class='colon2 op'>::</span><span class='Client constant id'>Client</span><span class='colon2 op'>::</span><span class='SPH_MATCH_ANY constant id'>SPH_MATCH_ANY</span><span class='rparen token'>)</span>
+</pre>
+<p>
+Please note that these constants defined in a <tt>Sphinx::Client</tt>
+namespace. You can use symbols or strings instead of these awful constants:
+</p>
+<pre class="code">
+  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetMatchMode constant id'>SetMatchMode</span><span class='lparen token'>(</span><span class='symbol val'>:any</span><span class='rparen token'>)</span>
+  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetMatchMode constant id'>SetMatchMode</span><span class='lparen token'>(</span><span class='string val'>'any'</span><span class='rparen token'>)</span>
+</pre>
+<h2>Example</h2>
+<p>
+This simple example illustrates base connection establishing, search
+results retrieving, and excerpts building. Please note how does it perform
+database select using ActiveRecord to save the order of records established
+by Sphinx.
+</p>
+<pre class="code">
+  <span class='sphinx identifier id'>sphinx</span> <span class='assign token'>=</span> <span class='Sphinx constant id'>Sphinx</span><span class='colon2 op'>::</span><span class='Client constant id'>Client</span><span class='dot token'>.</span><span class='new identifier id'>new</span>
+  <span class='result identifier id'>result</span> <span class='assign token'>=</span> <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='Query constant id'>Query</span><span class='lparen token'>(</span><span class='string val'>'test'</span><span class='rparen token'>)</span>
+  <span class='ids identifier id'>ids</span> <span class='assign token'>=</span> <span class='result identifier id'>result</span><span class='lbrack token'>[</span><span class='string val'>'matches'</span><span class='rbrack token'>]</span><span class='dot token'>.</span><span class='map identifier id'>map</span> <span class='lbrace token'>{</span> <span class='bitor op'>|</span><span class='match identifier id'>match</span><span class='bitor op'>|</span> <span class='match identifier id'>match</span><span class='lbrack token'>[</span><span class='string val'>'id'</span><span class='rbrack token'>]</span> <span class='rbrace token'>}</span>
+  <span class='posts identifier id'>posts</span> <span class='assign token'>=</span> <span class='Post constant id'>Post</span><span class='dot token'>.</span><span class='all identifier id'>all</span> <span class='symbol val'>:conditions</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='lbrace token'>{</span> <span class='symbol val'>:id</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='ids identifier id'>ids</span> <span class='rbrace token'>}</span><span class='comma token'>,</span>
+                   <span class='symbol val'>:order</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='dstring node'>&quot;FIELD(id,#{ids.join(',')})&quot;</span>
+
+  <span class='docs identifier id'>docs</span> <span class='assign token'>=</span> <span class='posts identifier id'>posts</span><span class='dot token'>.</span><span class='map identifier id'>map</span><span class='lparen token'>(</span><span class='bitand op'>&amp;</span><span class='symbol val'>:body</span><span class='rparen token'>)</span>
+  <span class='excerpts identifier id'>excerpts</span> <span class='assign token'>=</span> <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='BuildExcerpts constant id'>BuildExcerpts</span><span class='lparen token'>(</span><span class='docs identifier id'>docs</span><span class='comma token'>,</span> <span class='string val'>'index'</span><span class='comma token'>,</span> <span class='string val'>'test'</span><span class='rparen token'>)</span>
+</pre>
+<h2>Support</h2>
+<p>
+Source code: http://github.com/kpumuk/sphinx
+</p>
+<p>
+To suggest a feature or report a bug:
+http://github.com/kpumuk/sphinx/issues
+</p>
+<p>
+Project home page: http://kpumuk.info/projects/ror-plugins/sphinx
+</p>
+<h2>Credits</h2>
+<p>
+Dmytro Shteflyuk &lt;kpumuk@kpumuk.info&gt; http://kpumuk.info
+</p>
+<p>
+Andrew Aksyonoff http://sphinxsearch.com
+</p>
+<p>
+Special thanks to Alexey Kovyrin &lt;alexey@kovyrin.net&gt;
+http://blog.kovyrin.net
+</p>
+<p>
+Special thanks to Mike Perham http://www.mikeperham.com for his awesome
+memcache-client gem, where latest Sphinx gem got new sockets handling from.
+</p>
+<h2>License</h2>
+<p>
+This library is distributed under the terms of the Ruby license. You can
+freely distribute/modify this library.
+</p>
+</div></div>
+    
+    <div id="footer">
+  Generated on Thu Nov 19 18:02:57 2009 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool">yard</a>
+  0.4.0 (ruby-1.8.7).
+</div>
+
+  </body>
+</html>
