@@ -10,7 +10,7 @@ class Sphinx::Server
 
   # The path to UNIX socket where Sphinx server is running on
   attr_reader :path
-  
+
   # Creates a new instance of +Server+.
   #
   # Parameters:
@@ -24,10 +24,10 @@ class Sphinx::Server
     @host = host
     @port = port
     @path = path
-    
+
     @socket = nil
   end
-  
+
   # Gets the opened socket to the server.
   #
   # You can pass a block to make any connection establishing related things,
@@ -56,26 +56,25 @@ class Sphinx::Server
   rescue SocketError, SystemCallError, IOError, EOFError, ::Timeout::Error, ::Errno::EPIPE => e
     # Close previously opened socket (in case of it has been really opened)
     free_socket(socket, true)
-    
-    location = @path || "#{@host}:#{@port}"
-    error = "connection to #{location} failed ("
+
+    error = "connection to #{to_s} failed ("
     if e.kind_of?(SystemCallError)
       error << "errno=#{e.class::Errno}, "
     end
     error << "msg=#{e.message})"
     raise Sphinx::SphinxConnectError, error
   end
-  
+
   # Closes previously opened socket.
   #
   # Pass socket retrieved with +get_socket+ method when finished work. It does
   # not close persistent sockets, but if really you need to do it, pass +true+
   # as +force+ parameter value.
-  # 
+  #
   def free_socket(socket, force = false)
     # Socket has not been open
     return false if socket.nil?
-    
+
     # Do we try to close persistent socket?
     if socket == @socket
       # do not close it if not forced
@@ -92,7 +91,7 @@ class Sphinx::Server
       true
     end
   end
-  
+
   # Makes specified socket persistent.
   #
   # Previous persistent socket will be closed as well.
@@ -103,26 +102,30 @@ class Sphinx::Server
     end
     @socket
   end
-  
+
   # Closes persistent socket.
   def close_persistent!
     free_socket(@socket, true)
   end
-  
+
   # Gets a value indicating whether server has persistent socket associated.
   def persistent?
     !@socket.nil?
   end
-  
+
+  def to_s
+    @path || "#{@host}:#{@port}"
+  end
+
   private
-  
+
     # This is internal method which establishes a connection to a configured server.
     #
     # Method configures various socket options (like TCP_NODELAY), and
     # sets socket timeouts.
     #
     # It does not close socket on any failure, please do it from calling code!
-    # 
+    #
     def establish_connection
       if @path
         sock = UNIXSocket.new(@path)
@@ -134,7 +137,7 @@ class Sphinx::Server
       io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
       if @sphinx.reqtimeout > 0
         io.read_timeout = @sphinx.reqtimeout
-    
+
         # This is a part of memcache-client library.
         #
         # Getting reports from several customers, including 37signals,
@@ -153,7 +156,7 @@ class Sphinx::Server
       else
         io.read_timeout = false
       end
-      
+
       io
     end
 end

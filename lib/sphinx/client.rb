@@ -1000,7 +1000,7 @@ module Sphinx
       self
     end
     alias :SetIndexWeights :set_index_weights
-    
+
     #=================================================================
     # Result set filtering settings
     #=================================================================
@@ -1206,7 +1206,7 @@ module Sphinx
       self
     end
     alias :SetGeoAnchor :set_geo_anchor
-    
+
     #=================================================================
     # GROUP BY settings
     #=================================================================
@@ -1512,12 +1512,12 @@ module Sphinx
     # cases. They do not result in any additional overheads compared
     # to simple queries. Thus, if you run several different queries
     # from your web page, you should always consider using multi-queries.
-    # 
+    #
     # For instance, running the same full-text query but with different
     # sorting or group-by settings will enable searchd to perform
     # expensive full-text search and ranking operation only once, but
     # compute multiple group-by results from its output.
-    # 
+    #
     # This can be a big saver when you need to display not just plain
     # search results but also some per-category counts, such as the
     # amount of products grouped by vendor. Without multi-query, you
@@ -1526,21 +1526,21 @@ module Sphinx
     # sets differently. With multi-query, you simply pass all these
     # queries in a single batch and Sphinx optimizes the redundant
     # full-text search internally.
-    # 
+    #
     # {#add_query} internally saves full current settings state along
     # with the query, and you can safely change them afterwards for
     # subsequent {#add_query} calls. Already added queries will not
     # be affected; there's actually no way to change them at all.
     # Here's an example:
-    # 
+    #
     #   sphinx.set_sort_mode(:relevance)
     #   sphinx.add_query("hello world", "documents")
-    # 
+    #
     #   sphinx.set_sort_mode(:attr_desc, :price)
     #   sphinx.add_query("ipod", "products")
     #
     #   sphinx.add_query("harry potter", "books")
-    # 
+    #
     #   results = sphinx.run_queries
     #
     # With the code above, 1st query will search for "hello world"
@@ -1550,18 +1550,18 @@ module Sphinx
     # "books" index while still sorting by price. Note that 2nd
     # {#set_sort_mode} call does not affect the first query (because
     # it's already added) but affects both other subsequent queries.
-    # 
+    #
     # Additionally, any filters set up before an {#add_query} will
     # fall through to subsequent queries. So, if {#set_filter} is
     # called before the first query, the same filter will be in
     # place for the second (and subsequent) queries batched through
     # {#add_query} unless you call {#reset_filters} first. Alternatively,
     # you can add additional filters as well.
-    # 
+    #
     # This would also be true for grouping options and sorting options;
     # no current sorting, filtering, and grouping settings are affected
     # by this call; so subsequent queries will reuse current query settings.
-    # 
+    #
     # {#add_query} returns an index into an array of results that will
     # be returned from {#run_queries} call. It is simply a sequentially
     # increasing 0-based integer, ie. first call will return 0, second
@@ -1767,7 +1767,7 @@ module Sphinx
           end
 
           # This is a single result put in the result['matches'] array
-          match = { 'id' => doc, 'weight' => weight } 
+          match = { 'id' => doc, 'weight' => weight }
           match['attrs'] = attrs_names_in_order.inject({}) do |hash, name|
             hash[name] = case attrs[name]
               when SPH_ATTR_BIGINT
@@ -1806,7 +1806,7 @@ module Sphinx
       end
     end
     alias :RunQueries :run_queries
-    
+
     #=================================================================
     # Additional functionality
     #=================================================================
@@ -1983,18 +1983,18 @@ module Sphinx
     # Instantly updates given attribute values in given documents.
     # Returns number of actually updated documents (0 or more) on
     # success, or -1 on failure.
-    # 
+    #
     # +index+ is a name of the index (or indexes) to be updated.
     # +attrs+ is a plain array with string attribute names, listing
     # attributes that are updated. +values+ is a Hash where key is
     # document ID, and value is a plain array of new attribute values.
-    # 
+    #
     # +index+ can be either a single index name or a list, like in
     # {#query}. Unlike {#query}, wildcard is not allowed and all the
     # indexes to update must be specified explicitly. The list of
     # indexes can include distributed index names. Updates on
     # distributed indexes will be pushed to all agents.
-    # 
+    #
     # The updates only work with docinfo=extern storage strategy.
     # They are very fast because they're working fully in RAM, but
     # they can also be made persistent: updates are saved on disk
@@ -2009,7 +2009,7 @@ module Sphinx
     # stock to 5; for document 1002, the new price will be 37 and the
     # new amount will be 11; etc. The third one updates document 1
     # in index "test2", setting MVA attribute "group_id" to [456, 789].
-    # 
+    #
     # @example
     #   sphinx.update_attributes("test1", ["group_id"], { 1 => [456] });
     #   sphinx.update_attributes("products", ["price", "amount_in_stock"],
@@ -2085,22 +2085,52 @@ module Sphinx
     # Queries searchd status, and returns an array of status variable name
     # and value pairs.
     #
-    # @return [Array<Array>] a table containing searchd status information.
+    # @return [Array<Array>, Array<Hash>] a table containing searchd status information.
+    #   If there are more than one server configured ({#set_servers}), an
+    #   +Array+ of +Hash+es will be returned, one for each server. Hash will
+    #   contain <tt>:server</tt> element with string name of server (<tt>host:port</tt>)
+    #   and <tt>:status</tt> table just like one for a single server. In case of
+    #   any error, it will be stored in the <tt>:error</tt> key.
     #
-    # @example
+    # @example Single server
     #   status = sphinx.status
     #   puts status.map { |key, value| "#{key.rjust(20)}: #{value}" }
+    #
+    # @example Multiple servers
+    #   sphinx.set_servers([
+    #     { :host => 'localhost' },
+    #     { :host => 'browse02.local' }
+    #   ])
+    #   sphinx.status.each do |report|
+    #     puts "=== #{report[:server]}"
+    #     if report[:error]
+    #       puts "Error: #{report[:error]}"
+    #     else
+    #       puts report[:status].map { |key, value| "#{key.rjust(20)}: #{value}" }
+    #     end
+    #   end
     #
     def status
       request = Request.new
       request.put_int(1)
-      response = perform_request(:status, request)
 
       # parse response
-      rows, cols = response.get_ints(2)
-      (0...rows).map do
-        (0...cols).map { response.get_string }
+      results = @servers.map do |server|
+        begin
+          response = perform_request(:status, request, nil, server)
+          rows, cols = response.get_ints(2)
+          status = (0...rows).map do
+            (0...cols).map { response.get_string }
+          end
+          { :server => server.to_s, :status => status }
+        rescue SphinxError
+          # Re-raise error when a single server configured
+          raise if @servers.size == 1
+          { :server => server.to_s, :error => self.last_error}
+        end
       end
+
+      @servers.size > 1 ? results : results.first[:status]
     end
     alias :Status :status
 
@@ -2212,7 +2242,11 @@ module Sphinx
       #   <tt>:update</tt>, <tt>:keywords</tt>, <tt>:persist</tt>, <tt>:status</tt>,
       #   <tt>:query</tt>, <tt>:flushattrs</tt>. See <tt>SEARCHD_COMMAND_*</tt> for details).
       # @param [Sphinx::Request] request contains request body.
-      # @param [nil, Integer] additional additional integer data to be placed between header and body.
+      # @param [Integer] additional additional integer data to be placed between header and body.
+      # @param [Sphinx::Server] server where perform request on. This is special
+      #   parameter for internal usage. If specified, request will be performed
+      #   on specified server, and it will try to establish connection to this
+      #   server only once.
       #
       # @yield if block given, response will not be parsed, plain socket
       #   will be yielded instead. This is special mode used for
@@ -2223,8 +2257,8 @@ module Sphinx
       #
       # @see #parse_response
       #
-      def perform_request(command, request, additional = nil)
-        with_server do |server|
+      def perform_request(command, request, additional = nil, server = nil)
+        with_server(server) do |server|
           cmd = command.to_s.upcase
           command_id = Sphinx::Client.const_get("SEARCHD_COMMAND_#{cmd}")
           command_ver = Sphinx::Client.const_get("VER_COMMAND_#{cmd}")
@@ -2330,12 +2364,15 @@ module Sphinx
       #   about the server to perform request on.
       # @raise [SphinxConnectError] on any connection error.
       #
-      def with_server
-        attempts = @retries
+      def with_server(server = nil)
+        # only one connection retry if server specified
+        attempts = server ? 1 : @retries
         begin
           # Get the next server
-          @lastserver = (@lastserver + 1) % @servers.size
-          server = @servers[@lastserver]
+          unless server
+            @lastserver = (@lastserver + 1) % @servers.size
+            server = @servers[@lastserver]
+          end
           yield server
         rescue SphinxConnectError => e
           # Connection error! Do we need to try it again?
