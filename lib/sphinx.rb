@@ -1,6 +1,3 @@
-require 'socket'
-require 'net/protocol'
-
 # Sphinx Client API
 #
 # Author::    Dmytro Shteflyuk <mailto:kpumuk@kpumuk.info>.
@@ -15,6 +12,9 @@ require 'net/protocol'
 #
 module Sphinx
 end
+
+require 'socket'
+require 'net/protocol'
 
 require File.dirname(__FILE__) + '/sphinx/request'
 require File.dirname(__FILE__) + '/sphinx/response'

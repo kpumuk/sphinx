@@ -1643,20 +1643,13 @@ module Sphinx
         return false
       end
 
-      req = @reqs.join('')
-      nreqs = @reqs.length
+      reqs, nreqs = @reqs.join(''), @reqs.length
       @reqs = []
-      response = perform_request(:search, req, nreqs)
+      response = perform_request(:search, reqs, nreqs)
 
       # parse response
-      results = []
-      ires = 0
-      while ires < nreqs
-        ires += 1
-        result = {}
-
-        result['error'] = ''
-        result['warning'] = ''
+      (1..nreqs).map do
+        result = { 'error' => '', 'warning' => '' }
 
         # extract status
         status = result['status'] = response.get_int
@@ -1666,94 +1659,73 @@ module Sphinx
             result['warning'] = message
           else
             result['error'] = message
-            results << result
-            next
+            next result
           end
         end
 
         # read schema
-        fields = []
-        attrs = {}
-        attrs_names_in_order = []
-
         nfields = response.get_int
-        while nfields > 0
-          nfields -= 1
-          fields << response.get_string
-        end
-        result['fields'] = fields
+        result['fields'] = (1..nfields).map { response.get_string }
 
+        attrs_names_in_order = []
         nattrs = response.get_int
-        while nattrs > 0
-          nattrs -= 1
-          attr = response.get_string
-          type = response.get_int
-          attrs[attr] = type
-          attrs_names_in_order << attr
+        attrs = (1..nattrs).inject({}) do |hash, idx|
+          name, type = response.get_string, response.get_int
+          hash[name] = type
+          attrs_names_in_order << name
+          hash
         end
         result['attrs'] = attrs
 
         # read match count
-        count = response.get_int
-        id64 = response.get_int
+        count, id64 = response.get_ints(2)
 
         # read matches
-        result['matches'] = []
-        while count > 0
-          count -= 1
-
-          if id64 != 0
-            doc = response.get_int64
-            weight = response.get_int
+        result['matches'] = (1..count).map do
+          doc, weight = if id64 == 0
+            response.get_ints(2)
           else
-            doc, weight = response.get_ints(2)
+            [response.get_int64, response.get_int]
           end
 
-          r = {} # This is a single result put in the result['matches'] array
-          r['id'] = doc
-          r['weight'] = weight
-          attrs_names_in_order.each do |a|
-            r['attrs'] ||= {}
-
-            case attrs[a]
+          # This is a single result put in the result['matches'] array
+          match = { 'id' => doc, 'weight' => weight } 
+          match['attrs'] = attrs_names_in_order.inject({}) do |hash, name|
+            hash[name] = case attrs[name]
               when SPH_ATTR_BIGINT
                 # handle 64-bit ints
-                r['attrs'][a] = response.get_int64
+                response.get_int64
               when SPH_ATTR_FLOAT
                 # handle floats
-                r['attrs'][a] = response.get_float
+                response.get_float
               when SPH_ATTR_STRING
-                r['attrs'][a] = response.get_string
+                response.get_string
               else
                 # handle everything else as unsigned ints
                 val = response.get_int
-                if (attrs[a] & SPH_ATTR_MULTI) != 0
-                  r['attrs'][a] = []
-                  1.upto(val) do
-                    r['attrs'][a] << response.get_int
-                  end
+                if (attrs[name] & SPH_ATTR_MULTI) != 0
+                  (1..val).map { response.get_int }
                 else
-                  r['attrs'][a] = val
+                  val
                 end
             end
+            hash
           end
-          result['matches'] << r
+          match
         end
-        result['total'], result['total_found'], msecs, words = response.get_ints(4)
+        result['total'], result['total_found'], msecs = response.get_ints(3)
         result['time'] = '%.3f' % (msecs / 1000.0)
 
-        result['words'] = {}
-        while words > 0
-          words -= 1
+        nwords = response.get_int
+        result['words'] = (1..nwords).inject({}) do |hash, idx|
           word = response.get_string
           docs, hits = response.get_ints(2)
-          result['words'][word] = { 'docs' => docs, 'hits' => hits }
+          hash[word] = { 'docs' => docs, 'hits' => hits }
+          hash
         end
 
-        results << result
+        result
       end
-
-      return results
     end
     
     #=================================================================
