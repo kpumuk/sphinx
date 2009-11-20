@@ -25,12 +25,6 @@ class Sphinx::Server
     @port = port
     @path = path
     
-    @timeout = @sphinx.timeout
-    @retries = @sphinx.retries
-    
-    @reqtimeout = @sphinx.reqtimeout
-    @reqretries = @sphinx.reqretries
-    
     @socket = nil
   end
   
@@ -51,7 +45,7 @@ class Sphinx::Server
       @socket
     else
       socket = nil
-      Sphinx::safe_execute(@timeout) do
+      Sphinx::safe_execute(@sphinx.timeout) do
         socket = establish_connection
 
         # Do custom initialization
@@ -141,25 +135,23 @@ class Sphinx::Server
 
       io = Sphinx::BufferedIO.new(sock)
       io.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
-      if @reqtimeout > 0
-        io.read_timeout = @reqtimeout
+      if @sphinx.reqtimeout > 0
+        io.read_timeout = @sphinx.reqtimeout
     
         # This is a part of memcache-client library.
         #
         # Getting reports from several customers, including 37signals,
         # that the non-blocking timeouts in 1.7.5 don't seem to be reliable.
         # It can't hurt to set the underlying socket timeout also, if possible.
-        if timeout
-          secs = Integer(timeout)
-          usecs = Integer((timeout - secs) * 1_000_000)
-          optval = [secs, usecs].pack("l_2")
-          begin
-            io.setsockopt Socket::SOL_SOCKET, Socket::SO_RCVTIMEO, optval
-            io.setsockopt Socket::SOL_SOCKET, Socket::SO_SNDTIMEO, optval
-          rescue Exception => ex
-            # Solaris, for one, does not like/support socket timeouts.
-            @warning = "Unable to use raw socket timeouts: #{ex.class.name}: #{ex.message}"
-          end
+        secs = Integer(@sphinx.reqtimeout)
+        usecs = Integer((@sphinx.reqtimeout - secs) * 1_000_000)
+        optval = [secs, usecs].pack("l_2")
+        begin
+          io.setsockopt Socket::SOL_SOCKET, Socket::SO_RCVTIMEO, optval
+          io.setsockopt Socket::SOL_SOCKET, Socket::SO_SNDTIMEO, optval
+        rescue Exception => ex
+          # Solaris, for one, does not like/support socket timeouts.
+          @warning = "Unable to use raw socket timeouts: #{ex.class.name}: #{ex.message}"
         end
       else
         io.read_timeout = false
