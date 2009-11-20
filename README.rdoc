@@ -67,7 +67,7 @@ of servers, library will try to fetch the results from another one.
 Every consequence request will be executed on the next server in list
 (round-robin technique).
 
-  sphinx.SetServers([
+  sphinx.set_servers([
     { :host => 'browse01.local', :port => 3312 },
     { :host => 'browse02.local', :port => 3312 },
     { :host => 'browse03.local', :port => 3312 }
@@ -75,11 +75,11 @@ Every consequence request will be executed on the next server in list
 
 By default library will try to fetch results from a single server, and
 fail if it does not respond. To setup number of retries being performed,
-you can use second (additional) parameter of the <tt>SetConnectTimeout</tt>
-and <tt>SetRequestTimeout</tt> methods:
+you can use second (additional) parameter of the <tt>set_connect_timeout</tt>
+and <tt>set_request_timeout</tt> methods:
 
-  sphinx.SetConnectTimeout(1, 3)
-  sphinx.SetRequestTimeout(1, 3)
+  sphinx.set_connect_timeout(1, 3)
+  sphinx.set_request_timeout(1, 3)
 
 There is a big difference between these two methods. First will affect
 only on requests experiencing problems with connection (socket error,
@@ -117,14 +117,14 @@ will be finally executed successfully.
 Most Sphinx API methods expecting for special constants will be passed.
 For example:
 
-  sphinx.SetMatchMode(Sphinx::Client::SPH_MATCH_ANY)
+  sphinx.set_match_mode(Sphinx::Client::SPH_MATCH_ANY)
 
 Please note that these constants defined in a <tt>Sphinx::Client</tt>
 namespace. You can use symbols or strings instead of these awful
 constants:
 
-  sphinx.SetMatchMode(:any)
-  sphinx.SetMatchMode('any')
+  sphinx.set_match_mode(:any)
+  sphinx.set_match_mode('any')
 
 == Example
 
@@ -134,13 +134,13 @@ how does it perform database select using ActiveRecord to
 save the order of records established by Sphinx.
 
   sphinx = Sphinx::Client.new
-  result = sphinx.Query('test')
+  result = sphinx.query('test')
   ids = result['matches'].map { |match| match['id'] }
   posts = Post.all :conditions => { :id => ids },
                    :order => "FIELD(id,#{ids.join(',')})"
 
   docs = posts.map(&:body)
-  excerpts = sphinx.BuildExcerpts(docs, 'index', 'test')
+  excerpts = sphinx.build_excerpts(docs, 'index', 'test')
 
 == Support
 
