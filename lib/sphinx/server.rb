@@ -97,19 +97,16 @@ class Sphinx::Server
   #
   # Previous persistent socket will be closed as well.
   def make_persistent!(socket)
-    free_socket(@socket)
-    @socket = socket
+    unless socket == @socket
+      close_persistent!
+      @socket = socket
+    end
+    @socket
   end
   
   # Closes persistent socket.
   def close_persistent!
-    if @socket
-      @socket.close unless @socket.closed?
-      @socket = nil
-      true
-    else
-      false
-    end
+    free_socket(@socket, true)
   end
   
   # Gets a value indicating whether server has persistent socket associated.
