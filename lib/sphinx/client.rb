@@ -2367,13 +2367,14 @@ module Sphinx
       def with_server(server = nil)
         # only one connection retry if server specified
         attempts = server ? 1 : @retries
+        s = server
         begin
           # Get the next server
           unless server
             @lastserver = (@lastserver + 1) % @servers.size
-            server = @servers[@lastserver]
+            s = @servers[@lastserver]
           end
-          yield server
+          yield s
         rescue SphinxConnectError => e
           # Connection error! Do we need to try it again?
           attempts -= 1
