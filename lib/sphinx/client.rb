@@ -354,8 +354,7 @@ module Sphinx
     # @param [String] host the searchd host name or UNIX socket absolute path.
     # @param [Integer] port the searchd port name (could be any if UNIX
     #   socket path specified).
-    # @return [Sphinx::Server] an instance of <tt>Sphinx::Server</tt>
-    #   with given parameters.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_server('localhost', 9312)
@@ -382,7 +381,7 @@ module Sphinx
       host = port = nil unless path.nil?
 
       @servers = [Sphinx::Server.new(self, host, port, path)].freeze
-      @servers.first
+      self
     end
     alias :SetServer :set_server
 
@@ -400,8 +399,7 @@ module Sphinx
     # @option servers [String] :path the searchd UNIX socket absolute path.
     # @option servers [Integer] :port (9312) the searchd port name (skiped when UNIX
     #   socket path specified)
-    # @return [Array<Sphinx::Server>] an +Array+ of instance of <tt>Sphinx::Server</tt>
-    #   with given parameters.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_servers([
@@ -440,6 +438,7 @@ module Sphinx
 
         Sphinx::Server.new(self, host, port, path)
       end.freeze
+      self
     end
     alias :SetServers :set_servers
 
@@ -460,6 +459,7 @@ module Sphinx
     #
     # @param [Integer] timeout a connection timeout in seconds.
     # @param [Integer] retries number of connect retries.
+    # @return [Sphinx::Client] self.
     #
     # @example Set connection timeout to 1 second and number of retries to 5
     #   sphinx.set_connect_timeout(1, 5)
@@ -476,6 +476,7 @@ module Sphinx
 
       @timeout = timeout
       @retries = retries
+      self
     end
     alias :SetConnectTimeout :set_connect_timeout
 
@@ -496,6 +497,7 @@ module Sphinx
     #
     # @param [Integer] timeout a request timeout in seconds.
     # @param [Integer] retries number of request retries.
+    # @return [Sphinx::Client] self.
     #
     # @example Set request timeout to 1 second and number of retries to 5
     #   sphinx.set_request_timeout(1, 5)
@@ -512,6 +514,7 @@ module Sphinx
 
       @reqtimeout = timeout
       @reqretries = retries
+      self
     end
     alias :SetRequestTimeout :set_request_timeout
 
@@ -526,6 +529,7 @@ module Sphinx
     #
     # @param [Integer] count a number of retries to perform.
     # @param [Integer] delay a delay between the retries.
+    # @return [Sphinx::Client] self.
     #
     # @example Perform 5 retries with 200 ms between them
     #   sphinx.set_retries(5, 200)
@@ -540,6 +544,7 @@ module Sphinx
 
       @retrycount = count
       @retrydelay = delay
+      self
     end
     alias :SetRetries :set_retries
 
@@ -583,6 +588,7 @@ module Sphinx
     # @param [Integer] limit an amount of matches to return.
     # @param [Integer] max a maximum server-side result set size.
     # @param [Integer] cutoff a threshold amount of matches to stop searching at.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_limits(100, 50, 1000, 5000)
@@ -604,6 +610,7 @@ module Sphinx
       @limit = limit
       @maxmatches = max if max > 0
       @cutoff = cutoff if cutoff > 0
+      self
     end
     alias :SetLimits :set_limits
 
@@ -617,6 +624,7 @@ module Sphinx
     # index separately.
     #
     # @param [Integer] max maximum search query time in milliseconds.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_max_query_time(200)
@@ -628,6 +636,7 @@ module Sphinx
       raise ArgumentError, '"max" argument should be greater or equal to zero' unless max >= 0
 
       @maxquerytime = max
+      self
     end
     alias :SetMaxQueryTime :set_max_query_time
 
@@ -654,6 +663,7 @@ module Sphinx
     # @param [String, Symbol] attribute an attribute name to override values of.
     # @param [Integer, String, Symbol] attrtype attribute type.
     # @param [Hash] values a +Hash+ that maps document IDs to overridden attribute values.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_override(:friends_weight, :integer, {123 => 1, 456 => 1, 789 => 1})
@@ -694,6 +704,7 @@ module Sphinx
       end
 
       @overrides << { 'attr' => attribute.to_s, 'type' => attrtype, 'values' => values }
+      self
     end
     alias :SetOverride :set_override
 
@@ -724,6 +735,7 @@ module Sphinx
     # and '<tt>@geodist</tt>' respectively.
     #
     # @param [String] select a select clause, listing specific attributes to fetch.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_select('*, @weight+(user_karma+ln(pageviews))*0.1 AS myweight')
@@ -740,6 +752,7 @@ module Sphinx
       raise ArgumentError, '"select" argument must be String' unless select.kind_of?(String)
 
       @select = select
+      self
     end
     alias :SetSelect :set_select
 
@@ -754,6 +767,7 @@ module Sphinx
     # <tt>"any"</tt>, etc), or a +Symbol+ (<tt>:all</tt>, <tt>:any</tt>, etc).
     #
     # @param [Integer, String, Symbol] mode full-text query matching mode.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_match_mode(Sphinx::Client::SPH_MATCH_ALL)
@@ -780,6 +794,7 @@ module Sphinx
       end
 
       @mode = mode
+      self
     end
     alias :SetMatchMode :set_match_mode
 
@@ -792,6 +807,7 @@ module Sphinx
     # Fixnum constant (SPH_RANK_PROXIMITY_BM25, SPH_RANK_BM25, etc).
     #
     # @param [Integer, String, Symbol] ranker ranking mode.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_ranking_mode(Sphinx::Client::SPH_RANK_BM25)
@@ -819,6 +835,7 @@ module Sphinx
       end
 
       @ranker = ranker
+      self
     end
     alias :SetRankingMode :set_ranking_mode
 
@@ -832,6 +849,7 @@ module Sphinx
     # @param [String] sortby sorting clause, with the syntax depending on
     #   specific mode. Should be specified unless sorting mode is
     #   +SPH_SORT_RELEVANCE+.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_sort_mode(Sphinx::Client::SPH_SORT_ATTR_ASC, 'attr')
@@ -862,12 +880,14 @@ module Sphinx
 
       @sort = mode
       @sortby = sortby
+      self
     end
     alias :SetSortMode :set_sort_mode
 
     # Binds per-field weights in the order of appearance in the index.
     #
     # @param [Array<Integer>] weights an +Array+ of integer per-field weights.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_weights([1, 3, 5])
@@ -884,6 +904,7 @@ module Sphinx
       end
 
       @weights = weights
+      self
     end
     alias :SetWeights :set_weights
 
@@ -911,6 +932,7 @@ module Sphinx
     #
     # @param [Hash] weights a +Hash+ mapping string field names to
     #   integer weights.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_field_weights(:title => 20, :text => 10)
@@ -929,6 +951,7 @@ module Sphinx
       end
 
       @fieldweights = weights
+      self
     end
     alias :SetFieldWeights :set_field_weights
 
@@ -956,6 +979,7 @@ module Sphinx
     #
     # @param [Hash] weights a +Hash+ mapping string index names to
     #   integer weights.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_field_weights(:fresh => 20, :archived => 10)
@@ -973,6 +997,7 @@ module Sphinx
       end
 
       @indexweights = weights
+      self
     end
     alias :SetIndexWeights :set_index_weights
     
@@ -989,6 +1014,7 @@ module Sphinx
     #
     # @param [Integer] min min document ID.
     # @param [Integer] min max document ID.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_id_range(10, 1000)
@@ -1004,6 +1030,7 @@ module Sphinx
 
       @min_id = min
       @max_id = max
+      self
     end
     alias :SetIDRange :set_id_range
 
@@ -1024,6 +1051,7 @@ module Sphinx
     # @param [Array<Integer>] values an +Array+ of integers with given attribute values.
     # @param [Boolean] exclude indicating whether documents with given attribute
     #   matching specified values should be excluded from search results.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_filter(:group_id, [10, 15, 20])
@@ -1046,6 +1074,7 @@ module Sphinx
       end
 
       @filters << { 'type' => SPH_FILTER_VALUES, 'attr' => attribute.to_s, 'exclude' => exclude, 'values' => values }
+      self
     end
     alias :SetFilter :set_filter
 
@@ -1069,6 +1098,7 @@ module Sphinx
     # @param [Integer] max max value of the given attribute.
     # @param [Boolean] exclude indicating whether documents with given attribute
     #   matching specified boundaries should be excluded from search results.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_filter_range(:group_id, 10, 20)
@@ -1088,6 +1118,7 @@ module Sphinx
       raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
 
       @filters << { 'type' => SPH_FILTER_RANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min, 'max' => max }
+      self
     end
     alias :SetFilterRange :set_filter_range
 
@@ -1110,6 +1141,7 @@ module Sphinx
     # @param [Integer, Float] max max value of the given attribute.
     # @param [Boolean] exclude indicating whether documents with given attribute
     #   matching specified boundaries should be excluded from search results.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_filter_float_range(:group_id, 10.5, 20)
@@ -1129,6 +1161,7 @@ module Sphinx
       raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
 
       @filters << { 'type' => SPH_FILTER_FLOATRANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min.to_f, 'max' => max.to_f }
+      self
     end
     alias :SetFilterFloatRange :set_filter_float_range
 
@@ -1154,6 +1187,7 @@ module Sphinx
     # @param [String, Symbol] attrlong a name of longitude attribute.
     # @param [Integer, Float] lat an anchor point latitude, in radians.
     # @param [Integer, Float] long an anchor point longitude, in radians.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_geo_anchor(:latitude, :longitude, 192.5, 143.5)
@@ -1169,6 +1203,7 @@ module Sphinx
       raise ArgumentError, '"long" argument must be Float or Integer'     unless long.kind_of?(Float) or (long.respond_to?(:integer?) and long.integer?)
 
       @anchor = { 'attrlat' => attrlat.to_s, 'attrlong' => attrlong.to_s, 'lat' => lat.to_f, 'long' => long.to_f }
+      self
     end
     alias :SetGeoAnchor :set_geo_anchor
     
@@ -1210,6 +1245,7 @@ module Sphinx
     # @param [String, Symbol] attribute an attribute name to group by.
     # @param [Integer, String, Symbol] func a grouping function.
     # @param [String] groupsort a groups sorting mode.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_group_by(:tag_id, :attr)
@@ -1243,6 +1279,7 @@ module Sphinx
       @groupby = attribute.to_s
       @groupfunc = func
       @groupsort = groupsort
+      self
     end
     alias :SetGroupBy :set_group_by
 
@@ -1278,6 +1315,7 @@ module Sphinx
     # vendor IDs within each category.
     #
     # @param [String, Symbol] attribute an attribute name.
+    # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_group_distinct(:category_id)
@@ -1291,6 +1329,7 @@ module Sphinx
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
 
       @groupdistinct = attribute.to_s
+      self
     end
     alias :SetGroupDistinct :set_group_distinct
 
@@ -1304,6 +1343,8 @@ module Sphinx
     # to set different filters for different queries in the batch. To do that,
     # you should call {#reset_filters} and add new filters using the respective calls.
     #
+    # @return [Sphinx::Client] self.
+    #
     # @example
     #   sphinx.reset_filters
     #
@@ -1315,6 +1356,7 @@ module Sphinx
     def reset_filters
       @filters = []
       @anchor = []
+      self
     end
     alias :ResetFilters :reset_filters
 
@@ -1327,6 +1369,8 @@ module Sphinx
     # current state, so that subsequent {#add_query} calls can perform non-grouping
     # searches.
     #
+    # @return [Sphinx::Client] self.
+    #
     # @example
     #   sphinx.reset_group_by
     #
@@ -1338,6 +1382,7 @@ module Sphinx
       @groupfunc     = SPH_GROUPBY_DAY
       @groupsort     = '@group desc'
       @groupdistinct = ''
+      self
     end
     alias :ResetGroupBy :reset_group_by
 
@@ -1348,6 +1393,8 @@ module Sphinx
     # you should call {#reset_overrides} and add new overrides using the
     # respective calls.
     #
+    # @return [Sphinx::Client] self.
+    #
     # @example
     #   sphinx.reset_overrides
     #
@@ -1355,6 +1402,7 @@ module Sphinx
     #
     def reset_overrides
       @overrides = []
+      self
     end
     alias :ResetOverrides :reset_overrides
 
@@ -2058,7 +2106,7 @@ module Sphinx
 
     # Force attribute flush, and block until it completes.
     #
-    # @return current internal flush tag on success, -1 on failure.
+    # @return [Integer] current internal flush tag on success, -1 on failure.
     #
     # @example
     #   sphinx.flush_attrs

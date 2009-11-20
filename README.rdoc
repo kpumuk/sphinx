@@ -54,6 +54,27 @@ Complete Sphinx API documentation could be found on Sphinx Search Engine
 site: http://www.sphinxsearch.com/docs/current.html
 This plugin is fully compatible with original PHP API implementation.
 
+== Ruby naming conventions
+
+Sphinx Client API supports Ruby naming conventions, so every API
+method name is in underscored, lowercase form:
+
+  SetServer    -> set_server
+  RunQueries   -> run_queries
+  SetMatchMode -> set_match_mode
+
+Every method is aliased to a corresponding one from standard Sphinx
+API, so you can use both <tt>SetServer</tt> and <tt>set_server</tt>
+with no differrence.
+
+There are three exceptions to this naming rule:
+
+  GetLastError   -> last_error
+  GetLastWarning -> last_warning
+  IsConnectError -> connect_error?
+
+Of course, all of them are aliased to the original method names.
+
 == Using multiple Sphinx servers
 
 Since we actively use this plugin in our Scribd development workflow,
@@ -125,6 +146,17 @@ constants:
 
   sphinx.set_match_mode(:any)
   sphinx.set_match_mode('any')
+
+== Setting query filters
+
+Every <tt>set_</tt> method returns <tt>Sphinx::Client</tt> object itself.
+It means that you can chain filtering methods:
+
+  results = Sphinx::Client.new.
+              set_match_mode(:any).
+              set_ranking_mode(:bm25).
+              set_id_range(10, 1000).
+              query('test')
 
 == Example
 
