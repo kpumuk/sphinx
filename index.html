@@ -19,7 +19,7 @@
     <div id="header">
       <div id="menu">
   
-    <a href="_index.html" title="Index">Index</a> &raquo; 
+    <a title="Index" href="_index.html">Index</a> &raquo; 
     <span class="title">File: README</span>
   
 </div>
@@ -109,6 +109,32 @@ Complete Sphinx API documentation could be found on Sphinx Search Engine
 site: http://www.sphinxsearch.com/docs/current.html This plugin is fully
 compatible with original PHP API implementation.
 </p>
+<h2>Ruby naming conventions</h2>
+<p>
+Sphinx Client API supports Ruby naming conventions, so every API method
+name is in underscored, lowercase form:
+</p>
+<pre class="code">
+  <span class='SetServer constant id'>SetServer</span>    <span class='minus op'>-</span><span class='gt op'>&gt;</span> <span class='set_server identifier id'>set_server</span>
+  <span class='RunQueries constant id'>RunQueries</span>   <span class='minus op'>-</span><span class='gt op'>&gt;</span> <span class='run_queries identifier id'>run_queries</span>
+  <span class='SetMatchMode constant id'>SetMatchMode</span> <span class='minus op'>-</span><span class='gt op'>&gt;</span> <span class='set_match_mode identifier id'>set_match_mode</span>
+</pre>
+<p>
+Every method is aliased to a corresponding one from standard Sphinx API, so
+you can use both <tt>SetServer</tt> and <tt>set_server</tt> with no
+differrence.
+</p>
+<p>
+There are three exceptions to this naming rule:
+</p>
+<pre class="code">
+  <span class='GetLastError constant id'>GetLastError</span>   <span class='minus op'>-</span><span class='gt op'>&gt;</span> <span class='last_error identifier id'>last_error</span>
+  <span class='GetLastWarning constant id'>GetLastWarning</span> <span class='minus op'>-</span><span class='gt op'>&gt;</span> <span class='last_warning identifier id'>last_warning</span>
+  <span class='IsConnectError constant id'>IsConnectError</span> <span class='minus op'>-</span><span class='gt op'>&gt;</span> <span class='connect_error? fid id'>connect_error?</span>
+</pre>
+<p>
+Of course, all of them are aliased to the original method names.
+</p>
 <h2>Using multiple Sphinx servers</h2>
 <p>
 Since we actively use this plugin in our Scribd development workflow, there
@@ -124,7 +150,7 @@ consequence request will be executed on the next server in list
 (round-robin technique).
 </p>
 <pre class="code">
-  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetServers constant id'>SetServers</span><span class='lparen token'>(</span><span class='lbrack token'>[</span>
+  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='set_servers identifier id'>set_servers</span><span class='lparen token'>(</span><span class='lbrack token'>[</span>
     <span class='lbrace token'>{</span> <span class='symbol val'>:host</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='string val'>'browse01.local'</span><span class='comma token'>,</span> <span class='symbol val'>:port</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='integer val'>3312</span> <span class='rbrace token'>}</span><span class='comma token'>,</span>
     <span class='lbrace token'>{</span> <span class='symbol val'>:host</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='string val'>'browse02.local'</span><span class='comma token'>,</span> <span class='symbol val'>:port</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='integer val'>3312</span> <span class='rbrace token'>}</span><span class='comma token'>,</span>
     <span class='lbrace token'>{</span> <span class='symbol val'>:host</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='string val'>'browse03.local'</span><span class='comma token'>,</span> <span class='symbol val'>:port</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='integer val'>3312</span> <span class='rbrace token'>}</span>
@@ -133,12 +159,12 @@ consequence request will be executed on the next server in list
 <p>
 By default library will try to fetch results from a single server, and fail
 if it does not respond. To setup number of retries being performed, you can
-use second (additional) parameter of the <tt>SetConnectTimeout</tt> and
-<tt>SetRequestTimeout</tt> methods:
+use second (additional) parameter of the <tt>set_connect_timeout</tt> and
+<tt>set_request_timeout</tt> methods:
 </p>
 <pre class="code">
-  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetConnectTimeout constant id'>SetConnectTimeout</span><span class='lparen token'>(</span><span class='integer val'>1</span><span class='comma token'>,</span> <span class='integer val'>3</span><span class='rparen token'>)</span>
-  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetRequestTimeout constant id'>SetRequestTimeout</span><span class='lparen token'>(</span><span class='integer val'>1</span><span class='comma token'>,</span> <span class='integer val'>3</span><span class='rparen token'>)</span>
+  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='set_connect_timeout identifier id'>set_connect_timeout</span><span class='lparen token'>(</span><span class='integer val'>1</span><span class='comma token'>,</span> <span class='integer val'>3</span><span class='rparen token'>)</span>
+  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='set_request_timeout identifier id'>set_request_timeout</span><span class='lparen token'>(</span><span class='integer val'>1</span><span class='comma token'>,</span> <span class='integer val'>3</span><span class='rparen token'>)</span>
 </pre>
 <p>
 There is a big difference between these two methods. First will affect only
@@ -197,15 +223,27 @@ Most Sphinx API methods expecting for special constants will be passed. For
 example:
 </p>
 <pre class="code">
-  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetMatchMode constant id'>SetMatchMode</span><span class='lparen token'>(</span><span class='Sphinx constant id'>Sphinx</span><span class='colon2 op'>::</span><span class='Client constant id'>Client</span><span class='colon2 op'>::</span><span class='SPH_MATCH_ANY constant id'>SPH_MATCH_ANY</span><span class='rparen token'>)</span>
+  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='set_match_mode identifier id'>set_match_mode</span><span class='lparen token'>(</span><span class='Sphinx constant id'>Sphinx</span><span class='colon2 op'>::</span><span class='Client constant id'>Client</span><span class='colon2 op'>::</span><span class='SPH_MATCH_ANY constant id'>SPH_MATCH_ANY</span><span class='rparen token'>)</span>
 </pre>
 <p>
 Please note that these constants defined in a <tt>Sphinx::Client</tt>
 namespace. You can use symbols or strings instead of these awful constants:
 </p>
 <pre class="code">
-  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetMatchMode constant id'>SetMatchMode</span><span class='lparen token'>(</span><span class='symbol val'>:any</span><span class='rparen token'>)</span>
-  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='SetMatchMode constant id'>SetMatchMode</span><span class='lparen token'>(</span><span class='string val'>'any'</span><span class='rparen token'>)</span>
+  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='set_match_mode identifier id'>set_match_mode</span><span class='lparen token'>(</span><span class='symbol val'>:any</span><span class='rparen token'>)</span>
+  <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='set_match_mode identifier id'>set_match_mode</span><span class='lparen token'>(</span><span class='string val'>'any'</span><span class='rparen token'>)</span>
+</pre>
+<h2>Setting query filters</h2>
+<p>
+Every <tt>set_</tt> method returns <tt>Sphinx::Client</tt> object itself.
+It means that you can chain filtering methods:
+</p>
+<pre class="code">
+  <span class='results identifier id'>results</span> <span class='assign token'>=</span> <span class='Sphinx constant id'>Sphinx</span><span class='colon2 op'>::</span><span class='Client constant id'>Client</span><span class='dot token'>.</span><span class='new identifier id'>new</span><span class='dot token'>.</span>
+              <span class='set_match_mode identifier id'>set_match_mode</span><span class='lparen token'>(</span><span class='symbol val'>:any</span><span class='rparen token'>)</span><span class='dot token'>.</span>
+              <span class='set_ranking_mode identifier id'>set_ranking_mode</span><span class='lparen token'>(</span><span class='symbol val'>:bm25</span><span class='rparen token'>)</span><span class='dot token'>.</span>
+              <span class='set_id_range identifier id'>set_id_range</span><span class='lparen token'>(</span><span class='integer val'>10</span><span class='comma token'>,</span> <span class='integer val'>1000</span><span class='rparen token'>)</span><span class='dot token'>.</span>
+              <span class='query identifier id'>query</span><span class='lparen token'>(</span><span class='string val'>'test'</span><span class='rparen token'>)</span>
 </pre>
 <h2>Example</h2>
 <p>
@@ -216,13 +254,13 @@ by Sphinx.
 </p>
 <pre class="code">
   <span class='sphinx identifier id'>sphinx</span> <span class='assign token'>=</span> <span class='Sphinx constant id'>Sphinx</span><span class='colon2 op'>::</span><span class='Client constant id'>Client</span><span class='dot token'>.</span><span class='new identifier id'>new</span>
-  <span class='result identifier id'>result</span> <span class='assign token'>=</span> <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='Query constant id'>Query</span><span class='lparen token'>(</span><span class='string val'>'test'</span><span class='rparen token'>)</span>
+  <span class='result identifier id'>result</span> <span class='assign token'>=</span> <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='query identifier id'>query</span><span class='lparen token'>(</span><span class='string val'>'test'</span><span class='rparen token'>)</span>
   <span class='ids identifier id'>ids</span> <span class='assign token'>=</span> <span class='result identifier id'>result</span><span class='lbrack token'>[</span><span class='string val'>'matches'</span><span class='rbrack token'>]</span><span class='dot token'>.</span><span class='map identifier id'>map</span> <span class='lbrace token'>{</span> <span class='bitor op'>|</span><span class='match identifier id'>match</span><span class='bitor op'>|</span> <span class='match identifier id'>match</span><span class='lbrack token'>[</span><span class='string val'>'id'</span><span class='rbrack token'>]</span> <span class='rbrace token'>}</span>
   <span class='posts identifier id'>posts</span> <span class='assign token'>=</span> <span class='Post constant id'>Post</span><span class='dot token'>.</span><span class='all identifier id'>all</span> <span class='symbol val'>:conditions</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='lbrace token'>{</span> <span class='symbol val'>:id</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='ids identifier id'>ids</span> <span class='rbrace token'>}</span><span class='comma token'>,</span>
                    <span class='symbol val'>:order</span> <span class='assign token'>=</span><span class='gt op'>&gt;</span> <span class='dstring node'>&quot;FIELD(id,#{ids.join(',')})&quot;</span>
 
   <span class='docs identifier id'>docs</span> <span class='assign token'>=</span> <span class='posts identifier id'>posts</span><span class='dot token'>.</span><span class='map identifier id'>map</span><span class='lparen token'>(</span><span class='bitand op'>&amp;</span><span class='symbol val'>:body</span><span class='rparen token'>)</span>
-  <span class='excerpts identifier id'>excerpts</span> <span class='assign token'>=</span> <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='BuildExcerpts constant id'>BuildExcerpts</span><span class='lparen token'>(</span><span class='docs identifier id'>docs</span><span class='comma token'>,</span> <span class='string val'>'index'</span><span class='comma token'>,</span> <span class='string val'>'test'</span><span class='rparen token'>)</span>
+  <span class='excerpts identifier id'>excerpts</span> <span class='assign token'>=</span> <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='build_excerpts identifier id'>build_excerpts</span><span class='lparen token'>(</span><span class='docs identifier id'>docs</span><span class='comma token'>,</span> <span class='string val'>'index'</span><span class='comma token'>,</span> <span class='string val'>'test'</span><span class='rparen token'>)</span>
 </pre>
 <h2>Support</h2>
 <p>
@@ -258,7 +296,7 @@ freely distribute/modify this library.
 </div></div>
     
     <div id="footer">
-  Generated on Thu Nov 19 19:15:03 2009 by 
+  Generated on Fri Nov 20 14:50:36 2009 by 
   <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool">yard</a>
   0.4.0 (ruby-1.8.7).
 </div>
