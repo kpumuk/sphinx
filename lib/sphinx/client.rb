@@ -375,7 +375,7 @@ module Sphinx
       elsif host[0, 7] == 'unix://'
         path = host[7..-1]
       else
-        raise ArgumentError, '"port" argument must be Integer' unless port.respond_to?(:integer?) and port.integer?
+        raise ArgumentError, '"port" argument must be Integer' unless port.kind_of?(Integer)
       end
 
       host = port = nil unless path.nil?
@@ -431,7 +431,7 @@ module Sphinx
         elsif host[0, 7] == 'unix://'
           path = host[7..-1]
         else
-          raise ArgumentError, '"port" argument must be Integer' unless port.respond_to?(:integer?) and port.integer?
+          raise ArgumentError, '"port" argument must be Integer' unless port.kind_of?(Integer)
         end
 
         host = port = nil unless path.nil?
@@ -470,8 +470,8 @@ module Sphinx
     # @see #set_request_timeout
     #
     def set_connect_timeout(timeout, retries = 1)
-      raise ArgumentError, '"timeout" argument must be Integer'        unless timeout.respond_to?(:integer?) and timeout.integer?
-      raise ArgumentError, '"retries" argument must be Integer'        unless retries.respond_to?(:integer?) and retries.integer?
+      raise ArgumentError, '"timeout" argument must be Integer'        unless timeout.kind_of?(Integer)
+      raise ArgumentError, '"retries" argument must be Integer'        unless retries.kind_of?(Integer)
       raise ArgumentError, '"retries" argument must be greater than 0' unless retries > 0
 
       @timeout = timeout
@@ -508,8 +508,8 @@ module Sphinx
     # @see #set_connect_timeout
     #
     def set_request_timeout(timeout, retries = 1)
-      raise ArgumentError, '"timeout" argument must be Integer'        unless timeout.respond_to?(:integer?) and timeout.integer?
-      raise ArgumentError, '"retries" argument must be Integer'        unless retries.respond_to?(:integer?) and retries.integer?
+      raise ArgumentError, '"timeout" argument must be Integer'        unless timeout.kind_of?(Integer)
+      raise ArgumentError, '"retries" argument must be Integer'        unless retries.kind_of?(Integer)
       raise ArgumentError, '"retries" argument must be greater than 0' unless retries > 0
 
       @reqtimeout = timeout
@@ -539,8 +539,8 @@ module Sphinx
     # @see #set_request_timeout
     #
     def set_retries(count, delay = 0)
-      raise ArgumentError, '"count" argument must be Integer' unless count.respond_to?(:integer?) and count.integer?
-      raise ArgumentError, '"delay" argument must be Integer' unless delay.respond_to?(:integer?) and delay.integer?
+      raise ArgumentError, '"count" argument must be Integer' unless count.kind_of?(Integer)
+      raise ArgumentError, '"delay" argument must be Integer' unless delay.kind_of?(Integer)
 
       @retrycount = count
       @retrydelay = delay
@@ -596,10 +596,10 @@ module Sphinx
     # @raise [ArgumentError] Occurred when parameters are invalid.
     #
     def set_limits(offset, limit, max = 0, cutoff = 0)
-      raise ArgumentError, '"offset" argument must be Integer' unless offset.respond_to?(:integer?) and offset.integer?
-      raise ArgumentError, '"limit" argument must be Integer'  unless limit.respond_to?(:integer?)  and limit.integer?
-      raise ArgumentError, '"max" argument must be Integer'    unless max.respond_to?(:integer?)    and max.integer?
-      raise ArgumentError, '"cutoff" argument must be Integer' unless cutoff.respond_to?(:integer?) and cutoff.integer?
+      raise ArgumentError, '"offset" argument must be Integer' unless offset.kind_of?(Integer)
+      raise ArgumentError, '"limit" argument must be Integer'  unless limit.kind_of?(Integer)
+      raise ArgumentError, '"max" argument must be Integer'    unless max.kind_of?(Integer)
+      raise ArgumentError, '"cutoff" argument must be Integer' unless cutoff.kind_of?(Integer)
 
       raise ArgumentError, '"offset" argument should be greater or equal to zero' unless offset >= 0
       raise ArgumentError, '"limit" argument should be greater to zero'           unless limit > 0
@@ -632,7 +632,7 @@ module Sphinx
     # @raise [ArgumentError] Occurred when parameters are invalid.
     #
     def set_max_query_time(max)
-      raise ArgumentError, '"max" argument must be Integer' unless max.respond_to?(:integer?) and max.integer?
+      raise ArgumentError, '"max" argument must be Integer' unless max.kind_of?(Integer)
       raise ArgumentError, '"max" argument should be greater or equal to zero' unless max >= 0
 
       @maxquerytime = max
@@ -691,15 +691,15 @@ module Sphinx
       raise ArgumentError, '"values" argument must be Hash' unless values.kind_of?(Hash)
 
       values.each do |id, value|
-        raise ArgumentError, '"values" argument must be Hash map of Integer to Integer or Time' unless id.respond_to?(:integer?) and id.integer?
+        raise ArgumentError, '"values" argument must be Hash map of Integer to Integer or Time' unless id.kind_of?(Integer)
         case attrtype
           when SPH_ATTR_TIMESTAMP
-            raise ArgumentError, '"values" argument must be Hash map of Integer to Integer or Time' unless (value.respond_to?(:integer?) and value.integer?) or value.kind_of?(Time)
+            raise ArgumentError, '"values" argument must be Hash map of Integer to Integer or Time' unless value.kind_of?(Integer) or value.kind_of?(Time)
           when SPH_ATTR_FLOAT
-            raise ArgumentError, '"values" argument must be Hash map of Integer to Float or Integer' unless value.kind_of?(Float) or (value.respond_to?(:integer?) and value.integer?)
+            raise ArgumentError, '"values" argument must be Hash map of Integer to Float or Integer' unless value.kind_of?(Numeric)
           else
             # SPH_ATTR_INTEGER, SPH_ATTR_ORDINAL, SPH_ATTR_BOOL, SPH_ATTR_BIGINT
-            raise ArgumentError, '"values" argument must be Hash map of Integer to Integer' unless value.respond_to?(:integer?) and value.integer?
+            raise ArgumentError, '"values" argument must be Hash map of Integer to Integer' unless value.kind_of?(Integer)
         end
       end
 
@@ -900,7 +900,7 @@ module Sphinx
     def set_weights(weights)
       raise ArgumentError, '"weights" argument must be Array' unless weights.kind_of?(Array)
       weights.each do |weight|
-        raise ArgumentError, '"weights" argument must be Array of integers' unless weight.respond_to?(:integer?) and weight.integer?
+        raise ArgumentError, '"weights" argument must be Array of integers' unless weight.kind_of?(Integer)
       end
 
       @weights = weights
@@ -945,7 +945,7 @@ module Sphinx
     def set_field_weights(weights)
       raise ArgumentError, '"weights" argument must be Hash' unless weights.kind_of?(Hash)
       weights.each do |name, weight|
-        unless (name.kind_of?(String) or name.kind_of?(Symbol)) and (weight.respond_to?(:integer?) and weight.integer?)
+        unless (name.kind_of?(String) or name.kind_of?(Symbol)) and weight.kind_of?(Integer)
           raise ArgumentError, '"weights" argument must be Hash map of strings to integers'
         end
       end
@@ -991,7 +991,7 @@ module Sphinx
     def set_index_weights(weights)
       raise ArgumentError, '"weights" argument must be Hash' unless weights.kind_of?(Hash)
       weights.each do |index, weight|
-        unless (index.kind_of?(String) or index.kind_of?(Symbol)) and (weight.respond_to?(:integer?) and weight.integer?)
+        unless (index.kind_of?(String) or index.kind_of?(Symbol)) and weight.kind_of?(Integer)
           raise ArgumentError, '"weights" argument must be Hash map of strings to integers'
         end
       end
@@ -1024,8 +1024,8 @@ module Sphinx
     # @see http://www.sphinxsearch.com/docs/current.html#api-func-setidrange Section 6.4.1, "SetIDRange"
     #
     def set_id_range(min, max)
-      raise ArgumentError, '"min" argument must be Integer' unless min.respond_to?(:integer?) and min.integer?
-      raise ArgumentError, '"max" argument must be Integer' unless max.respond_to?(:integer?) and max.integer?
+      raise ArgumentError, '"min" argument must be Integer' unless min.kind_of?(Integer)
+      raise ArgumentError, '"max" argument must be Integer' unless max.kind_of?(Integer)
       raise ArgumentError, '"max" argument greater or equal to "min"' unless min <= max
 
       @min_id = min
@@ -1070,7 +1070,7 @@ module Sphinx
       raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
 
       values.each do |value|
-        raise ArgumentError, '"values" argument must be Array of Integer' unless value.respond_to?(:integer?) and value.integer?
+        raise ArgumentError, '"values" argument must be Array of Integer' unless value.kind_of?(Integer)
       end
 
       @filters << { 'type' => SPH_FILTER_VALUES, 'attr' => attribute.to_s, 'exclude' => exclude, 'values' => values }
@@ -1112,8 +1112,8 @@ module Sphinx
     #
     def set_filter_range(attribute, min, max, exclude = false)
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
-      raise ArgumentError, '"min" argument must be Integer'                unless min.respond_to?(:integer?) and min.integer?
-      raise ArgumentError, '"max" argument must be Integer'                unless max.respond_to?(:integer?) and max.integer?
+      raise ArgumentError, '"min" argument must be Integer'                unless min.kind_of?(Integer)
+      raise ArgumentError, '"max" argument must be Integer'                unless max.kind_of?(Integer)
       raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
       raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
 
@@ -1155,8 +1155,8 @@ module Sphinx
     #
     def set_filter_float_range(attribute, min, max, exclude = false)
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
-      raise ArgumentError, '"min" argument must be Float or Integer'       unless min.kind_of?(Float) or (min.respond_to?(:integer?) and min.integer?)
-      raise ArgumentError, '"max" argument must be Float or Integer'       unless max.kind_of?(Float) or (max.respond_to?(:integer?) and max.integer?)
+      raise ArgumentError, '"min" argument must be Float or Integer'       unless min.kind_of?(Numeric)
+      raise ArgumentError, '"max" argument must be Float or Integer'       unless max.kind_of?(Numeric)
       raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
       raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
 
@@ -1199,8 +1199,8 @@ module Sphinx
     def set_geo_anchor(attrlat, attrlong, lat, long)
       raise ArgumentError, '"attrlat" argument must be String or Symbol'  unless attrlat.kind_of?(String)  or attrlat.kind_of?(Symbol)
       raise ArgumentError, '"attrlong" argument must be String or Symbol' unless attrlong.kind_of?(String) or attrlong.kind_of?(Symbol)
-      raise ArgumentError, '"lat" argument must be Float or Integer'      unless lat.kind_of?(Float)  or (lat.respond_to?(:integer?)  and lat.integer?)
-      raise ArgumentError, '"long" argument must be Float or Integer'     unless long.kind_of?(Float) or (long.respond_to?(:integer?) and long.integer?)
+      raise ArgumentError, '"lat" argument must be Float or Integer'      unless lat.kind_of?(Numeric)
+      raise ArgumentError, '"long" argument must be Float or Integer'     unless long.kind_of?(Numeric)
 
       @anchor = { 'attrlat' => attrlat.to_s, 'attrlong' => attrlong.to_s, 'lat' => lat.to_f, 'long' => long.to_f }
       self
@@ -2040,17 +2040,17 @@ module Sphinx
 
       raise ArgumentError, '"values" argument must be Hash' unless values.kind_of?(Hash)
       values.each do |id, entry|
-        raise ArgumentError, '"values" argument must be Hash map of Integer to Array' unless id.respond_to?(:integer?) and id.integer?
+        raise ArgumentError, '"values" argument must be Hash map of Integer to Array' unless id.kind_of?(Integer)
         raise ArgumentError, '"values" argument must be Hash map of Integer to Array' unless entry.kind_of?(Array)
         raise ArgumentError, "\"values\" argument Hash values Array must have #{attrs.length} elements" unless entry.length == attrs.length
         entry.each do |v|
           if mva
             raise ArgumentError, '"values" argument must be Hash map of Integer to Array of Arrays' unless v.kind_of?(Array)
             v.each do |vv|
-              raise ArgumentError, '"values" argument must be Hash map of Integer to Array of Arrays of Integers' unless vv.respond_to?(:integer?) and vv.integer?
+              raise ArgumentError, '"values" argument must be Hash map of Integer to Array of Arrays of Integers' unless vv.kind_of?(Integer)
             end
           else
-            raise ArgumentError, '"values" argument must be Hash map of Integer to Array of Integers' unless v.respond_to?(:integer?) and v.integer?
+            raise ArgumentError, '"values" argument must be Hash map of Integer to Array of Integers' unless v.kind_of?(Integer)
           end
         end
       end
@@ -2258,7 +2258,21 @@ module Sphinx
       # @see #parse_response
       #
       def perform_request(command, request, additional = nil, server = nil)
-        with_server(server) do |server|
+        if server
+          attempts = 1
+        else
+          server = case request
+            when String
+              Zlib.crc32(request)
+            when Request
+              request.crc32
+            else
+              raise ArgumentError, "request argument must be String or Sphinx::Request"
+          end
+          attempts = nil
+        end
+
+        with_server(server, attempts) do |server|
           cmd = command.to_s.upcase
           command_id = Sphinx::Client.const_get("SEARCHD_COMMAND_#{cmd}")
           command_ver = Sphinx::Client.const_get("VER_COMMAND_#{cmd}")
@@ -2359,26 +2373,54 @@ module Sphinx
       # method will return true. Also, {SphinxConnectError} exception
       # will be raised.
       #
+      # @overload with_server(server_index)
+      #   Get the server based on some seed value (usually CRC32 of
+      #   request. In this case initial server will be choosed using
+      #   this seed value, in case of connetion failure next server
+      #   in servers list will be used).
+      #   @param [Integer] server_index server index, must be any
+      #     integer value (not necessarily less than number of servers.)
+      #   @param [Integer] attempts how many retries to perform. Use
+      #     +nil+ to perform retries configured with {#set_connect_timeout}.
+      # @overload with_server(server)
+      #   Get the server specified as a parameter. If specified, request
+      #   will be performed on specified server, and it will try to
+      #   establish connection to this server only once.
+      #   @param [Server] server server to perform request on.
+      #   @param [Integer] attempts how many retries to perform. Use
+      #     +nil+ to perform retries configured with {#set_connect_timeout}.
+      #
       # @yield a block which performs request on a given server.
       # @yieldparam [Sphinx::Server] server contains information
       #   about the server to perform request on.
       # @raise [SphinxConnectError] on any connection error.
       #
-      def with_server(server = nil)
-        # only one connection retry if server specified
-        attempts = server ? 1 : @retries
-        s = server
+      def with_server(server = nil, attempts = nil)
+        case server
+          when Server
+            idx = @servers.index(server) || 0
+            s = server
+          when Integer
+            idx = server % @servers.size
+            s = @servers[idx]
+          when NilClass
+            idx = 0
+            s = @servers[idx]
+          else
+            raise ArgumentError, 'server argument must be Integer or Sphinx::Server'
+        end
+        attempts ||= @retries
         begin
-          # Get the next server
-          unless server
-            @lastserver = (@lastserver + 1) % @servers.size
-            s = @servers[@lastserver]
-          end
           yield s
         rescue SphinxConnectError => e
           # Connection error! Do we need to try it again?
           attempts -= 1
-          retry if attempts > 0
+          if attempts > 0
+            # Get the next server
+            idx = (idx + 1) % @servers.size
+            s = @servers[idx]
+            retry
+          end
 
           # Re-raise original exception
           @error = e.message

@@ -26,35 +26,26 @@ describe Sphinx::Client, 'disconnected' do
         end
       end
 
-      it 'should round-robin servers on each call' do
+      it 'should select server based on index' do
         @sphinx.SetServers(@servers)
         cnt = 0
-        @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0] }
+        @sphinx.send(:with_server, 0) { |server| cnt += 1; server.should == @sphinx.servers[0] }
         cnt.should == 1
         cnt = 0
-        @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[1] }
+        @sphinx.send(:with_server, 1) { |server| cnt += 1; server.should == @sphinx.servers[1] }
         cnt.should == 1
         cnt = 0
-        @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0] }
+        @sphinx.send(:with_server, 2) { |server| cnt += 1; server.should == @sphinx.servers[0] }
         cnt.should == 1
       end
 
-      it 'should round-robin servers and raise an exception on error' do
+      it 'should select given server' do
         @sphinx.SetServers(@servers)
         cnt = 0
-        expect {
-          @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0]; raise Sphinx::SphinxConnectError }
-        }.to raise_error(Sphinx::SphinxConnectError)
+        @sphinx.send(:with_server, @sphinx.servers[0]) { |server| cnt += 1; server.should == @sphinx.servers[0] }
         cnt.should == 1
         cnt = 0
-        expect {
-          @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[1]; raise Sphinx::SphinxConnectError }
-        }.to raise_error(Sphinx::SphinxConnectError)
-        cnt.should == 1
-        cnt = 0
-        expect {
-          @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0]; raise Sphinx::SphinxConnectError }
-        }.to raise_error(Sphinx::SphinxConnectError)
+        @sphinx.send(:with_server, @sphinx.servers[1]) { |server| cnt += 1; server.should == @sphinx.servers[1] }
         cnt.should == 1
       end
     end
@@ -79,6 +70,24 @@ describe Sphinx::Client, 'disconnected' do
           @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[(cnt - 1) % 2]; raise Sphinx::SphinxConnectError }
         }.to raise_error(Sphinx::SphinxConnectError)
         cnt.should == 3
+      end
+
+      it 'should round-robin servers with respect to passed index and raise an exception on error' do
+        @sphinx.SetServers(@servers)
+        cnt = 0
+        expect {
+          @sphinx.send(:with_server, 1) { |server| cnt += 1; server.should == @sphinx.servers[cnt % 2]; raise Sphinx::SphinxConnectError }
+        }.to raise_error(Sphinx::SphinxConnectError)
+        cnt.should == 3
+      end
+
+      it 'should round-robin with respect to attempts number passed' do
+        @sphinx.SetServers(@servers)
+        cnt = 0
+        expect {
+          @sphinx.send(:with_server, 0, 5) { |server| cnt += 1; server.should == @sphinx.servers[(cnt - 1) % 2]; raise Sphinx::SphinxConnectError }
+        }.to raise_error(Sphinx::SphinxConnectError)
+        cnt.should == 5
       end
     end
   end
