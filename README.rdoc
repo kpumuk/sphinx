@@ -158,6 +158,27 @@ It means that you can chain filtering methods:
               set_id_range(10, 1000).
               query('test')
 
+There is a handful ability to set query parameters directly in <tt>query</tt>
+call. If block does not accept any parameters, it will be eval'ed inside
+Sphinx::Client instance:
+
+  results = Sphinx::Client.new.query('test') do
+    match_mode :any
+    ranking_mode :bm25
+    id_range 10, 1000
+  end
+
+As you can see, in this case you can omit the <tt>set_</tt> prefix for
+this methods. If block accepts a parameter, sphinx instance will be
+passed into the block. In this case you should you full method names
+including the <tt>set_</tt> prefix:
+
+  results = Sphinx::Client.new.query('test') do |sphinx|
+    sphinx.set_match_mode :any
+    sphinx.set_ranking_mode :bm25
+    sphinx.set_id_range 10, 1000
+  end
+
 == Example
 
 This simple example illustrates base connection establishing,
