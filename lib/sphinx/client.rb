@@ -1473,16 +1473,44 @@ module Sphinx
     # @param [String] index an index name (or names).
     # @param [String] comment a comment to be sent to the query log.
     # @return [Hash, false] result set described above or +false+ on error.
+    # @yield [Client] yields just before query performing. Useful to set
+    #   filters or sortings. When block does not accept any parameters, it
+    #   will be eval'ed inside {Client} instance itself. In this case you
+    #   can omit +set_+ prefix for configuration methods.
+    # @yieldparam [Client] sphinx self.
     #
-    # @example
+    # @example Regular query with previously set filters
     #   sphinx.query('some search text', '*', 'search page')
+    # @example Query with block
+    #   sphinx.query('test') do |sphinx|
+    #     sphinx.set_match_mode :all
+    #     sphinx.set_id_range 10, 100
+    #   end
+    # @example Query with instant filters configuring
+    #   sphinx.query('test') do
+    #     match_mode :all
+    #     id_range 10, 100
+    #   end
     #
     # @see http://www.sphinxsearch.com/docs/current.html#api-func-query Section 6.6.1, "Query"
     # @see #add_query
     # @see #run_queries
     #
-    def query(query, index = '*', comment = '')
+    def query(query, index = '*', comment = '', &block)
       @reqs = []
+
+      if block_given?
+        if block.arity > 0
+          yield self
+        else
+          begin
+            @inside_eval = true
+            instance_eval(&block)
+          ensure
+            @inside_eval = false
+          end
+        end
+      end
 
       self.add_query(query, index, comment)
       results = self.run_queries
@@ -2512,6 +2540,22 @@ module Sphinx
         ensure
           # Close previously opened socket on any other error
           server.free_socket(socket)
+        end
+      end
+      
+      # Enables ability to skip +set_+ prefix for methods inside {#query} block.
+      #
+      # @example
+      #   sphinx.query('test') do
+      #     match_mode :all
+      #     id_range 10, 100
+      #   end
+      #
+      def method_missing(method_id, *arguments, &block)
+        if @inside_eval and self.respond_to?("set_#{method_id}")
+          self.send("set_#{method_id}", *arguments)
+        else
+          super
         end
       end
   end
