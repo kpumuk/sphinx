@@ -694,9 +694,9 @@ module Sphinx
         raise ArgumentError, '"values" argument must be Hash map of Integer to Integer or Time' unless id.kind_of?(Integer)
         case attrtype
           when SPH_ATTR_TIMESTAMP
-            raise ArgumentError, '"values" argument must be Hash map of Integer to Integer or Time' unless value.kind_of?(Integer) or value.kind_of?(Time)
+            raise ArgumentError, '"values" argument must be Hash map of Integer to Numeric' unless value.kind_of?(Integer) or value.kind_of?(Time)
           when SPH_ATTR_FLOAT
-            raise ArgumentError, '"values" argument must be Hash map of Integer to Float or Integer' unless value.kind_of?(Numeric)
+            raise ArgumentError, '"values" argument must be Hash map of Integer to Numeric' unless value.kind_of?(Numeric)
           else
             # SPH_ATTR_INTEGER, SPH_ATTR_ORDINAL, SPH_ATTR_BOOL, SPH_ATTR_BIGINT
             raise ArgumentError, '"values" argument must be Hash map of Integer to Integer' unless value.kind_of?(Integer)
@@ -1137,8 +1137,8 @@ module Sphinx
     # if +exclude+ is true).
     #
     # @param [String, Symbol] attribute an attribute name to filter by.
-    # @param [Integer, Float] min min value of the given attribute.
-    # @param [Integer, Float] max max value of the given attribute.
+    # @param [Numeric] min min value of the given attribute.
+    # @param [Numeric] max max value of the given attribute.
     # @param [Boolean] exclude indicating whether documents with given attribute
     #   matching specified boundaries should be excluded from search results.
     # @return [Sphinx::Client] self.
@@ -1155,8 +1155,8 @@ module Sphinx
     #
     def set_filter_float_range(attribute, min, max, exclude = false)
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
-      raise ArgumentError, '"min" argument must be Float or Integer'       unless min.kind_of?(Numeric)
-      raise ArgumentError, '"max" argument must be Float or Integer'       unless max.kind_of?(Numeric)
+      raise ArgumentError, '"min" argument must be Numeric'                unless min.kind_of?(Numeric)
+      raise ArgumentError, '"max" argument must be Numeric'                unless max.kind_of?(Numeric)
       raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
       raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
 
@@ -1185,8 +1185,8 @@ module Sphinx
     #
     # @param [String, Symbol] attrlat a name of latitude attribute.
     # @param [String, Symbol] attrlong a name of longitude attribute.
-    # @param [Integer, Float] lat an anchor point latitude, in radians.
-    # @param [Integer, Float] long an anchor point longitude, in radians.
+    # @param [Numeric] lat an anchor point latitude, in radians.
+    # @param [Numeric] long an anchor point longitude, in radians.
     # @return [Sphinx::Client] self.
     #
     # @example
@@ -1199,8 +1199,8 @@ module Sphinx
     def set_geo_anchor(attrlat, attrlong, lat, long)
       raise ArgumentError, '"attrlat" argument must be String or Symbol'  unless attrlat.kind_of?(String)  or attrlat.kind_of?(Symbol)
       raise ArgumentError, '"attrlong" argument must be String or Symbol' unless attrlong.kind_of?(String) or attrlong.kind_of?(Symbol)
-      raise ArgumentError, '"lat" argument must be Float or Integer'      unless lat.kind_of?(Numeric)
-      raise ArgumentError, '"long" argument must be Float or Integer'     unless long.kind_of?(Numeric)
+      raise ArgumentError, '"lat" argument must be Numeric'               unless lat.kind_of?(Numeric)
+      raise ArgumentError, '"long" argument must be Numeric'              unless long.kind_of?(Numeric)
 
       @anchor = { 'attrlat' => attrlat.to_s, 'attrlong' => attrlong.to_s, 'lat' => lat.to_f, 'long' => long.to_f }
       self
