@@ -13,8 +13,9 @@
 module Sphinx
 end
 
-require 'socket'
 require 'net/protocol'
+require 'socket'
+require 'zlib'
 
 require File.dirname(__FILE__) + '/sphinx/request'
 require File.dirname(__FILE__) + '/sphinx/response'
