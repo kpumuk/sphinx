@@ -2345,7 +2345,7 @@ module Sphinx
         end
 
         with_server(server, attempts) do |server|
-          logger.debug { "[sphinx] #{command} on server #{server}" } if logger
+          logger.info { "[sphinx] #{command} on server #{server}" } if logger
 
           cmd = command.to_s.upcase
           command_id = Sphinx::Client.const_get("SEARCHD_COMMAND_#{cmd}")
