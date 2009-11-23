@@ -182,20 +182,20 @@ describe Sphinx::Client, 'disconnected' do
     end
 
     it 'should receive response' do
-      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_OK, 1, 4].pack('n2N'))
+      @socket.should_receive(:read).with(8).and_return([Sphinx::SEARCHD_OK, 1, 4].pack('n2N'))
       @socket.should_receive(:read).with(4).and_return([0].pack('N'))
       @sphinx.send(:parse_response, @socket, 1)
     end
 
     it 'should raise exception on zero-sized response' do
-      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_OK, 1, 0].pack('n2N'))
+      @socket.should_receive(:read).with(8).and_return([Sphinx::SEARCHD_OK, 1, 0].pack('n2N'))
       expect {
         @sphinx.send(:parse_response, @socket, 1)
       }.to raise_error(Sphinx::SphinxResponseError, 'received zero-sized searchd response')
     end
 
     it 'should raise exception when response is incomplete' do
-      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_OK, 1, 4].pack('n2N'))
+      @socket.should_receive(:read).with(8).and_return([Sphinx::SEARCHD_OK, 1, 4].pack('n2N'))
       @socket.should_receive(:read).with(4).and_return('')
       expect {
         @sphinx.send(:parse_response, @socket, 1)
@@ -203,14 +203,14 @@ describe Sphinx::Client, 'disconnected' do
     end
 
     it 'should set warning message when SEARCHD_WARNING received' do
-      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_WARNING, 1, 14].pack('n2N'))
+      @socket.should_receive(:read).with(8).and_return([Sphinx::SEARCHD_WARNING, 1, 14].pack('n2N'))
       @socket.should_receive(:read).with(14).and_return([5].pack('N') + 'helloworld')
       @sphinx.send(:parse_response, @socket, 1).should == 'world'
       @sphinx.GetLastWarning.should == 'hello'
     end
 
     it 'should raise exception when SEARCHD_ERROR received' do
-      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_ERROR, 1, 9].pack('n2N'))
+      @socket.should_receive(:read).with(8).and_return([Sphinx::SEARCHD_ERROR, 1, 9].pack('n2N'))
       @socket.should_receive(:read).with(9).and_return([1].pack('N') + 'hello')
       expect {
         @sphinx.send(:parse_response, @socket, 1)
@@ -218,7 +218,7 @@ describe Sphinx::Client, 'disconnected' do
     end
 
     it 'should raise exception when SEARCHD_RETRY received' do
-      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_RETRY, 1, 9].pack('n2N'))
+      @socket.should_receive(:read).with(8).and_return([Sphinx::SEARCHD_RETRY, 1, 9].pack('n2N'))
       @socket.should_receive(:read).with(9).and_return([1].pack('N') + 'hello')
       expect {
         @sphinx.send(:parse_response, @socket, 1)
@@ -234,7 +234,7 @@ describe Sphinx::Client, 'disconnected' do
     end
 
     it 'should set warning when server is older than client' do
-      @socket.should_receive(:read).with(8).and_return([Sphinx::Client::SEARCHD_OK, 1, 9].pack('n2N'))
+      @socket.should_receive(:read).with(8).and_return([Sphinx::SEARCHD_OK, 1, 9].pack('n2N'))
       @socket.should_receive(:read).with(9).and_return([1].pack('N') + 'hello')
       @sphinx.send(:parse_response, @socket, 5)
       @sphinx.GetLastWarning.should == 'searchd command v.0.1 older than client\'s v.0.5, some options might not work'
@@ -291,7 +291,7 @@ describe Sphinx::Client, 'disconnected' do
         it "should generate valid request for SPH_MATCH_#{match.to_s.upcase}" do
           expected = sphinx_fixture("match_#{match}")
           @sock.should_receive(:write).with(expected)
-          @sphinx.SetMatchMode(Sphinx::Client::const_get("SPH_MATCH_#{match.to_s.upcase}"))
+          @sphinx.SetMatchMode(Sphinx::const_get("SPH_MATCH_#{match.to_s.upcase}"))
           sphinx_safe_call { @sphinx.Query('query') }
         end
 
@@ -485,7 +485,7 @@ describe Sphinx::Client, 'disconnected' do
         it "should generate valid request for SPH_GROUPBY_#{groupby.to_s.upcase}" do
           expected = sphinx_fixture("group_by_#{groupby}")
           @sock.should_receive(:write).with(expected)
-          @sphinx.SetGroupBy('attr', Sphinx::Client::const_get("SPH_GROUPBY_#{groupby.to_s.upcase}"))
+          @sphinx.SetGroupBy('attr', Sphinx::const_get("SPH_GROUPBY_#{groupby.to_s.upcase}"))
           sphinx_safe_call { @sphinx.Query('query') }
         end
 
@@ -507,14 +507,14 @@ describe Sphinx::Client, 'disconnected' do
       it 'should generate valid request for SPH_GROUPBY_DAY with sort' do
         expected = sphinx_fixture('group_by_day_sort')
         @sock.should_receive(:write).with(expected)
-        @sphinx.SetGroupBy('attr', Sphinx::Client::SPH_GROUPBY_DAY, 'somesort')
+        @sphinx.SetGroupBy('attr', Sphinx::SPH_GROUPBY_DAY, 'somesort')
         sphinx_safe_call { @sphinx.Query('query') }
       end
 
       it 'should generate valid request with count-distinct attribute' do
         expected = sphinx_fixture('group_distinct')
         @sock.should_receive(:write).with(expected)
-        @sphinx.SetGroupBy('attr', Sphinx::Client::SPH_GROUPBY_DAY)
+        @sphinx.SetGroupBy('attr', Sphinx::SPH_GROUPBY_DAY)
         @sphinx.SetGroupDistinct('attr')
         sphinx_safe_call { @sphinx.Query('query') }
       end
@@ -537,9 +537,9 @@ describe Sphinx::Client, 'disconnected' do
     it 'should generate valid request for SetOverride' do
       expected = sphinx_fixture('set_override')
       @sock.should_receive(:write).with(expected)
-      @sphinx.SetOverride('attr1', Sphinx::Client::SPH_ATTR_INTEGER, { 10 => 20 })
-      @sphinx.SetOverride('attr2', Sphinx::Client::SPH_ATTR_FLOAT, { 11 => 30.3 })
-      @sphinx.SetOverride('attr3', Sphinx::Client::SPH_ATTR_BIGINT, { 12 => 1099511627780 })
+      @sphinx.SetOverride('attr1', Sphinx::SPH_ATTR_INTEGER, { 10 => 20 })
+      @sphinx.SetOverride('attr2', Sphinx::SPH_ATTR_FLOAT, { 11 => 30.3 })
+      @sphinx.SetOverride('attr3', Sphinx::SPH_ATTR_BIGINT, { 12 => 1099511627780 })
       sphinx_safe_call { @sphinx.Query('query') }
     end
 
@@ -562,7 +562,7 @@ describe Sphinx::Client, 'disconnected' do
 
       @sphinx.SetRetries(10, 20)
       @sphinx.AddQuery('test1')
-      @sphinx.SetGroupBy('attr', Sphinx::Client::SPH_GROUPBY_DAY)
+      @sphinx.SetGroupBy('attr', Sphinx::SPH_GROUPBY_DAY)
       @sphinx.AddQuery('test2')
 
       sphinx_safe_call { @sphinx.RunQueries }

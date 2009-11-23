@@ -143,10 +143,10 @@ describe Sphinx::Client, 'connected' do
     result['matches'].length.should == 3
     result['time'].should_not be_nil
     result['attrs'].should == {
-      'group_id' => Sphinx::Client::SPH_ATTR_INTEGER,
-      'created_at' => Sphinx::Client::SPH_ATTR_TIMESTAMP,
-      'rating' => Sphinx::Client::SPH_ATTR_FLOAT,
-      'tags' => Sphinx::Client::SPH_ATTR_MULTI | Sphinx::Client::SPH_ATTR_INTEGER
+      'group_id' => Sphinx::SPH_ATTR_INTEGER,
+      'created_at' => Sphinx::SPH_ATTR_TIMESTAMP,
+      'rating' => Sphinx::SPH_ATTR_FLOAT,
+      'tags' => Sphinx::SPH_ATTR_MULTI | Sphinx::SPH_ATTR_INTEGER
     }
     result['fields'].should == [ 'name', 'description' ]
     result['total'].should == 3
