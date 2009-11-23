@@ -1,0 +1,1011 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta name="Content-Type" content="text/html; charset=UTF-8" />
+<title>Class: Sphinx::Request</title>
+<link rel="stylesheet" href="../css/style.css" type="text/css" media="screen" charset="utf-8" />
+<link rel="stylesheet" href="../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  relpath = '..';
+  if (relpath != '') relpath += '/';
+</script>
+<script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
+<script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
+
+  </head>
+  <body>
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../_index.html">Index (R)</a> &raquo; 
+    <a title="Sphinx" href="../Sphinx.html">Sphinx</a>
+     &raquo; 
+    <span class="title">Request</span>
+  
+</div>
+
+      <div id="search">
+  <a id="class_list_link" href="#">Namespace List</a>
+  <a id="method_list_link" href="#">Method List</a>
+  <a id ="file_list_link" href="#">File List</a>
+</div>
+
+      <div class="clear"></div>
+    </div>
+    
+    <iframe id="search_frame"></iframe>
+    
+    <div id="content"><h1>Class: Sphinx::Request 
+  
+  
+</h1>
+
+<dl class="box">
+  
+    <dt class="r1">Inherits:</dt>
+    <dd class="r1">
+      <span class="inheritName">Object</span>
+      
+      </dd>
+    
+  
+  
+    
+  
+    
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">lib/sphinx/request.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    <p>
+Pack ints, floats, strings, and arrays to internal representation needed by
+Sphinx search engine.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+</div>
+
+
+  <h2>Method Summary</h2>
+  <ul class="summary">
+    
+      <li class="public ">
+  <span class="summary_signature"><a title="#crc32 (instance method)" href="#crc32-instance_method">- (Integer) <strong>crc32</strong> </a>
+  
+  </span>
+  
+  
+  
+  
+
+  
+    <span class="summary_desc">
+Returns CRC32 of the serialized request.
+
+</span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature"><a title="#initialize (instance method)" href="#initialize-instance_method">- (Request) <strong>initialize</strong> </a>
+  
+  </span>
+  
+  
+  
+  
+
+  
+    <span class="summary_desc">
+Initialize new empty request.
+
+</span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature"><a title="#put_float (instance method)" href="#put_float-instance_method">- (Request) <strong>put_float</strong>(*floats) </a>
+  
+  </span>
+  
+  
+  
+  
+
+  
+    <span class="summary_desc">
+Put float(s) to request.
+
+</span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature"><a title="#put_int (instance method)" href="#put_int-instance_method">- (Request) <strong>put_int</strong>(*ints) </a>
+  
+  </span>
+  
+  
+  
+  
+
+  
+    <span class="summary_desc">
+Put int(s) to request.
+
+</span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature"><a title="#put_int64 (instance method)" href="#put_int64-instance_method">- (Request) <strong>put_int64</strong>(*ints) </a>
+  
+  </span>
+  
+  
+  
+  
+
+  
+    <span class="summary_desc">
+Put 64-bit int(s) to request.
+
+</span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature"><a title="#put_int64_array (instance method)" href="#put_int64_array-instance_method">- (Request) <strong>put_int64_array</strong>(arr) </a>
+  
+  </span>
+  
+  
+  
+  
+
+  
+    <span class="summary_desc">
+Put array of 64-bit ints to request.
+
+</span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature"><a title="#put_int_array (instance method)" href="#put_int_array-instance_method">- (Request) <strong>put_int_array</strong>(arr) </a>
+  
+  </span>
+  
+  
+  
+  
+
+  
+    <span class="summary_desc">
+Put array of ints to request.
+
+</span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature"><a title="#put_string (instance method)" href="#put_string-instance_method">- (Request) <strong>put_string</strong>(*strings) </a>
+  
+  </span>
+  
+  
+  
+  
+
+  
+    <span class="summary_desc">
+Put strings to request.
+
+</span>
+  
+</li>
+
+    
+      <li class="public ">
+  <span class="summary_signature"><a title="#to_s (instance method)" href="#to_s-instance_method">- (String) <strong>to_s</strong> </a>
+  
+  </span>
+  
+  
+  
+  
+
+  
+    <span class="summary_desc">
+Returns the serialized request.
+
+</span>
+  
+</li>
+
+    
+  </ul>
+
+<div id="constructor_details">
+  <h2>Constructor Details</h2>
+  
+    <div class="method_details first">
+  <p class="signature first" id="initialize-instance_method">
+  
+    - (<tt><a title="Request" href="">Request</a></tt>) <strong>initialize</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Initialize new empty request.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><a title="Request" href="">Request</a></tt>)</span>
+      
+      
+      
+      
+        &mdash;
+        
+a new instance of <tt>Request</tt>
+
+
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+8
+9
+10</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/sphinx/request.rb', line 8</span>
+
+<span class='def def kw'>def</span> <span class='initialize identifier id'>initialize</span>
+  <span class='@request ivar id'>@request</span> <span class='assign token'>=</span> <span class='string val'>''</span>
+<span class='end end kw'>end</span>
+</pre>
+    </td>
+  </tr>
+</table>
+</div>
+  
+</div>
+
+
+  <div id="method_details">
+    <h2>Method Details</h2>
+    
+      <div class="method_details first">
+  <p class="signature first" id="crc32-instance_method">
+  
+    - (<tt>Integer</tt>) <strong>crc32</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns CRC32 of the serialized request.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+      
+      
+        &mdash;
+        
+CRC32 of the serialized request.
+
+
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+117
+118
+119</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/sphinx/request.rb', line 117</span>
+
+<span class='def def kw'>def</span> <span class='crc32 identifier id'>crc32</span>
+  <span class='Zlib constant id'>Zlib</span><span class='dot token'>.</span><span class='crc32 identifier id'>crc32</span><span class='lparen token'>(</span><span class='@request ivar id'>@request</span><span class='rparen token'>)</span>
+<span class='end end kw'>end</span>
+</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="put_float-instance_method">
+  
+    - (<tt><a title="Request" href="">Request</a></tt>) <strong>put_float</strong>(*floats) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Put float(s) to request.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h3>Examples:</h3>
+    
+      <h4></h4>
+      <pre class="example code">  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_float identifier id'>put_float</span> <span class='integer val'>10</span>
+  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_float identifier id'>put_float</span> <span class='integer val'>10</span><span class='comma token'>,</span> <span class='integer val'>20</span><span class='comma token'>,</span> <span class='integer val'>30</span>
+  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_float identifier id'>put_float</span> <span class='mult op'>*</span><span class='lbrack token'>[</span><span class='integer val'>10</span><span class='comma token'>,</span> <span class='integer val'>20</span><span class='comma token'>,</span> <span class='integer val'>30</span><span class='rbrack token'>]</span>
+</pre>
+    
+  </div>
+<h3>Parameters:</h3>
+<ul class="param">
+  
+    <li>
+      
+        <span class='type'>(<tt>Integer</tt>, <tt>Float</tt>)</span>
+      
+      
+        <span class='name'>floats</span>
+      
+      
+      
+        &mdash;
+        
+one or more floats to put to the request.
+
+
+      
+    </li>
+  
+</ul>
+<h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><a title="Request" href="">Request</a></tt>)</span>
+      
+      
+      
+      
+        &mdash;
+        
+self.
+
+
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+67
+68
+69
+70
+71
+72
+73
+74</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/sphinx/request.rb', line 67</span>
+
+<span class='def def kw'>def</span> <span class='put_float identifier id'>put_float</span><span class='lparen token'>(</span><span class='mult op'>*</span><span class='floats identifier id'>floats</span><span class='rparen token'>)</span>
+  <span class='floats identifier id'>floats</span><span class='dot token'>.</span><span class='each identifier id'>each</span> <span class='do do kw'>do</span> <span class='bitor op'>|</span><span class='f identifier id'>f</span><span class='bitor op'>|</span>
+    <span class='t1 identifier id'>t1</span> <span class='assign token'>=</span> <span class='lbrack token'>[</span><span class='f identifier id'>f</span><span class='dot token'>.</span><span class='to_f identifier id'>to_f</span><span class='rbrack token'>]</span><span class='dot token'>.</span><span class='pack identifier id'>pack</span><span class='lparen token'>(</span><span class='string val'>'f'</span><span class='rparen token'>)</span> <span class='comment val'># machine order</span>
+    <span class='t2 identifier id'>t2</span> <span class='assign token'>=</span> <span class='t1 identifier id'>t1</span><span class='dot token'>.</span><span class='unpack identifier id'>unpack</span><span class='lparen token'>(</span><span class='string val'>'L*'</span><span class='rparen token'>)</span><span class='dot token'>.</span><span class='first identifier id'>first</span> <span class='comment val'># int in machine order</span>
+    <span class='@request ivar id'>@request</span> <span class='lshft op'>&lt;&lt;</span> <span class='lbrack token'>[</span><span class='t2 identifier id'>t2</span><span class='rbrack token'>]</span><span class='dot token'>.</span><span class='pack identifier id'>pack</span><span class='lparen token'>(</span><span class='string val'>'N'</span><span class='rparen token'>)</span>
+  <span class='end end kw'>end</span>
+  <span class='self self kw'>self</span>
+<span class='end end kw'>end</span>
+</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="put_int-instance_method">
+  
+    - (<tt><a title="Request" href="">Request</a></tt>) <strong>put_int</strong>(*ints) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Put int(s) to request.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h3>Examples:</h3>
+    
+      <h4></h4>
+      <pre class="example code">  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_int identifier id'>put_int</span> <span class='integer val'>10</span>
+  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_int identifier id'>put_int</span> <span class='integer val'>10</span><span class='comma token'>,</span> <span class='integer val'>20</span><span class='comma token'>,</span> <span class='integer val'>30</span>
+  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_int identifier id'>put_int</span> <span class='mult op'>*</span><span class='lbrack token'>[</span><span class='integer val'>10</span><span class='comma token'>,</span> <span class='integer val'>20</span><span class='comma token'>,</span> <span class='integer val'>30</span><span class='rbrack token'>]</span>
+</pre>
+    
+  </div>
+<h3>Parameters:</h3>
+<ul class="param">
+  
+    <li>
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+        <span class='name'>ints</span>
+      
+      
+      
+        &mdash;
+        
+one or more integers to put to the request.
+
+
+      
+    </li>
+  
+</ul>
+<h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><a title="Request" href="">Request</a></tt>)</span>
+      
+      
+      
+      
+        &mdash;
+        
+self.
+
+
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+22
+23
+24
+25</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/sphinx/request.rb', line 22</span>
+
+<span class='def def kw'>def</span> <span class='put_int identifier id'>put_int</span><span class='lparen token'>(</span><span class='mult op'>*</span><span class='ints identifier id'>ints</span><span class='rparen token'>)</span>
+  <span class='ints identifier id'>ints</span><span class='dot token'>.</span><span class='each identifier id'>each</span> <span class='lbrace token'>{</span> <span class='bitor op'>|</span><span class='i identifier id'>i</span><span class='bitor op'>|</span> <span class='@request ivar id'>@request</span> <span class='lshft op'>&lt;&lt;</span> <span class='lbrack token'>[</span><span class='i identifier id'>i</span><span class='rbrack token'>]</span><span class='dot token'>.</span><span class='pack identifier id'>pack</span><span class='lparen token'>(</span><span class='string val'>'N'</span><span class='rparen token'>)</span> <span class='rbrace token'>}</span>
+  <span class='self self kw'>self</span>
+<span class='end end kw'>end</span>
+</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="put_int64-instance_method">
+  
+    - (<tt><a title="Request" href="">Request</a></tt>) <strong>put_int64</strong>(*ints) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Put 64-bit int(s) to request.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h3>Examples:</h3>
+    
+      <h4></h4>
+      <pre class="example code">  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_int64 identifier id'>put_int64</span> <span class='integer val'>10</span>
+  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_int64 identifier id'>put_int64</span> <span class='integer val'>10</span><span class='comma token'>,</span> <span class='integer val'>20</span><span class='comma token'>,</span> <span class='integer val'>30</span>
+  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_int64 identifier id'>put_int64</span> <span class='mult op'>*</span><span class='lbrack token'>[</span><span class='integer val'>10</span><span class='comma token'>,</span> <span class='integer val'>20</span><span class='comma token'>,</span> <span class='integer val'>30</span><span class='rbrack token'>]</span>
+</pre>
+    
+  </div>
+<h3>Parameters:</h3>
+<ul class="param">
+  
+    <li>
+      
+        <span class='type'>(<tt>Integer</tt>)</span>
+      
+      
+        <span class='name'>ints</span>
+      
+      
+      
+        &mdash;
+        
+one or more 64-bit integers to put to the request.
+
+
+      
+    </li>
+  
+</ul>
+<h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><a title="Request" href="">Request</a></tt>)</span>
+      
+      
+      
+      
+        &mdash;
+        
+self.
+
+
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+37
+38
+39
+40</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/sphinx/request.rb', line 37</span>
+
+<span class='def def kw'>def</span> <span class='put_int64 identifier id'>put_int64</span><span class='lparen token'>(</span><span class='mult op'>*</span><span class='ints identifier id'>ints</span><span class='rparen token'>)</span>
+  <span class='ints identifier id'>ints</span><span class='dot token'>.</span><span class='each identifier id'>each</span> <span class='lbrace token'>{</span> <span class='bitor op'>|</span><span class='i identifier id'>i</span><span class='bitor op'>|</span> <span class='@request ivar id'>@request</span> <span class='lshft op'>&lt;&lt;</span> <span class='lbrack token'>[</span><span class='i identifier id'>i</span><span class='rbrack token'>]</span><span class='dot token'>.</span><span class='pack identifier id'>pack</span><span class='lparen token'>(</span><span class='string val'>'q'</span><span class='rparen token'>)</span><span class='dot token'>.</span><span class='reverse identifier id'>reverse</span> <span class='rbrace token'>}</span><span class='comment val'>#[i &gt;&gt; 32, i &amp; ((1 &lt;&lt; 32) - 1)].pack('NN') }</span>
+  <span class='self self kw'>self</span>
+<span class='end end kw'>end</span>
+</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="put_int64_array-instance_method">
+  
+    - (<tt><a title="Request" href="">Request</a></tt>) <strong>put_int64_array</strong>(arr) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Put array of 64-bit ints to request.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h3>Examples:</h3>
+    
+      <h4></h4>
+      <pre class="example code">  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_int64_array identifier id'>put_int64_array</span> <span class='lbrack token'>[</span><span class='integer val'>10</span><span class='rbrack token'>]</span>
+  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_int64_array identifier id'>put_int64_array</span> <span class='lbrack token'>[</span><span class='integer val'>10</span><span class='comma token'>,</span> <span class='integer val'>20</span><span class='comma token'>,</span> <span class='integer val'>30</span><span class='rbrack token'>]</span>
+</pre>
+    
+  </div>
+<h3>Parameters:</h3>
+<ul class="param">
+  
+    <li>
+      
+        <span class='type'>(<tt>Array&lt;Integer&gt;</tt>)</span>
+      
+      
+        <span class='name'>arr</span>
+      
+      
+      
+        &mdash;
+        
+an array of integers to put to the request.
+
+
+      
+    </li>
+  
+</ul>
+<h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><a title="Request" href="">Request</a></tt>)</span>
+      
+      
+      
+      
+        &mdash;
+        
+self.
+
+
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+99
+100
+101
+102
+103</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/sphinx/request.rb', line 99</span>
+
+<span class='def def kw'>def</span> <span class='put_int64_array identifier id'>put_int64_array</span><span class='lparen token'>(</span><span class='arr identifier id'>arr</span><span class='rparen token'>)</span>
+  <span class='put_int identifier id'>put_int</span><span class='lparen token'>(</span><span class='arr identifier id'>arr</span><span class='dot token'>.</span><span class='length identifier id'>length</span><span class='rparen token'>)</span>
+  <span class='put_int64 identifier id'>put_int64</span><span class='lparen token'>(</span><span class='mult op'>*</span><span class='arr identifier id'>arr</span><span class='rparen token'>)</span>
+  <span class='self self kw'>self</span>
+<span class='end end kw'>end</span>
+</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="put_int_array-instance_method">
+  
+    - (<tt><a title="Request" href="">Request</a></tt>) <strong>put_int_array</strong>(arr) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Put array of ints to request.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h3>Examples:</h3>
+    
+      <h4></h4>
+      <pre class="example code">  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_int_array identifier id'>put_int_array</span> <span class='lbrack token'>[</span><span class='integer val'>10</span><span class='rbrack token'>]</span>
+  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_int_array identifier id'>put_int_array</span> <span class='lbrack token'>[</span><span class='integer val'>10</span><span class='comma token'>,</span> <span class='integer val'>20</span><span class='comma token'>,</span> <span class='integer val'>30</span><span class='rbrack token'>]</span>
+</pre>
+    
+  </div>
+<h3>Parameters:</h3>
+<ul class="param">
+  
+    <li>
+      
+        <span class='type'>(<tt>Array&lt;Integer&gt;</tt>)</span>
+      
+      
+        <span class='name'>arr</span>
+      
+      
+      
+        &mdash;
+        
+an array of integers to put to the request.
+
+
+      
+    </li>
+  
+</ul>
+<h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><a title="Request" href="">Request</a></tt>)</span>
+      
+      
+      
+      
+        &mdash;
+        
+self.
+
+
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+85
+86
+87
+88</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/sphinx/request.rb', line 85</span>
+
+<span class='def def kw'>def</span> <span class='put_int_array identifier id'>put_int_array</span><span class='lparen token'>(</span><span class='arr identifier id'>arr</span><span class='rparen token'>)</span>
+  <span class='put_int identifier id'>put_int</span> <span class='arr identifier id'>arr</span><span class='dot token'>.</span><span class='length identifier id'>length</span><span class='comma token'>,</span> <span class='mult op'>*</span><span class='arr identifier id'>arr</span>
+  <span class='self self kw'>self</span>
+<span class='end end kw'>end</span>
+</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="put_string-instance_method">
+  
+    - (<tt><a title="Request" href="">Request</a></tt>) <strong>put_string</strong>(*strings) 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Put strings to request.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+  <div class="examples">
+    <h3>Examples:</h3>
+    
+      <h4></h4>
+      <pre class="example code">  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_string identifier id'>put_string</span> <span class='string val'>'str1'</span>
+  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_string identifier id'>put_string</span> <span class='string val'>'str1'</span><span class='comma token'>,</span> <span class='string val'>'str2'</span><span class='comma token'>,</span> <span class='string val'>'str3'</span>
+  <span class='request identifier id'>request</span><span class='dot token'>.</span><span class='put_string identifier id'>put_string</span> <span class='mult op'>*</span><span class='lbrack token'>[</span><span class='string val'>'str1'</span><span class='comma token'>,</span> <span class='string val'>'str2'</span><span class='comma token'>,</span> <span class='string val'>'str3'</span><span class='rbrack token'>]</span>
+</pre>
+    
+  </div>
+<h3>Parameters:</h3>
+<ul class="param">
+  
+    <li>
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+        <span class='name'>strings</span>
+      
+      
+      
+        &mdash;
+        
+one or more strings to put to the request.
+
+
+      
+    </li>
+  
+</ul>
+<h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt><a title="Request" href="">Request</a></tt>)</span>
+      
+      
+      
+      
+        &mdash;
+        
+self.
+
+
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+52
+53
+54
+55</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/sphinx/request.rb', line 52</span>
+
+<span class='def def kw'>def</span> <span class='put_string identifier id'>put_string</span><span class='lparen token'>(</span><span class='mult op'>*</span><span class='strings identifier id'>strings</span><span class='rparen token'>)</span>
+  <span class='strings identifier id'>strings</span><span class='dot token'>.</span><span class='each identifier id'>each</span> <span class='lbrace token'>{</span> <span class='bitor op'>|</span><span class='s identifier id'>s</span><span class='bitor op'>|</span> <span class='@request ivar id'>@request</span> <span class='lshft op'>&lt;&lt;</span> <span class='lbrack token'>[</span><span class='s identifier id'>s</span><span class='dot token'>.</span><span class='length identifier id'>length</span><span class='rbrack token'>]</span><span class='dot token'>.</span><span class='pack identifier id'>pack</span><span class='lparen token'>(</span><span class='string val'>'N'</span><span class='rparen token'>)</span> <span class='plus op'>+</span> <span class='s identifier id'>s</span> <span class='rbrace token'>}</span>
+  <span class='self self kw'>self</span>
+<span class='end end kw'>end</span>
+</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+      <div class="method_details ">
+  <p class="signature " id="to_s-instance_method">
+  
+    - (<tt>String</tt>) <strong>to_s</strong> 
+  
+
+  
+</p><div class="docstring">
+  <div class="discussion">
+    <p>
+Returns the serialized request.
+</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  <h3>Returns:</h3>
+<ul class="return">
+  
+    <li>
+      
+        <span class='type'>(<tt>String</tt>)</span>
+      
+      
+      
+      
+        &mdash;
+        
+serialized request.
+
+
+      
+    </li>
+  
+</ul>
+
+</div><table class="source_code">
+  <tr>
+    <td>
+      <pre class="lines">
+
+
+109
+110
+111</pre>
+    </td>
+    <td>
+      <pre class="code"><span class="info file"># File 'lib/sphinx/request.rb', line 109</span>
+
+<span class='def def kw'>def</span> <span class='to_s identifier id'>to_s</span>
+  <span class='@request ivar id'>@request</span>
+<span class='end end kw'>end</span>
+</pre>
+    </td>
+  </tr>
+</table>
+</div>
+    
+  </div>
+
+</div>
+    
+    <div id="footer">
+  Generated on Mon Nov 23 17:23:07 2009 by 
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool">yard</a>
+  0.4.0 (ruby-1.8.7).
+</div>
+
+  </body>
+</html>

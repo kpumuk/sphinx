@@ -245,6 +245,31 @@ It means that you can chain filtering methods:
               <span class='set_id_range identifier id'>set_id_range</span><span class='lparen token'>(</span><span class='integer val'>10</span><span class='comma token'>,</span> <span class='integer val'>1000</span><span class='rparen token'>)</span><span class='dot token'>.</span>
               <span class='query identifier id'>query</span><span class='lparen token'>(</span><span class='string val'>'test'</span><span class='rparen token'>)</span>
 </pre>
+<p>
+There is a handful ability to set query parameters directly in
+<tt>query</tt> call. If block does not accept any parameters, it will be
+eval&#8217;ed inside Sphinx::Client instance:
+</p>
+<pre class="code">
+  <span class='results identifier id'>results</span> <span class='assign token'>=</span> <span class='Sphinx constant id'>Sphinx</span><span class='colon2 op'>::</span><span class='Client constant id'>Client</span><span class='dot token'>.</span><span class='new identifier id'>new</span><span class='dot token'>.</span><span class='query identifier id'>query</span><span class='lparen token'>(</span><span class='string val'>'test'</span><span class='rparen token'>)</span> <span class='do do kw'>do</span>
+    <span class='match_mode identifier id'>match_mode</span> <span class='symbol val'>:any</span>
+    <span class='ranking_mode identifier id'>ranking_mode</span> <span class='symbol val'>:bm25</span>
+    <span class='id_range identifier id'>id_range</span> <span class='integer val'>10</span><span class='comma token'>,</span> <span class='integer val'>1000</span>
+  <span class='end end kw'>end</span>
+</pre>
+<p>
+As you can see, in this case you can omit the <tt>set_</tt> prefix for this
+methods. If block accepts a parameter, sphinx instance will be passed into
+the block. In this case you should you full method names including the
+<tt>set_</tt> prefix:
+</p>
+<pre class="code">
+  <span class='results identifier id'>results</span> <span class='assign token'>=</span> <span class='Sphinx constant id'>Sphinx</span><span class='colon2 op'>::</span><span class='Client constant id'>Client</span><span class='dot token'>.</span><span class='new identifier id'>new</span><span class='dot token'>.</span><span class='query identifier id'>query</span><span class='lparen token'>(</span><span class='string val'>'test'</span><span class='rparen token'>)</span> <span class='do do kw'>do</span> <span class='bitor op'>|</span><span class='sphinx identifier id'>sphinx</span><span class='bitor op'>|</span>
+    <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='set_match_mode identifier id'>set_match_mode</span> <span class='symbol val'>:any</span>
+    <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='set_ranking_mode identifier id'>set_ranking_mode</span> <span class='symbol val'>:bm25</span>
+    <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='set_id_range identifier id'>set_id_range</span> <span class='integer val'>10</span><span class='comma token'>,</span> <span class='integer val'>1000</span>
+  <span class='end end kw'>end</span>
+</pre>
 <h2>Example</h2>
 <p>
 This simple example illustrates base connection establishing, search
@@ -262,6 +287,35 @@ by Sphinx.
   <span class='docs identifier id'>docs</span> <span class='assign token'>=</span> <span class='posts identifier id'>posts</span><span class='dot token'>.</span><span class='map identifier id'>map</span><span class='lparen token'>(</span><span class='bitand op'>&amp;</span><span class='symbol val'>:body</span><span class='rparen token'>)</span>
   <span class='excerpts identifier id'>excerpts</span> <span class='assign token'>=</span> <span class='sphinx identifier id'>sphinx</span><span class='dot token'>.</span><span class='build_excerpts identifier id'>build_excerpts</span><span class='lparen token'>(</span><span class='docs identifier id'>docs</span><span class='comma token'>,</span> <span class='string val'>'index'</span><span class='comma token'>,</span> <span class='string val'>'test'</span><span class='rparen token'>)</span>
 </pre>
+<h2>Logging</h2>
+<p>
+You can ask Sphinx client API to log it&#8217;s activity to some log. In
+order to do that you can pass a logger object into the
+<tt>Sphinx::Client</tt> constructor:
+</p>
+<pre class="code">
+  <span class='require identifier id'>require</span> <span class='string val'>'logger'</span>
+  <span class='Sphinx constant id'>Sphinx</span><span class='colon2 op'>::</span><span class='Client constant id'>Client</span><span class='dot token'>.</span><span class='new identifier id'>new</span><span class='lparen token'>(</span><span class='Logger constant id'>Logger</span><span class='dot token'>.</span><span class='new identifier id'>new</span><span class='lparen token'>(</span><span class='STDOUT constant id'>STDOUT</span><span class='rparen token'>)</span><span class='rparen token'>)</span><span class='dot token'>.</span><span class='query identifier id'>query</span><span class='lparen token'>(</span><span class='string val'>'test'</span><span class='rparen token'>)</span>
+</pre>
+<p>
+Logger object should respond to methods :debug, :info, and :warn, and
+accept blocks (this is what standard Ruby <tt>Logger</tt> class does). Here
+is what you will see in your log:
+</p>
+<ul>
+<li><tt>DEBUG</tt> &#8212; <tt>query</tt>, <tt>add_query</tt>,
+<tt>run_queries</tt> method calls with configured filters.
+
+</li>
+<li><tt>INFO</tt> &#8212; initialization with Sphinx version, servers change,
+attempts to re-connect, and all attempts to do an API call with server
+where request being performed.
+
+</li>
+<li><tt>WARN</tt> &#8212; various connection and socket errors.
+
+</li>
+</ul>
 <h2>Support</h2>
 <p>
 Source code: http://github.com/kpumuk/sphinx
@@ -296,7 +350,7 @@ freely distribute/modify this library.
 </div></div>
     
     <div id="footer">
-  Generated on Fri Nov 20 14:50:36 2009 by 
+  Generated on Mon Nov 23 17:23:04 2009 by 
   <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool">yard</a>
   0.4.0 (ruby-1.8.7).
 </div>

@@ -73,7 +73,7 @@ Sphinx Client API
 <tr><td valign="top">License:</td><td>Distributes under the same terms as Ruby
 
 </td></tr>
-<tr><td valign="top">Version:</td><td>0.9.10-r2086
+<tr><td valign="top">Version:</td><td>0.9.10-r2091
 
 </td></tr>
 <tr><td valign="top">Website:</td><td>http://kpumuk.info/projects/ror-plugins/sphinx
@@ -104,6 +104,22 @@ freely distribute/modify this library.
   
 </p>
 
+  <h2>Constant Summary</h2>
+  
+    <dl class="constants">
+      
+        <dt id="VERSION-constant ">VERSION =
+            <span class="summary_desc"></span>
+        </dt>
+        <dd><pre class="code"><span class='begin begin kw'>begin</span>
+  <span class='config identifier id'>config</span> <span class='assign token'>=</span> <span class='YAML constant id'>YAML</span><span class='dot token'>.</span><span class='load identifier id'>load</span><span class='lparen token'>(</span><span class='File constant id'>File</span><span class='dot token'>.</span><span class='read identifier id'>read</span><span class='lparen token'>(</span><span class='File constant id'>File</span><span class='dot token'>.</span><span class='dirname identifier id'>dirname</span><span class='lparen token'>(</span><span class='__FILE__ __file__ kw'>__FILE__</span><span class='rparen token'>)</span> <span class='plus op'>+</span> <span class='string val'>'/../VERSION.yml'</span><span class='rparen token'>)</span><span class='rparen token'>)</span>
+  <span class='dstring node'>&quot;#{config[:major]}.#{config[:minor]}.#{config[:patch]}.#{config[:build]}&quot;</span>
+<span class='end end kw'>end</span>
+</pre></dd>
+      
+    </dl>
+  
+
 
 
 
@@ -111,7 +127,7 @@ freely distribute/modify this library.
 </div>
     
     <div id="footer">
-  Generated on Fri Nov 20 14:50:39 2009 by 
+  Generated on Mon Nov 23 17:23:08 2009 by 
   <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool">yard</a>
   0.4.0 (ruby-1.8.7).
 </div>
