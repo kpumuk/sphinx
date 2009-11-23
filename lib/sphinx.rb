@@ -39,10 +39,12 @@ require 'net/protocol'
 require 'socket'
 require 'zlib'
 
-require File.dirname(__FILE__) + '/sphinx/constants'
-require File.dirname(__FILE__) + '/sphinx/request'
-require File.dirname(__FILE__) + '/sphinx/response'
-require File.dirname(__FILE__) + '/sphinx/timeout'
-require File.dirname(__FILE__) + '/sphinx/buffered_io'
-require File.dirname(__FILE__) + '/sphinx/server'
-require File.dirname(__FILE__) + '/sphinx/client'
+path = File.dirname(__FILE__)
+require "#{path}/sphinx/constants"
+require "#{path}/sphinx/indifferent_access"
+require "#{path}/sphinx/request"
+require "#{path}/sphinx/response"
+require "#{path}/sphinx/timeout"
+require "#{path}/sphinx/buffered_io"
+require "#{path}/sphinx/server"
+require "#{path}/sphinx/client"

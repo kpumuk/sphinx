@@ -270,8 +270,10 @@ module Sphinx
       @servers = servers.map do |server|
         raise ArgumentError, '"servers" argument must be Array of Hashes' unless server.kind_of?(Hash)
 
-        host = server[:path] || server['path'] || server[:host] || server['host']
-        port = server[:port] || server['port'] || 9312
+        server = server.with_indifferent_access
+
+        host = server[:path] || server[:host]
+        port = server[:port] || 9312
         path = nil
         raise ArgumentError, '"host" argument must be String' unless host.kind_of?(String)
 
@@ -1314,6 +1316,8 @@ module Sphinx
     #   Query warning message reported by searchd (string, human readable).
     #   Empty if there were no warnings.
     #
+    # Please note: you can use both strings and symbols as <tt>Hash</tt> keys.
+    #
     # It should be noted that {#query} carries out the same actions as
     # {#add_query} and {#run_queries} without the intermediate steps; it
     # is analoguous to a single {#add_query} call, followed by a
@@ -1611,7 +1615,7 @@ module Sphinx
 
       # parse response
       (1..nreqs).map do
-        result = { 'error' => '', 'warning' => '' }
+        result = HashWithIndifferentAccess.new('error' => '', 'warning' => '')
 
         # extract status
         status = result['status'] = response.get_int
@@ -1756,16 +1760,18 @@ module Sphinx
       end
 
       # fixup options
-      opts['before_match']    ||= opts[:before_match]    || '<b>';
-      opts['after_match']     ||= opts[:after_match]     || '</b>';
-      opts['chunk_separator'] ||= opts[:chunk_separator] || ' ... ';
-      opts['limit']           ||= opts[:limit]           || 256;
-      opts['around']          ||= opts[:around]          || 5;
-      opts['exact_phrase']    ||= opts[:exact_phrase]    || false
-      opts['single_passage']  ||= opts[:single_passage]  || false
-      opts['use_boundaries']  ||= opts[:use_boundaries]  || false
-      opts['weight_order']    ||= opts[:weight_order]    || false
-      opts['query_mode']      ||= opts[:query_mode]      || false
+      opts = HashWithIndifferentAccess.new(
+        'before_match'    => '<b>',
+        'after_match'     => '</b>',
+        'chunk_separator' => ' ... ',
+        'limit'           => 256,
+        'around'          => 5,
+        'exact_phrase'    => false,
+        'single_passage'  => false,
+        'use_boundaries'  => false,
+        'weight_order'    => false,
+        'query_mode'      => false
+      ).update(opts)
 
       # build request
 
@@ -1856,7 +1862,7 @@ module Sphinx
         tokenized = response.get_string
         normalized = response.get_string
 
-        entry = { 'tokenized' => tokenized, 'normalized' => normalized }
+        entry = HashWithIndifferentAccess.new('tokenized' => tokenized, 'normalized' => normalized)
         entry['docs'], entry['hits'] = response.get_ints(2) if hits
 
         entry
@@ -2006,11 +2012,11 @@ module Sphinx
           status = (0...rows).map do
             (0...cols).map { response.get_string }
           end
-          { :server => server.to_s, :status => status }
+          HashWithIndifferentAccess.new(:server => server.to_s, :status => status)
         rescue SphinxError
           # Re-raise error when a single server configured
           raise if @servers.size == 1
-          { :server => server.to_s, :error => self.last_error}
+          HashWithIndifferentAccess.new(:server => server.to_s, :error => self.last_error)
         end
       end
 
