@@ -138,10 +138,10 @@ will be finally executed successfully.
 Most Sphinx API methods expecting for special constants will be passed.
 For example:
 
-  sphinx.set_match_mode(Sphinx::Client::SPH_MATCH_ANY)
+  sphinx.set_match_mode(Sphinx::SPH_MATCH_ANY)
 
-Please note that these constants defined in a <tt>Sphinx::Client</tt>
-namespace. You can use symbols or strings instead of these awful
+Please note that these constants defined in a <tt>Sphinx</tt>
+module. You can use symbols or strings instead of these awful
 constants:
 
   sphinx.set_match_mode(:any)
