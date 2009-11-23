@@ -195,6 +195,26 @@ save the order of records established by Sphinx.
   docs = posts.map(&:body)
   excerpts = sphinx.build_excerpts(docs, 'index', 'test')
 
+== Logging
+
+You can ask Sphinx client API to log it's activity to some log. In
+order to do that you can pass a logger object into the <tt>Sphinx::Client</tt>
+constructor:
+
+  require 'logger'
+  Sphinx::Client.new(Logger.new(STDOUT)).query('test')
+
+Logger object should respond to methods :debug, :info, and :warn, and
+accept blocks (this is what standard Ruby <tt>Logger</tt> class does).
+Here is what you will see in your log:
+
+* <tt>DEBUG</tt> -- <tt>query</tt>, <tt>add_query</tt>, <tt>run_queries</tt>
+  method calls with configured filters.
+* <tt>INFO</tt> -- initialization with Sphinx version, servers change,
+  attempts to re-connect, and all attempts to do an API call with server
+  where request being performed.
+* <tt>WARN</tt> -- various connection and socket errors.
+
 == Support
 
 Source code:

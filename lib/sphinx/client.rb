@@ -120,7 +120,7 @@ module Sphinx
     # Number of request retries.
     # @private
     attr_reader :reqretries
-    # Log debug/info/warn/error to the given Logger, defaults to nil.
+    # Log debug/info/warn to the given Logger, defaults to nil.
     # @private
     attr_reader :logger
 
@@ -231,7 +231,12 @@ module Sphinx
     # group by sequential attrs pair
     SPH_GROUPBY_ATTRPAIR = 5
 
-    # Constructs the <tt>Sphinx::Client</tt> object and sets options to their default values.
+    # Constructs the <tt>Sphinx::Client</tt> object and sets options
+    # to their default values.
+    #
+    # @param [Logger] logger a logger object to put logs to. No logging
+    #   will be performed when not set.
+    #
     def initialize(logger = nil)
       # per-query settings
       @offset        = 0                       # how many records to seek from result-set start (default is 0)
