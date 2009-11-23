@@ -11,6 +11,10 @@
 # You can freely distribute/modify this library.
 #
 module Sphinx
+  VERSION = begin
+    config = YAML.load(File.read(File.dirname(__FILE__) + '/../VERSION.yml'))
+    "#{config[:major]}.#{config[:minor]}.#{config[:patch]}.#{config[:build]}"
+  end
 end
 
 require 'net/protocol'

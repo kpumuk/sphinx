@@ -113,8 +113,16 @@ class Sphinx::Server
     !@socket.nil?
   end
 
+  # Returns a string representation of the sphinx server object.
+  #
   def to_s
     @path || "#{@host}:#{@port}"
+  end
+
+  # Returns a string representation of the sphinx server object.
+  #
+  def inspect
+    "<Sphinx::Server: %s%s>" % [to_s, @socket ? '; persistent' : '']
   end
 
   private
@@ -151,7 +159,7 @@ class Sphinx::Server
           io.setsockopt Socket::SOL_SOCKET, Socket::SO_SNDTIMEO, optval
         rescue Exception => ex
           # Solaris, for one, does not like/support socket timeouts.
-          @warning = "Unable to use raw socket timeouts: #{ex.class.name}: #{ex.message}"
+          @sphinx.logger.warn { "[sphinx] Unable to use raw socket timeouts: #{ex.class.name}: #{ex.message}" } if @sphinx.logger
         end
       else
         io.read_timeout = false

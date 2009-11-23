@@ -120,6 +120,9 @@ module Sphinx
     # Number of request retries.
     # @private
     attr_reader :reqretries
+    # Log debug/info/warn/error to the given Logger, defaults to nil.
+    # @private
+    attr_reader :logger
 
     #=================================================================
     # Known match modes
@@ -229,7 +232,7 @@ module Sphinx
     SPH_GROUPBY_ATTRPAIR = 5
 
     # Constructs the <tt>Sphinx::Client</tt> object and sets options to their default values.
-    def initialize
+    def initialize(logger = nil)
       # per-query settings
       @offset        = 0                       # how many records to seek from result-set start (default is 0)
       @limit         = 20                      # how many records to return from result-set starting at offset (default is 20)
@@ -271,7 +274,41 @@ module Sphinx
       # per-client-object settings
       # searchd servers list
       @servers       = [Sphinx::Server.new(self, 'localhost', 9312, false)].freeze
-      @lastserver    = -1
+      @logger        = logger
+
+      logger.info { "[sphinx] version: #{VERSION}, #{@servers.inspect}" } if logger
+    end
+
+    # Returns a string representation of the sphinx client object.
+    #
+    def inspect
+      params = {
+        :error => @error,
+        :warning => @warning,
+        :connect_error => @connerror,
+        :servers => @servers,
+        :connect_timeout => { :timeout => @timeout, :retries => @retries },
+        :request_timeout => { :timeout => @reqtimeout, :retries => @reqretries },
+        :retries => { :count => @retrycount, :delay => @retrydelay },
+        :limits => { :offset => @offset, :limit => @limit, :max => @maxmatches, :cutoff => @cutoff },
+        :max_query_time => @maxquerytime,
+        :overrides => @overrides,
+        :select => @select,
+        :match_mode => @mode,
+        :ranking_mode => @ranker,
+        :sort_mode => { :mode => @sort, :sortby => @sortby },
+        :weights => @weights,
+        :field_weights => @fieldweights,
+        :index_weights => @indexweights,
+        :id_range => { :min => @min_id, :max => @max_id },
+        :filters => @filters,
+        :geo_anchor => @anchor,
+        :group_by => { :attribute => @groupby, :func => @groupfunc, :sort => @groupsort },
+        :group_distinct => @groupdistinct
+      }
+
+      "<Sphinx::Client: %d servers, params: %s>" %
+        [@servers.length, params.inspect]
     end
 
     #=================================================================
@@ -381,6 +418,7 @@ module Sphinx
       host = port = nil unless path.nil?
 
       @servers = [Sphinx::Server.new(self, host, port, path)].freeze
+      logger.info { "[sphinx] servers now: #{@servers.inspect}" } if logger
       self
     end
     alias :SetServer :set_server
@@ -438,6 +476,7 @@ module Sphinx
 
         Sphinx::Server.new(self, host, port, path)
       end.freeze
+      logger.info { "[sphinx] servers now: #{@servers.inspect}" } if logger
       self
     end
     alias :SetServers :set_servers
@@ -1512,7 +1551,9 @@ module Sphinx
         end
       end
 
-      self.add_query(query, index, comment)
+      logger.debug { "[sphinx] query('#{query}', '#{index}', '#{comment}'), #{self.inspect}" } if logger
+
+      self.add_query(query, index, comment, false)
       results = self.run_queries
 
       # probably network error; error message should be already filled
@@ -1599,6 +1640,7 @@ module Sphinx
     # @param [String] query a query string.
     # @param [String] index an index name (or names).
     # @param [String] comment a comment to be sent to the query log.
+    # @param [Boolean] log indicating whether this call should be logged.
     # @return [Integer] an index into an array of results that will
     #   be returned from {#run_queries} call.
     #
@@ -1609,7 +1651,8 @@ module Sphinx
     # @see #query
     # @see #run_queries
     #
-    def add_query(query, index = '*', comment = '')
+    def add_query(query, index = '*', comment = '', log = true)
+      logger.debug { "[sphinx] add_query('#{query}', '#{index}', '#{comment}'), #{self.inspect}" } if log and logger
       # build request
 
       # mode and limits
@@ -1744,6 +1787,7 @@ module Sphinx
     # @see #add_query
     #
     def run_queries
+      logger.debug { "[sphinx] run_queries(#{@reqs.length} queries)" } if logger
       if @reqs.empty?
         @error = 'No queries defined, issue add_query() first'
         return false
@@ -2301,6 +2345,8 @@ module Sphinx
         end
 
         with_server(server, attempts) do |server|
+          logger.debug { "[sphinx] #{command} on server #{server}" } if logger
+
           cmd = command.to_s.upcase
           command_id = Sphinx::Client.const_get("SEARCHD_COMMAND_#{cmd}")
           command_ver = Sphinx::Client.const_get("VER_COMMAND_#{cmd}")
@@ -2441,9 +2487,11 @@ module Sphinx
         begin
           yield s
         rescue SphinxConnectError => e
+          logger.warn { "[sphinx] server failed: #{e.class.name}: #{e.message}" } if logger
           # Connection error! Do we need to try it again?
           attempts -= 1
           if attempts > 0
+            logger.info { "[sphinx] connection to server #{s.inspect} DIED! Retrying operation..." } if logger
             # Get the next server
             idx = (idx + 1) % @servers.size
             s = @servers[idx]
@@ -2515,6 +2563,7 @@ module Sphinx
             yield s
           end
         rescue SocketError, SystemCallError, IOError, ::Errno::EPIPE => e
+          logger.warn { "[sphinx] socket failure: #{e.message}" } if logger
           # Ouch, communication problem, will be treated as a connection problem.
           raise SphinxConnectError, "failed to read searchd response (msg=#{e.message})"
         rescue SphinxResponseError, SphinxInternalError, SphinxTemporaryError, SphinxUnknownError, ::Timeout::Error, EOFError => e
@@ -2526,6 +2575,7 @@ module Sphinx
             new_e.set_backtrace(e.backtrace)
             e = new_e
           end
+          logger.warn { "[sphinx] generic failure: #{e.class.name}: #{e.message}" } if logger
 
           # Close previously opened socket (in case of it has been really opened)
           server.free_socket(socket)
@@ -2542,7 +2592,7 @@ module Sphinx
           server.free_socket(socket)
         end
       end
-      
+
       # Enables ability to skip +set_+ prefix for methods inside {#query} block.
       #
       # @example
