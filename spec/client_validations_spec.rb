@@ -327,10 +327,18 @@ describe Sphinx::Client, 'disconnected' do
       }.to_not raise_error(ArgumentError)
     end
 
-    it 'should raise an error when values is not Array' do
+    it 'should raise an error when values is not Array or Integer' do
       expect {
         @sphinx.SetFilter(:attr, {})
       }.to raise_error(ArgumentError)
+
+      expect {
+        @sphinx.SetFilter(:attr, 1)
+      }.to_not raise_error(ArgumentError)
+
+      expect {
+        @sphinx.SetFilter(:attr, [1])
+      }.to_not raise_error(ArgumentError)
     end
 
     it 'should raise an error when values is not Array of Integers' do
@@ -339,10 +347,11 @@ describe Sphinx::Client, 'disconnected' do
       }.to raise_error(ArgumentError)
     end
 
-    it 'should raise an error when values is empty Array' do
+    it 'should not raise an error when values is empty Array' do
       expect {
         @sphinx.SetFilter(:attr, [])
-      }.to raise_error(ArgumentError)
+      }.to_not raise_error(ArgumentError)
+      @sphinx.instance_variable_get(:@filters).should be_empty
     end
 
     it 'should raise an error when exclude is not Boolean' do

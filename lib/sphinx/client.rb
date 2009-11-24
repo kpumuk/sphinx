@@ -901,7 +901,8 @@ module Sphinx
     # be matched (or rejected, if +exclude+ is +true+).
     #
     # @param [String, Symbol] attribute an attribute name to filter by.
-    # @param [Array<Integer>] values an +Array+ of integers with given attribute values.
+    # @param [Array<Integer>, Integer] values an +Array+ of integers or
+    #   single Integer with given attribute values.
     # @param [Boolean] exclude indicating whether documents with given attribute
     #   matching specified values should be excluded from search results.
     # @return [Sphinx::Client] self.
@@ -918,15 +919,14 @@ module Sphinx
     #
     def set_filter(attribute, values, exclude = false)
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
+      values = [values] if values.kind_of?(Integer)
       raise ArgumentError, '"values" argument must be Array'               unless values.kind_of?(Array)
-      raise ArgumentError, '"values" argument must not be empty'           if values.empty?
-      raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
+      raise ArgumentError, '"values" argument must be Array of Integers'   unless values.all? { |v| v.kind_of?(Integer) }
+      raise ArgumentError, '"exclude" argument must be Boolean'            unless [TrueClass, FalseClass].include?(exclude.class)
 
-      values.each do |value|
-        raise ArgumentError, '"values" argument must be Array of Integer' unless value.kind_of?(Integer)
+      if values.any?
+        @filters << { 'type' => SPH_FILTER_VALUES, 'attr' => attribute.to_s, 'exclude' => exclude, 'values' => values }
       end
-
-      @filters << { 'type' => SPH_FILTER_VALUES, 'attr' => attribute.to_s, 'exclude' => exclude, 'values' => values }
       self
     end
     alias :SetFilter :set_filter
