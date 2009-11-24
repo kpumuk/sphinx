@@ -1972,6 +1972,26 @@ module Sphinx
     end
     alias :UpdateAttributes :update_attributes
 
+    # Escapes characters that are treated as special operators by the
+    # query language parser.
+    #
+    # This function might seem redundant because it's trivial to
+    # implement in any calling application. However, as the set of
+    # special characters might change over time, it makes sense to
+    # have an API call that is guaranteed to escape all such
+    # characters at all times.
+    #
+    # @param [String] string is a string to escape.
+    # @return [String] an escaped string.
+    #
+    # @example:
+    #   escaped = sphinx.escape_string "escaping-sample@query/string"
+    #
+    def escape_string(string)
+      string.to_s.gsub(/([\\()|\-!@~"&\/\^\$=])/, '\\\\\\1')
+    end
+    alias :EscapeString :escape_string
+
     # Queries searchd status, and returns an array of status variable name
     # and value pairs.
     #

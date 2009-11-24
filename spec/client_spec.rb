@@ -15,7 +15,7 @@ describe Sphinx::Client, 'disconnected' do
           cnt.should == 1
         end
       end
-      
+
       it 'should raise an exception on error' do
         2.times do
           cnt = 0
@@ -91,20 +91,20 @@ describe Sphinx::Client, 'disconnected' do
       end
     end
   end
-  
+
   context 'in with_socket method' do
     before :each do
       @sphinx = Sphinx::Client.new
       @socket = mock('TCPSocket')
     end
-    
+
     context 'without retries' do
       before :each do
         @server = mock('Server')
         @server.should_receive(:get_socket).and_yield(@socket).and_return(@socket)
         @server.should_receive(:free_socket).with(@socket).at_least(1)
       end
-      
+
       it 'should initialize session' do
         @socket.should_receive(:write).with([1].pack('N'))
         @socket.should_receive(:read).with(4).and_return([1].pack('N'))
@@ -159,7 +159,7 @@ describe Sphinx::Client, 'disconnected' do
         @server.should_receive(:get_socket).at_least(1).times.and_yield(@socket).and_return(@socket)
         @server.should_receive(:free_socket).with(@socket).at_least(1)
       end
-      
+
       it 'should raise an exception on error' do
         @socket.should_receive(:write).exactly(3).times.with([1].pack('N'))
         @socket.should_receive(:read).exactly(3).times.with(4).and_return([1].pack('N'))
@@ -174,7 +174,7 @@ describe Sphinx::Client, 'disconnected' do
       end
     end
   end
-    
+
   context 'in parse_response method' do
     before :each do
       @sphinx = Sphinx::Client.new
@@ -654,6 +654,16 @@ describe Sphinx::Client, 'disconnected' do
       expected = sphinx_fixture('update_attributes_mva')
       @sock.should_receive(:write).with(expected)
       sphinx_safe_call { @sphinx.UpdateAttributes('index', ['group', 'category'], { 123 => [ [456, 789], [1, 2, 3] ] }, true) }
+    end
+  end
+
+  context 'in EscapeString method' do
+    before :each do
+      @sphinx = Sphinx::Client.new
+    end
+
+    it 'should escape special characters' do
+      @sphinx.escape_string("escaping-sample@query/string").should == "escaping\\-sample\\@query\\/string"
     end
   end
 end
