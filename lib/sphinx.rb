@@ -37,6 +37,7 @@ module Sphinx
 end
 
 require 'net/protocol'
+require 'singleton'
 require 'socket'
 require 'zlib'
 
@@ -48,4 +49,5 @@ require "#{path}/sphinx/response"
 require "#{path}/sphinx/timeout"
 require "#{path}/sphinx/buffered_io"
 require "#{path}/sphinx/server"
+require "#{path}/sphinx/validation"
 require "#{path}/sphinx/client"

@@ -877,12 +877,13 @@ module Sphinx
     # @see http://www.sphinxsearch.com/docs/current.html#api-func-setidrange Section 6.4.1, "SetIDRange"
     #
     def set_id_range(min, max)
-      raise ArgumentError, '"min" argument must be Integer' unless min.kind_of?(Integer)
-      raise ArgumentError, '"max" argument must be Integer' unless max.kind_of?(Integer)
-      raise ArgumentError, '"max" argument greater or equal to "min"' unless min <= max
+      Sphinx.validate do
+        integer(:min, min)
+        integer(:max, max)
+        less_or_equal(:min, min, :max, max)
+      end
 
-      @min_id = min
-      @max_id = max
+      @min_id, @max_id = min, max
       self
     end
     alias :SetIDRange :set_id_range
@@ -918,11 +919,12 @@ module Sphinx
     # @see #set_filter_float_range
     #
     def set_filter(attribute, values, exclude = false)
-      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
       values = [values] if values.kind_of?(Integer)
-      raise ArgumentError, '"values" argument must be Array'               unless values.kind_of?(Array)
-      raise ArgumentError, '"values" argument must be Array of Integers'   unless values.all? { |v| v.kind_of?(Integer) }
-      raise ArgumentError, '"exclude" argument must be Boolean'            unless [TrueClass, FalseClass].include?(exclude.class)
+      Sphinx.validate do
+        string_or_symbol(:attribute, attribute)
+        array_of(:values, values, Integer)
+        boolean(:exclude, exclude)
+      end
 
       if values.any?
         @filters << { 'type' => SPH_FILTER_VALUES, 'attr' => attribute.to_s, 'exclude' => exclude, 'values' => values }
@@ -964,11 +966,13 @@ module Sphinx
     # @see #set_filter_float_range
     #
     def set_filter_range(attribute, min, max, exclude = false)
-      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
-      raise ArgumentError, '"min" argument must be Integer'                unless min.kind_of?(Integer)
-      raise ArgumentError, '"max" argument must be Integer'                unless max.kind_of?(Integer)
-      raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
-      raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
+      Sphinx.validate do
+        string_or_symbol(:attribute, attribute)
+        integer(:min, min)
+        integer(:max, max)
+        less_or_equal(:min, min, :max, max)
+        boolean(:exclude, exclude)
+      end
 
       @filters << { 'type' => SPH_FILTER_RANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min, 'max' => max }
       self
@@ -1007,11 +1011,13 @@ module Sphinx
     # @see #set_filter_range
     #
     def set_filter_float_range(attribute, min, max, exclude = false)
-      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
-      raise ArgumentError, '"min" argument must be Numeric'                unless min.kind_of?(Numeric)
-      raise ArgumentError, '"max" argument must be Numeric'                unless max.kind_of?(Numeric)
-      raise ArgumentError, '"max" argument greater or equal to "min"'      unless min <= max
-      raise ArgumentError, '"exclude" argument must be Boolean'            unless exclude.kind_of?(TrueClass) or exclude.kind_of?(FalseClass)
+      Sphinx.validate do
+        string_or_symbol(:attribute, attribute)
+        numeric(:min, min)
+        numeric(:max, max)
+        less_or_equal(:min, min, :max, max)
+        boolean(:exclude, exclude)
+      end
 
       @filters << { 'type' => SPH_FILTER_FLOATRANGE, 'attr' => attribute.to_s, 'exclude' => exclude, 'min' => min.to_f, 'max' => max.to_f }
       self
@@ -1050,10 +1056,12 @@ module Sphinx
     # @see http://www.sphinxsearch.com/docs/current.html#api-func-setgeoanchor Section 6.4.5, "SetGeoAnchor"
     #
     def set_geo_anchor(attrlat, attrlong, lat, long)
-      raise ArgumentError, '"attrlat" argument must be String or Symbol'  unless attrlat.kind_of?(String)  or attrlat.kind_of?(Symbol)
-      raise ArgumentError, '"attrlong" argument must be String or Symbol' unless attrlong.kind_of?(String) or attrlong.kind_of?(Symbol)
-      raise ArgumentError, '"lat" argument must be Numeric'               unless lat.kind_of?(Numeric)
-      raise ArgumentError, '"long" argument must be Numeric'              unless long.kind_of?(Numeric)
+      Sphinx.validate do
+        string_or_symbol(:attrlat, attrlat)
+        string_or_symbol(:attrlong, attrlong)
+        numeric(:lat, lat)
+        numeric(:long, long)
+      end
 
       @anchor = { 'attrlat' => attrlat.to_s, 'attrlong' => attrlong.to_s, 'lat' => lat.to_f, 'long' => long.to_f }
       self
@@ -1113,8 +1121,10 @@ module Sphinx
     # @see #set_group_distinct
     #
     def set_group_by(attribute, func, groupsort = '@group desc')
-      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
-      raise ArgumentError, '"groupsort" argument must be String'           unless groupsort.kind_of?(String)
+      Sphinx.validate do
+        string_or_symbol(:attribute, attribute)
+        string(:groupsort, groupsort)
+      end
 
       case func
         when String, Symbol
@@ -1179,7 +1189,9 @@ module Sphinx
     # @see #set_group_by
     #
     def set_group_distinct(attribute)
-      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
+      Sphinx.validate do
+        string_or_symbol(:attribute, attribute)
+      end
 
       @groupdistinct = attribute.to_s
       self
