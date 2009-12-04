@@ -12,6 +12,7 @@
 #
 module Sphinx
   VERSION = begin
+    require 'yaml'
     config = YAML.load(File.read(File.dirname(__FILE__) + '/../VERSION.yml'))
     "#{config[:major]}.#{config[:minor]}.#{config[:patch]}.#{config[:build]}"
   end
