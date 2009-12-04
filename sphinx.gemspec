@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{sphinx}
-  s.version = "0.9.10.2094"
+  s.version = "0.9.10.2122"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Dmytro Shteflyuk"]
-  s.date = %q{2009-11-23}
+  s.date = %q{2009-12-04}
   s.description = %q{An easy interface to Sphinx standalone full-text search engine. It is implemented as plugin for Ruby on Rails, but can be easily used as standalone library.}
   s.email = %q{kpumuk@kpumuk.info}
   s.extra_rdoc_files = [
@@ -24,6 +24,8 @@ Gem::Specification.new do |s|
      "lib/sphinx.rb",
      "lib/sphinx/buffered_io.rb",
      "lib/sphinx/client.rb",
+     "lib/sphinx/constants.rb",
+     "lib/sphinx/indifferent_access.rb",
      "lib/sphinx/request.rb",
      "lib/sphinx/response.rb",
      "lib/sphinx/server.rb",
