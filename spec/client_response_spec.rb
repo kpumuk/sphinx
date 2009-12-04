@@ -130,14 +130,6 @@ describe Sphinx::Client, 'connected' do
     end
   end
 
-  context 'in FlushAttrs method' do
-    it 'should not raise an error' do
-      expect {
-        @sphinx.FlushAttrs
-      }.to_not raise_error
-    end
-  end
-
   def validate_results_wifi(result)
     result['total_found'].should == 3
     result['matches'].length.should == 3

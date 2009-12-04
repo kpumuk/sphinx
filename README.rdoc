@@ -1,4 +1,4 @@
-= Sphinx Client API 0.9.10
+= Sphinx Client API
 
 This document gives an overview of what is Sphinx itself and how to use it 
 from your Ruby on Rails application. For more information or documentation, 

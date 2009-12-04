@@ -312,7 +312,7 @@ describe Sphinx::Client, 'disconnected' do
     end
 
     describe 'with rank' do
-      [ :proximity_bm25, :bm25, :none, :wordcount, :proximity, :matchany, :fieldmask, :sph04 ].each do |rank|
+      [ :proximity_bm25, :bm25, :none, :wordcount, :proximity, :matchany, :fieldmask ].each do |rank|
         it "should generate valid request for SPH_RANK_#{rank.to_s.upcase}" do
           expected = sphinx_fixture("ranking_#{rank}")
           @sock.should_receive(:write).with(expected)

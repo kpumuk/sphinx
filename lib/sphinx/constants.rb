@@ -27,9 +27,6 @@ module Sphinx
     # query command
     # @private
     SEARCHD_COMMAND_QUERY      = 6
-    # flushattrs command
-    # @private
-    SEARCHD_COMMAND_FLUSHATTRS = 7
 
     #=================================================================
     # Current client-side command implementation versions
@@ -37,7 +34,7 @@ module Sphinx
 
     # search command version
     # @private
-    VER_COMMAND_SEARCH     = 0x117
+    VER_COMMAND_SEARCH     = 0x116
     # excerpt command version
     # @private
     VER_COMMAND_EXCERPT    = 0x100
@@ -56,9 +53,6 @@ module Sphinx
     # query command version
     # @private
     VER_COMMAND_QUERY      = 0x100
-    # flushattrs command version
-    # @private
-    VER_COMMAND_FLUSHATTRS = 0x100
 
     #=================================================================
     # Known searchd status codes
@@ -114,8 +108,6 @@ module Sphinx
     SPH_RANK_MATCHANY       = 5
     # sets bits where there were matches
     SPH_RANK_FIELDMASK      = 6
-    # codename SPH04, phrase proximity + bm25 + head/exact boost
-    SPH_RANK_SPH04          = 7
 
     #=================================================================
     # Known sort modes
@@ -162,8 +154,6 @@ module Sphinx
     SPH_ATTR_FLOAT     = 5
     # signed 64-bit integer
     SPH_ATTR_BIGINT    = 6
-    # string (binary; in-memory)
-    SPH_ATTR_STRING    = 7
     # this attr has multiple values (0 or more)
     SPH_ATTR_MULTI     = 0x40000000
 

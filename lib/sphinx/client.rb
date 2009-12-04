@@ -682,7 +682,7 @@ module Sphinx
             raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid"
           end
         when Fixnum
-          raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid" unless (SPH_RANK_PROXIMITY_BM25..SPH_RANK_SPH04).include?(ranker)
+          raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid" unless (SPH_RANK_PROXIMITY_BM25..SPH_RANK_FIELDMASK).include?(ranker)
         else
           raise ArgumentError, '"ranker" argument must be Fixnum, String, or Symbol'
       end
@@ -1664,8 +1664,6 @@ module Sphinx
               when SPH_ATTR_FLOAT
                 # handle floats
                 response.get_float
-              when SPH_ATTR_STRING
-                response.get_string
               else
                 # handle everything else as unsigned ints
                 val = response.get_int
@@ -1769,8 +1767,7 @@ module Sphinx
         'exact_phrase'    => false,
         'single_passage'  => false,
         'use_boundaries'  => false,
-        'weight_order'    => false,
-        'query_mode'      => false
+        'weight_order'    => false
       ).update(opts)
 
       # build request
@@ -1781,7 +1778,6 @@ module Sphinx
       flags |= 4  if opts['single_passage']
       flags |= 8  if opts['use_boundaries']
       flags |= 16 if opts['weight_order']
-      flags |= 32 if opts['query_mode']
 
       request = Request.new
       request.put_int 0, flags # mode=0, flags=1 (remove spaces)
@@ -2043,26 +2039,6 @@ module Sphinx
       @servers.size > 1 ? results : results.first[:status]
     end
     alias :Status :status
-
-    # Force attribute flush, and block until it completes.
-    #
-    # @return [Integer] current internal flush tag on success, -1 on failure.
-    #
-    # @example
-    #   sphinx.flush_attrs
-    #
-    def flush_attrs
-      request = Request.new
-      response = perform_request(:flushattrs, request)
-
-      # parse response
-      begin
-        response.get_int
-      rescue EOFError
-        -1
-      end
-    end
-    alias :FlushAttrs :flush_attrs
 
     #=================================================================
     # Persistent connections
