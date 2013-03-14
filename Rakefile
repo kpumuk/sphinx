@@ -19,3 +19,28 @@ end
 
 require 'bundler'
 Bundler::GemHelper.install_tasks
+
+namespace :fixtures do
+  desc 'Update textures for sphinx requests'
+  task :requests do
+    Dir["#{File.dirname(__FILE__)}/spec/fixtures/requests/php/*.php"].each do |file|
+      puts name = File.basename(file, '.php')
+      File.open(File.join(File.dirname(file), '..', "#{name}.dat"), 'w') do |f|
+        f.write `env SPHINX_MOCK_REQUEST=1 php "#{file}"`
+      end
+    end
+  end
+
+  desc 'Update textures for sphinx responses'
+  task :responses do
+    Dir["#{File.dirname(__FILE__)}/spec/fixtures/responses/php/*.php"].each do |file|
+      puts name = File.basename(file, '.php')
+      File.open(File.join(File.dirname(file), '..', "#{name}.dat"), 'w') do |f|
+        f.write `env SPHINX_MOCK_RESPONSE=1 php "#{file}"`
+      end
+    end
+  end
+end
+
+desc 'Update binary fixtures'
+task :fixtures => %w[ fixtures:requests fixtures:responses]

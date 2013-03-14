@@ -130,10 +130,10 @@ describe Sphinx::Client, 'disconnected' do
         cnt = 0
         expect {
           @sphinx.send(:with_socket, @server) { cnt += 1; sleep 2 }
-        }.to raise_error(Sphinx::SphinxResponseError, 'failed to read searchd response (msg=time\'s up!)')
+        }.to raise_error(Sphinx::SphinxResponseError, 'failed to read searchd response (msg=execution expired)')
         cnt.should == 1
 
-        @sphinx.GetLastError.should == 'failed to read searchd response (msg=time\'s up!)'
+        @sphinx.GetLastError.should == 'failed to read searchd response (msg=execution expired)'
         @sphinx.IsConnectError.should be_false
       end
 

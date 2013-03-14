@@ -6,14 +6,23 @@ describe Sphinx::Client, 'connected' do
   before :each do
     @sphinx = Sphinx::Client.new
   end
-  
+
+  def mock_sphinx_response(fixture)
+    response = sphinx_fixture(fixture, :response)
+    @sock = SphinxFakeSocket.new(response, 'rb')
+    servers = @sphinx.instance_variable_get(:@servers)
+    servers.first.stub(:get_socket => @sock, :free_socket => nil)
+  end
+
   context 'in Query method' do
     it 'should parse response' do
+      mock_sphinx_response('query')
       result = @sphinx.Query('wifi', 'test1')
       validate_results_wifi(result)
     end
 
     it 'should process 64-bit keys' do
+      mock_sphinx_response('query_id64')
       result = @sphinx.Query('wifi', 'test2')
       result['total_found'].should == 3
       result['matches'].length.should == 3
@@ -23,13 +32,15 @@ describe Sphinx::Client, 'connected' do
     end
 
     it 'should process errors in Query method' do
+      mock_sphinx_response('query_error')
       @sphinx.Query('wifi', 'fakeindex').should be_false
-      @sphinx.GetLastError.should_not be_empty
+      @sphinx.GetLastError.should =~ /unknown local index/
     end
   end
-  
+
   context 'in RunQueries method' do
     it 'should parse batch-query responce' do
+      mock_sphinx_response('run_queries')
       @sphinx.AddQuery('wifi', 'test1')
       @sphinx.AddQuery('gprs', 'test1')
       results = @sphinx.RunQueries
@@ -39,6 +50,7 @@ describe Sphinx::Client, 'connected' do
     end
 
     it 'should process errors in RunQueries method' do
+      mock_sphinx_response('run_queries_error')
       @sphinx.AddQuery('wifi', 'fakeindex')
       r = @sphinx.RunQueries
       r[0]['error'].should_not be_empty
@@ -47,6 +59,7 @@ describe Sphinx::Client, 'connected' do
 
   context 'in BuildExcerpts method' do
     it 'should parse response' do
+      mock_sphinx_response('build_excerpts')
       result = @sphinx.BuildExcerpts(['what the world', 'London is the capital of Great Britain'], 'test1', 'the')
       result.should == ['what <b>the</b> world', 'London is <b>the</b> capital of Great Britain']
     end
@@ -54,6 +67,7 @@ describe Sphinx::Client, 'connected' do
 
   context 'in BuildKeywords method' do
     it 'should parse response' do
+      mock_sphinx_response('build_keywords')
       result = @sphinx.BuildKeywords('wifi gprs', 'test1', true)
       result.should == [
         { 'normalized' => 'wifi', 'tokenized' => 'wifi', 'hits' => 6, 'docs' => 3 },
@@ -64,21 +78,13 @@ describe Sphinx::Client, 'connected' do
 
   context 'in UpdateAttributes method' do
     it 'should parse response' do
+      mock_sphinx_response('update_attributes')
       @sphinx.UpdateAttributes('test1', ['group_id'], { 2 => [1] }).should == 1
-      result = @sphinx.Query('wifi', 'test1')
-      result['matches'][0]['attrs']['group_id'].should == 1
-      @sphinx.UpdateAttributes('test1', ['group_id'], { 2 => [2] }).should == 1
-      result = @sphinx.Query('wifi', 'test1')
-      result['matches'][0]['attrs']['group_id'].should == 2
     end
 
     it 'should parse response with MVA' do
+      mock_sphinx_response('update_attributes_mva')
       @sphinx.UpdateAttributes('test1', ['tags'], { 2 => [[1, 2, 3, 4, 5, 6, 7, 8, 9]] }, true).should == 1
-      result = @sphinx.Query('wifi', 'test1')
-      result['matches'][0]['attrs']['tags'].should == [1, 2, 3, 4, 5, 6, 7, 8, 9]
-      @sphinx.UpdateAttributes('test1', ['tags'], { 2 => [[5, 6, 7, 8]] }, true).should == 1
-      result = @sphinx.Query('wifi', 'test1')
-      result['matches'][0]['attrs']['tags'].should == [5, 6, 7, 8]
     end
   end
 
@@ -90,30 +96,30 @@ describe Sphinx::Client, 'connected' do
       socket.should be_kind_of(Sphinx::BufferedIO)
       socket.close
     end
-  
+
     it 'should produce an error when opened twice' do
       @sphinx.Open.should be_true
       @sphinx.Open.should be_false
       @sphinx.GetLastError.should == 'already connected'
-  
+
       socket = @sphinx.servers.first.instance_variable_get(:@socket)
       socket.should be_kind_of(Sphinx::BufferedIO)
       socket.close
     end
   end
-  
+
   context 'in Close method' do
     it 'should open socket' do
       @sphinx.Open.should be_true
       @sphinx.Close.should be_true
       @sphinx.servers.first.instance_variable_get(:@socket).should be_nil
     end
-  
+
     it 'should produce socket is closed' do
       @sphinx.Close.should be_false
       @sphinx.GetLastError.should == 'not connected'
       @sphinx.servers.first.instance_variable_get(:@socket).should be_nil
-  
+
       @sphinx.Open.should be_true
       @sphinx.Close.should be_true
       @sphinx.Close.should be_false
@@ -124,16 +130,18 @@ describe Sphinx::Client, 'connected' do
 
   context 'in Status method' do
     it 'should parse response' do
+      mock_sphinx_response('status')
       response = @sphinx.Status
       response.should be_an(Array)
       response.size.should be > 10
     end
   end
 
-  context 'in FlushAttrs method' do
+  context 'in FlushAttributes method' do
     it 'should not raise an error' do
+      mock_sphinx_response('flush_attributes')
       expect {
-        @sphinx.FlushAttrs
+        @sphinx.FlushAttributes
       }.to_not raise_error
     end
   end
@@ -155,21 +163,21 @@ describe Sphinx::Client, 'connected' do
     result['matches'][0]['id'].should == 2
     result['matches'][0]['weight'].should == 2
     result['matches'][0]['attrs']['group_id'].should == 2
-    result['matches'][0]['attrs']['created_at'].should == 1175658555
+    result['matches'][0]['attrs']['created_at'].should == 1175683755
     result['matches'][0]['attrs']['tags'].should == [5, 6, 7, 8]
     ('%0.2f' % result['matches'][0]['attrs']['rating']).should == '54.85'
 
     result['matches'][1]['id'].should == 3
     result['matches'][1]['weight'].should == 2
     result['matches'][1]['attrs']['group_id'].should == 1
-    result['matches'][1]['attrs']['created_at'].should == 1175658647
+    result['matches'][1]['attrs']['created_at'].should == 1175683847
     result['matches'][1]['attrs']['tags'].should == [1, 7, 9, 10]
     ('%0.2f' % result['matches'][1]['attrs']['rating']).should == '16.25'
 
     result['matches'][2]['id'].should == 1
     result['matches'][2]['weight'].should == 1
     result['matches'][2]['attrs']['group_id'].should == 1
-    result['matches'][2]['attrs']['created_at'].should == 1175658490
+    result['matches'][2]['attrs']['created_at'].should == 1175683690
     result['matches'][2]['attrs']['tags'].should == [1, 2, 3, 4]
     ('%0.2f' % result['matches'][2]['attrs']['rating']).should == '13.32'
 

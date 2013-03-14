@@ -1,0 +1,2 @@
+
+Fatal error: Call to undefined method SphinxClient::FlushAttrs() in /work/sphinx/sphinx.git/spec/fixtures/responses/php/flush_attrs.php on line 6
