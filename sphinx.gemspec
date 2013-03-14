@@ -12,8 +12,10 @@ Gem::Specification.new do |s|
   s.summary     = %q{Sphinx Client API for Ruby}
   s.description = %q{An easy interface to Sphinx standalone full-text search engine. It is implemented as plugin for Ruby on Rails, but can be easily used as standalone library.}
 
+  s.add_development_dependency 'rake'
   s.add_development_dependency 'rspec'
   s.add_development_dependency 'yard'
+
   s.files            = `git ls-files`.split("\n")
   s.test_files       = `git ls-files -- {spec}/*`.split("\n")
   s.executables      = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
