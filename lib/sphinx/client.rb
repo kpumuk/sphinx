@@ -114,9 +114,8 @@ module Sphinx
         :overrides => @overrides,
         :select => @select,
         :match_mode => @mode,
-        :ranking_mode => @ranker,
-        :ranking_expression => @rankexpr,
-        :sort_mode => { :mode => @sort, :sortby => @sortby },
+        :ranking => { :mode => @ranker, :expression => @rankexpr },
+        :sort_mode => { :mode => @sort, :sort_by => @sortby },
         :weights => @weights,
         :field_weights => @fieldweights,
         :index_weights => @indexweights,
@@ -125,16 +124,11 @@ module Sphinx
         :geo_anchor => @anchor,
         :group_by => { :attribute => @groupby, :func => @groupfunc, :sort => @groupsort },
         :group_distinct => @groupdistinct,
-        :query_flags => @query_flags,
-        :predicted_time => @predictedtime,
-        :outer_order_by => @outerorderby,
-        :outer_offset => @outeroffset,
-        :outer_limit => @outerlimit,
-        :has_outer => @hasouter,
+        :query_flags => { :bitset => @query_flags, :predicted_time => @predictedtime },
+        :outer_select => { :has_outer => @hasouter, :sort_by => @outerorderby, :offset => @outeroffset, :limit => @outerlimit},
       }
 
-      "<Sphinx::Client: %d servers, params: %s>" %
-        [@servers.length, params.inspect]
+      "<Sphinx::Client: %d servers, params: %s>" % [@servers.length, params.inspect]
     end
 
     #=================================================================
@@ -623,6 +617,25 @@ module Sphinx
     end
     alias :SetSelect :set_select
 
+    # Allows to control a number of per-query options.
+    #
+    # Supported options and respectively allowed values are:
+    #
+    # * +reverse_scan+ -- +0+ or +1+, lets you control the order in which full-scan query processes the rows.
+    # * +sort_method+ -- +"pq"+ (priority queue, set by default) or +"kbuffer"+
+    #   (gives faster sorting for already pre-sorted data, e.g. index data sorted by id).
+    #   The result set is in both cases the same; picking one option or the other
+    #   may just improve (or worsen!) performance.
+    # * +boolean_simplify+ -- +false+ or +true+, enables simplifying the query to speed it up.
+    # * +idf+ -- either +"normalized"+ (default) or +"plain"+.
+    #
+    # @param [String] flag_name name of the option to set value for
+    # @param [Object] flag_value value to set
+    # @return [Sphinx::Client] self.
+    #
+    # @see http://sphinxsearch.com/docs/current.html#sphinxql-select
+    # @see http://sphinxsearch.com/docs/current.html#conf-predicted-time-costs
+    #
     def set_query_flag(flag_name, flag_value)
       raise ArgumentError, 'unknown "flag_name" argument value' unless QUERY_FLAGS.has_key?(flag_name)
 
@@ -742,11 +755,12 @@ module Sphinx
     def set_ranking_mode(ranker, rankexpr = '')
       case ranker
         when String, Symbol
-          begin
-            ranker = self.class.const_get("SPH_RANK_#{ranker.to_s.upcase}")
-          rescue NameError
+          const_name = "SPH_RANK_#{ranker.to_s.upcase}"
+          unless self.class.const_defined?(const_name)
             raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid"
           end
+
+          ranker = self.class.const_get(const_name)
         when Fixnum
           raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid" unless (SPH_RANK_PROXIMITY_BM25..SPH_RANK_SPH04).include?(ranker)
         else
@@ -2304,14 +2318,14 @@ module Sphinx
           attempts = nil
         end
 
-        with_server(server, attempts) do |server|
-          logger.info { "[sphinx] #{command} on server #{server}" } if logger
+        with_server(server, attempts) do |srv|
+          logger.info { "[sphinx] #{command} on server #{srv}" } if logger
 
           cmd = command.to_s.upcase
           command_id = Sphinx::Client.const_get("SEARCHD_COMMAND_#{cmd}")
           command_ver = Sphinx::Client.const_get("VER_COMMAND_#{cmd}")
 
-          with_socket(server) do |socket|
+          with_socket(srv) do |socket|
             additional = Array(additional)
             len = request.to_s.length + (additional.size * 4)
             header = [command_id, command_ver, len].pack('nnN')
@@ -2320,7 +2334,7 @@ module Sphinx
             socket.write(header + request.to_s)
 
             if block_given?
-              yield server, socket
+              yield srv, socket
             else
               parse_response(socket, command_ver)
             end
