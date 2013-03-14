@@ -1,45 +1,21 @@
-require 'rake'
+require 'bundler'
+Bundler::GemHelper.install_tasks
 
-begin
-  require 'jeweler'
-  Jeweler::Tasks.new do |gemspec|
-    gemspec.name        = 'sphinx'
-    gemspec.summary     = 'Sphinx Client API for Ruby'
-    gemspec.description = 'An easy interface to Sphinx standalone full-text search engine. It is implemented as plugin for Ruby on Rails, but can be easily used as standalone library.'
-    gemspec.email       = 'kpumuk@kpumuk.info'
-    gemspec.homepage    = 'http://github.com/kpumuk/sphinx'
-    gemspec.authors     = ['Dmytro Shteflyuk']
-  end
-  Jeweler::GemcutterTasks.new
-rescue LoadError
-  puts 'Jeweler not available. Install it with: sudo gem install jeweler'
-end
+require 'rspec/core/rake_task'
+RSpec::Core::RakeTask.new(:spec)
 
-begin
-  require 'spec/rake/spectask'
+task :test => :spec
+task :default => :spec
 
-  desc 'Default: run specs'
-  task :default => :spec
-
-  desc 'Test the sphinx plugin'
-  Spec::Rake::SpecTask.new do |t|
-    t.libs << 'lib'
-    t.pattern = 'spec/*_spec.rb'
-  end
-rescue LoadError
-  puts 'RSpec not available. Install it with: sudo gem install rspec'
-end
-
-begin
-  require 'yard'
-  YARD::Rake::YardocTask.new(:yard) do |t|
+require 'yard'
+YARD::Rake::YardocTask.new(:yard) do |t|
     t.options = ['--title', 'Sphinx Client API Documentation']
-    if ENV['PRIVATE']
-      t.options.concat ['--protected', '--private']
-    else
-      t.options << '--no-private' 
-    end
+  if ENV['PRIVATE']
+    t.options.concat ['--protected', '--private']
+  else
+    t.options.concat ['--protected', '--no-private']
   end
-rescue LoadError
-  puts 'Yard not available. Install it with: sudo gem install yard'
 end
+
+require 'bundler'
+Bundler::GemHelper.install_tasks
