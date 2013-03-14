@@ -1,3 +1,3 @@
 module Sphinx
-  VERSION = '0.9.10.2122'
+  VERSION = '2.1.1.3711'
 end
