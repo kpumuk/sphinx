@@ -536,18 +536,7 @@ module Sphinx
     def set_override(attribute, attrtype, values)
       raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
 
-      case attrtype
-        when String, Symbol
-          begin
-            attrtype = self.class.const_get("SPH_ATTR_#{attrtype.to_s.upcase}")
-          rescue NameError
-            raise ArgumentError, "\"attrtype\" argument value \"#{attrtype}\" is invalid"
-          end
-        when Fixnum
-          raise ArgumentError, "\"attrtype\" argument value \"#{attrtype}\" is invalid" unless (SPH_ATTR_INTEGER..SPH_ATTR_BIGINT).include?(attrtype)
-        else
-          raise ArgumentError, '"attrtype" argument must be Fixnum, String, or Symbol'
-      end
+      attrtype = parse_sphinx_constant('attrtype', attrtype, :attr)
 
       raise ArgumentError, '"values" argument must be Hash' unless values.kind_of?(Hash)
 
@@ -696,20 +685,7 @@ module Sphinx
     # @see http://www.sphinxsearch.com/docs/current.html#api-func-setmatchmode Section 6.3.1, "SetMatchMode"
     #
     def set_match_mode(mode)
-      case mode
-        when String, Symbol
-          begin
-            mode = self.class.const_get("SPH_MATCH_#{mode.to_s.upcase}")
-          rescue NameError
-            raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid"
-          end
-        when Fixnum
-          raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid" unless (SPH_MATCH_ALL..SPH_MATCH_EXTENDED2).include?(mode)
-        else
-          raise ArgumentError, '"mode" argument must be Fixnum, String, or Symbol'
-      end
-
-      @mode = mode
+      @mode = parse_sphinx_constant('mode', mode, :match)
       self
     end
     alias :SetMatchMode :set_match_mode
@@ -753,18 +729,7 @@ module Sphinx
     # @see http://www.sphinxsearch.com/docs/current.html#api-func-setrankingmode Section 6.3.2, "SetRankingMode"
     #
     def set_ranking_mode(ranker, rankexpr = '')
-      case ranker
-        when String, Symbol
-          begin
-            ranker = self.class.const_get("SPH_RANK_#{ranker.to_s.upcase}")
-          rescue NameError
-            raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid"
-          end
-        when Fixnum
-          raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid" unless (SPH_RANK_PROXIMITY_BM25..SPH_RANK_SPH04).include?(ranker)
-        else
-          raise ArgumentError, '"ranker" argument must be Fixnum, String, or Symbol'
-      end
+      ranker = parse_sphinx_constant('ranker', ranker, :rank)
 
       raise ArgumentError, '"rankexpr" argument must be String' unless rankexpr.kind_of?(String)
       raise ArgumentError, '"rankexpr" should not be empty if ranker is SPH_RANK_EXPR' if ranker == SPH_RANK_EXPR and rankexpr.empty?
@@ -798,18 +763,7 @@ module Sphinx
     # @see http://www.sphinxsearch.com/docs/current.html#api-func-setsortmode Section 6.3.3, "SetSortMode"
     #
     def set_sort_mode(mode, sortby = '')
-      case mode
-        when String, Symbol
-          begin
-            mode = self.class.const_get("SPH_SORT_#{mode.to_s.upcase}")
-          rescue NameError
-            raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid"
-          end
-        when Fixnum
-          raise ArgumentError, "\"mode\" argument value \"#{mode}\" is invalid" unless (SPH_SORT_RELEVANCE..SPH_SORT_EXPR).include?(mode)
-        else
-          raise ArgumentError, '"mode" argument must be Fixnum, String, or Symbol'
-      end
+      mode = parse_sphinx_constant('mode', mode, :sort)
 
       raise ArgumentError, '"sortby" argument must be String' unless sortby.kind_of?(String)
       raise ArgumentError, '"sortby" should not be empty unless mode is SPH_SORT_RELEVANCE' unless mode == SPH_SORT_RELEVANCE or !sortby.empty?
@@ -1196,21 +1150,10 @@ module Sphinx
     # @see #set_group_distinct
     #
     def set_group_by(attribute, func, groupsort = '@group desc')
-      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String)  or attribute.kind_of?(Symbol)
+      raise ArgumentError, '"attribute" argument must be String or Symbol' unless attribute.kind_of?(String) or attribute.kind_of?(Symbol)
       raise ArgumentError, '"groupsort" argument must be String'           unless groupsort.kind_of?(String)
 
-      case func
-        when String, Symbol
-          begin
-            func = self.class.const_get("SPH_GROUPBY_#{func.to_s.upcase}")
-          rescue NameError
-            raise ArgumentError, "\"func\" argument value \"#{func}\" is invalid"
-          end
-        when Fixnum
-          raise ArgumentError, "\"func\" argument value \"#{func}\" is invalid" unless (SPH_GROUPBY_DAY..SPH_GROUPBY_ATTRPAIR).include?(func)
-        else
-          raise ArgumentError, '"func" argument must be Fixnum, String, or Symbol'
-      end
+      func = parse_sphinx_constant('func', func, :groupby)
 
       @groupby = attribute.to_s
       @groupfunc = func
@@ -2581,6 +2524,25 @@ module Sphinx
           bitset ^= bit
         end
         bitset
+      end
+
+      def parse_sphinx_constant(name, value, type)
+        const_prefix = "SPH_#{type.to_s.upcase}_"
+        case value
+          when String, Symbol
+            begin
+              value = Sphinx::Constants.const_get("#{const_prefix}#{value.to_s.upcase}")
+            rescue NameError
+              raise ArgumentError, "\"#{name}\" argument value \"#{value}\" is invalid"
+            end
+          when Fixnum
+            @@const_cache ||= {}
+            @@const_cache[const_prefix] ||= Sphinx::Constants.constants.grep(/^#{const_prefix}/).map { |c| Sphinx::Constants.const_get(c) }
+            raise ArgumentError, "\"#{name}\" argument value \"#{value}\" is invalid" unless @@const_cache[const_prefix].include?(value)
+          else
+            raise ArgumentError, "\"#{name}\" argument must be Fixnum, String, or Symbol"
+        end
+        value
       end
 
       # Enables ability to skip +set_+ prefix for methods inside {#query} block.
