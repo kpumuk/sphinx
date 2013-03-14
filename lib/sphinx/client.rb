@@ -1524,7 +1524,7 @@ module Sphinx
 
       # per-index weights
       request.put_int @indexweights.length
-      @indexweights.each do |idx, weight|
+      @indexweights.sort_by { |idx, _| idx }.each do |idx, weight|
         request.put_string idx.to_s
         request.put_int weight
       end
@@ -1534,7 +1534,7 @@ module Sphinx
 
       # per-field weights
       request.put_int @fieldweights.length
-      @fieldweights.each do |field, weight|
+      @fieldweights.sort_by { |idx, _| idx }.each do |field, weight|
         request.put_string field.to_s
         request.put_int weight
       end

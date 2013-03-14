@@ -11,7 +11,7 @@ describe Sphinx::Client, 'connected' do
     response = sphinx_fixture(fixture, :response)
     @sock = SphinxFakeSocket.new(response, 'rb')
     servers = @sphinx.instance_variable_get(:@servers)
-    servers.first.stub(:get_socket => @sock, :free_socket => nil)
+    servers.first.stub(:get_socket => @sock)
   end
 
   context 'in Query method' do
@@ -90,26 +90,30 @@ describe Sphinx::Client, 'connected' do
 
   context 'in Open method' do
     it 'should open socket' do
+      mock_sphinx_response('open')
       @sphinx.Open.should be_true
       socket = @sphinx.servers.first.instance_variable_get(:@socket)
-      socket.should_not be_nil
-      socket.should be_kind_of(Sphinx::BufferedIO)
+      socket.should == @sock
       socket.close
     end
 
     it 'should produce an error when opened twice' do
+      mock_sphinx_response('open')
+      sock = @sock
       @sphinx.Open.should be_true
+      mock_sphinx_response('open_twice')
       @sphinx.Open.should be_false
       @sphinx.GetLastError.should == 'already connected'
 
       socket = @sphinx.servers.first.instance_variable_get(:@socket)
-      socket.should be_kind_of(Sphinx::BufferedIO)
+      socket.should == sock
       socket.close
     end
   end
 
   context 'in Close method' do
     it 'should open socket' do
+      mock_sphinx_response('open')
       @sphinx.Open.should be_true
       @sphinx.Close.should be_true
       @sphinx.servers.first.instance_variable_get(:@socket).should be_nil
@@ -120,6 +124,7 @@ describe Sphinx::Client, 'connected' do
       @sphinx.GetLastError.should == 'not connected'
       @sphinx.servers.first.instance_variable_get(:@socket).should be_nil
 
+      mock_sphinx_response('open')
       @sphinx.Open.should be_true
       @sphinx.Close.should be_true
       @sphinx.Close.should be_false
