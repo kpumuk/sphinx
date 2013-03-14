@@ -20,7 +20,7 @@ describe Sphinx::Client, 'disconnected' do
         2.times do
           cnt = 0
           expect {
-            @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0]; raise Sphinx::SphinxConnectError }
+            @sphinx.send(:with_server) { |server| cnt += 1; server.should eq(@sphinx.servers[0]); raise Sphinx::SphinxConnectError }
           }.to raise_error(Sphinx::SphinxConnectError)
           cnt.should == 1
         end
@@ -29,24 +29,24 @@ describe Sphinx::Client, 'disconnected' do
       it 'should select server based on index' do
         @sphinx.SetServers(@servers)
         cnt = 0
-        @sphinx.send(:with_server, 0) { |server| cnt += 1; server.should == @sphinx.servers[0] }
-        cnt.should == 1
+        @sphinx.send(:with_server, 0) { |server| cnt += 1; server.should eq(@sphinx.servers[0]) }
+        cnt.should eq(1)
         cnt = 0
-        @sphinx.send(:with_server, 1) { |server| cnt += 1; server.should == @sphinx.servers[1] }
-        cnt.should == 1
+        @sphinx.send(:with_server, 1) { |server| cnt += 1; server.should eq(@sphinx.servers[1]) }
+        cnt.should eq(1)
         cnt = 0
-        @sphinx.send(:with_server, 2) { |server| cnt += 1; server.should == @sphinx.servers[0] }
-        cnt.should == 1
+        @sphinx.send(:with_server, 2) { |server| cnt += 1; server.should eq(@sphinx.servers[0]) }
+        cnt.should eq(1)
       end
 
       it 'should select given server' do
         @sphinx.SetServers(@servers)
         cnt = 0
         @sphinx.send(:with_server, @sphinx.servers[0]) { |server| cnt += 1; server.should == @sphinx.servers[0] }
-        cnt.should == 1
+        cnt.should eq(1)
         cnt = 0
         @sphinx.send(:with_server, @sphinx.servers[1]) { |server| cnt += 1; server.should == @sphinx.servers[1] }
-        cnt.should == 1
+        cnt.should eq(1)
       end
     end
 
@@ -58,36 +58,36 @@ describe Sphinx::Client, 'disconnected' do
       it 'should raise an exception on error' do
         cnt = 0
         expect {
-          @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[0]; raise Sphinx::SphinxConnectError }
+          @sphinx.send(:with_server) { |server| cnt += 1; server.should eq(@sphinx.servers[0]); raise Sphinx::SphinxConnectError }
         }.to raise_error(Sphinx::SphinxConnectError)
-        cnt.should == 3
+        cnt.should eq(3)
       end
 
       it 'should round-robin servers and raise an exception on error' do
         @sphinx.SetServers(@servers)
         cnt = 0
         expect {
-          @sphinx.send(:with_server) { |server| cnt += 1; server.should == @sphinx.servers[(cnt - 1) % 2]; raise Sphinx::SphinxConnectError }
+          @sphinx.send(:with_server) { |server| cnt += 1; server.should eq(@sphinx.servers[(cnt - 1) % 2]); raise Sphinx::SphinxConnectError }
         }.to raise_error(Sphinx::SphinxConnectError)
-        cnt.should == 3
+        cnt.should eq(3)
       end
 
       it 'should round-robin servers with respect to passed index and raise an exception on error' do
         @sphinx.SetServers(@servers)
         cnt = 0
         expect {
-          @sphinx.send(:with_server, 1) { |server| cnt += 1; server.should == @sphinx.servers[cnt % 2]; raise Sphinx::SphinxConnectError }
+          @sphinx.send(:with_server, 1) { |server| cnt += 1; server.should eq(@sphinx.servers[cnt % 2]); raise Sphinx::SphinxConnectError }
         }.to raise_error(Sphinx::SphinxConnectError)
-        cnt.should == 3
+        cnt.should eq(3)
       end
 
       it 'should round-robin with respect to attempts number passed' do
         @sphinx.SetServers(@servers)
         cnt = 0
         expect {
-          @sphinx.send(:with_server, 0, 5) { |server| cnt += 1; server.should == @sphinx.servers[(cnt - 1) % 2]; raise Sphinx::SphinxConnectError }
+          @sphinx.send(:with_server, 0, 5) { |server| cnt += 1; server.should eq(@sphinx.servers[(cnt - 1) % 2]); raise Sphinx::SphinxConnectError }
         }.to raise_error(Sphinx::SphinxConnectError)
-        cnt.should == 5
+        cnt.should eq(5)
       end
     end
   end
@@ -110,7 +110,7 @@ describe Sphinx::Client, 'disconnected' do
         @socket.should_receive(:read).with(4).and_return([1].pack('N'))
         cnt = 0
         @sphinx.send(:with_socket, @server) { |socket| cnt += 1; socket.should == @socket }
-        cnt.should == 1
+        cnt.should eq(1)
       end
 
       it 'should raise exception when searchd protocol is not 1+' do
@@ -120,7 +120,7 @@ describe Sphinx::Client, 'disconnected' do
         expect {
           @sphinx.send(:with_socket, @server) { cnt += 1; }
         }.to raise_error(Sphinx::SphinxConnectError, 'expected searchd protocol version 1+, got version \'0\'')
-        cnt.should == 0
+        cnt.should eq(0)
       end
 
       it 'should handle request timeouts' do
@@ -131,9 +131,9 @@ describe Sphinx::Client, 'disconnected' do
         expect {
           @sphinx.send(:with_socket, @server) { cnt += 1; sleep 2 }
         }.to raise_error(Sphinx::SphinxResponseError, 'failed to read searchd response (msg=execution expired)')
-        cnt.should == 1
+        cnt.should eq(1)
 
-        @sphinx.GetLastError.should == 'failed to read searchd response (msg=execution expired)'
+        @sphinx.GetLastError.should eq('failed to read searchd response (msg=execution expired)')
         @sphinx.IsConnectError.should be_false
       end
 
@@ -144,9 +144,9 @@ describe Sphinx::Client, 'disconnected' do
         expect {
           @sphinx.send(:with_socket, @server) { cnt += 1; raise Sphinx::SphinxInternalError, 'hello' }
         }.to raise_error(Sphinx::SphinxInternalError, 'hello')
-        cnt.should == 1
+        cnt.should eq(1)
 
-        @sphinx.GetLastError.should == 'hello'
+        @sphinx.GetLastError.should eq('hello')
         @sphinx.IsConnectError.should be_false
       end
     end
@@ -167,9 +167,9 @@ describe Sphinx::Client, 'disconnected' do
         expect {
           @sphinx.send(:with_socket, @server) { cnt += 1; raise Sphinx::SphinxInternalError, 'hello' }
         }.to raise_error(Sphinx::SphinxInternalError, 'hello')
-        cnt.should == 3
+        cnt.should eq(3)
 
-        @sphinx.GetLastError.should == 'hello'
+        @sphinx.GetLastError.should eq('hello')
         @sphinx.IsConnectError.should be_false
       end
     end
@@ -206,7 +206,7 @@ describe Sphinx::Client, 'disconnected' do
       @socket.should_receive(:read).with(8).and_return([Sphinx::SEARCHD_WARNING, 1, 14].pack('n2N'))
       @socket.should_receive(:read).with(14).and_return([5].pack('N') + 'helloworld')
       @sphinx.send(:parse_response, @socket, 1).should == 'world'
-      @sphinx.GetLastWarning.should == 'hello'
+      @sphinx.GetLastWarning.should eq('hello')
     end
 
     it 'should raise exception when SEARCHD_ERROR received' do

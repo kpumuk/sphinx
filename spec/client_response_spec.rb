@@ -24,11 +24,11 @@ describe Sphinx::Client, 'connected' do
     it 'should process 64-bit keys' do
       mock_sphinx_response('query_id64')
       result = @sphinx.Query('wifi', 'test2')
-      result['total_found'].should == 3
-      result['matches'].length.should == 3
-      result['matches'][0]['id'].should == 4294967298
-      result['matches'][1]['id'].should == 4294967299
-      result['matches'][2]['id'].should == 4294967297
+      result['total_found'].should eq(3)
+      result['matches'].length.should eq(3)
+      result['matches'][0]['id'].should eq(4294967298)
+      result['matches'][1]['id'].should eq(4294967299)
+      result['matches'][2]['id'].should eq(4294967297)
     end
 
     it 'should process errors in Query method' do
@@ -61,7 +61,7 @@ describe Sphinx::Client, 'connected' do
     it 'should parse response' do
       mock_sphinx_response('build_excerpts')
       result = @sphinx.BuildExcerpts(['what the world', 'London is the capital of Great Britain'], 'test1', 'the')
-      result.should == ['what <b>the</b> world', 'London is <b>the</b> capital of Great Britain']
+      result.should eq(['what <b>the</b> world', 'London is <b>the</b> capital of Great Britain'])
     end
   end
 
@@ -69,22 +69,22 @@ describe Sphinx::Client, 'connected' do
     it 'should parse response' do
       mock_sphinx_response('build_keywords')
       result = @sphinx.BuildKeywords('wifi gprs', 'test1', true)
-      result.should == [
+      result.should eq([
         { 'normalized' => 'wifi', 'tokenized' => 'wifi', 'hits' => 6, 'docs' => 3 },
         { 'normalized' => 'gprs', 'tokenized' => 'gprs', 'hits' => 1, 'docs' => 1 }
-      ]
+      ])
     end
   end
 
   context 'in UpdateAttributes method' do
     it 'should parse response' do
       mock_sphinx_response('update_attributes')
-      @sphinx.UpdateAttributes('test1', ['group_id'], { 2 => [1] }).should == 1
+      @sphinx.UpdateAttributes('test1', ['group_id'], { 2 => [1] }).should eq(1)
     end
 
     it 'should parse response with MVA' do
       mock_sphinx_response('update_attributes_mva')
-      @sphinx.UpdateAttributes('test1', ['tags'], { 2 => [[1, 2, 3, 4, 5, 6, 7, 8, 9]] }, true).should == 1
+      @sphinx.UpdateAttributes('test1', ['tags'], { 2 => [[1, 2, 3, 4, 5, 6, 7, 8, 9]] }, true).should eq(1)
     end
   end
 
@@ -93,7 +93,7 @@ describe Sphinx::Client, 'connected' do
       mock_sphinx_response('open')
       @sphinx.Open.should be_true
       socket = @sphinx.servers.first.instance_variable_get(:@socket)
-      socket.should == @sock
+      socket.should eq(@sock)
       socket.close
     end
 
@@ -103,10 +103,10 @@ describe Sphinx::Client, 'connected' do
       @sphinx.Open.should be_true
       mock_sphinx_response('open_twice')
       @sphinx.Open.should be_false
-      @sphinx.GetLastError.should == 'already connected'
+      @sphinx.GetLastError.should eq('already connected')
 
       socket = @sphinx.servers.first.instance_variable_get(:@socket)
-      socket.should == sock
+      socket.should eq(sock)
       socket.close
     end
   end
@@ -121,14 +121,14 @@ describe Sphinx::Client, 'connected' do
 
     it 'should produce socket is closed' do
       @sphinx.Close.should be_false
-      @sphinx.GetLastError.should == 'not connected'
+      @sphinx.GetLastError.should eq('not connected')
       @sphinx.servers.first.instance_variable_get(:@socket).should be_nil
 
       mock_sphinx_response('open')
       @sphinx.Open.should be_true
       @sphinx.Close.should be_true
       @sphinx.Close.should be_false
-      @sphinx.GetLastError.should == 'not connected'
+      @sphinx.GetLastError.should eq('not connected')
       @sphinx.servers.first.instance_variable_get(:@socket).should be_nil
     end
   end
@@ -152,40 +152,40 @@ describe Sphinx::Client, 'connected' do
   end
 
   def validate_results_wifi(result)
-    result['total_found'].should == 3
-    result['matches'].length.should == 3
+    result['total_found'].should eq(3)
+    result['matches'].length.should eq(3)
     result['time'].should_not be_nil
-    result['attrs'].should == {
+    result['attrs'].should eq({
       'group_id' => Sphinx::SPH_ATTR_INTEGER,
       'created_at' => Sphinx::SPH_ATTR_TIMESTAMP,
       'rating' => Sphinx::SPH_ATTR_FLOAT,
       'tags' => Sphinx::SPH_ATTR_MULTI | Sphinx::SPH_ATTR_INTEGER
-    }
-    result['fields'].should == [ 'name', 'description' ]
-    result['total'].should == 3
+    })
+    result['fields'].should eq([ 'name', 'description' ])
+    result['total'].should eq(3)
     result['matches'].should be_an_instance_of(Array)
 
-    result['matches'][0]['id'].should == 2
-    result['matches'][0]['weight'].should == 2
-    result['matches'][0]['attrs']['group_id'].should == 2
-    result['matches'][0]['attrs']['created_at'].should == 1175683755
-    result['matches'][0]['attrs']['tags'].should == [5, 6, 7, 8]
-    ('%0.2f' % result['matches'][0]['attrs']['rating']).should == '54.85'
+    result['matches'][0]['id'].should eq(2)
+    result['matches'][0]['weight'].should eq(2)
+    result['matches'][0]['attrs']['group_id'].should eq(2)
+    result['matches'][0]['attrs']['created_at'].should eq(1175683755)
+    result['matches'][0]['attrs']['tags'].should eq([5, 6, 7, 8])
+    ('%0.2f' % result['matches'][0]['attrs']['rating']).should eq('54.85')
 
-    result['matches'][1]['id'].should == 3
-    result['matches'][1]['weight'].should == 2
-    result['matches'][1]['attrs']['group_id'].should == 1
-    result['matches'][1]['attrs']['created_at'].should == 1175683847
-    result['matches'][1]['attrs']['tags'].should == [1, 7, 9, 10]
-    ('%0.2f' % result['matches'][1]['attrs']['rating']).should == '16.25'
+    result['matches'][1]['id'].should eq(3)
+    result['matches'][1]['weight'].should eq(2)
+    result['matches'][1]['attrs']['group_id'].should eq(1)
+    result['matches'][1]['attrs']['created_at'].should eq(1175683847)
+    result['matches'][1]['attrs']['tags'].should eq([1, 7, 9, 10])
+    ('%0.2f' % result['matches'][1]['attrs']['rating']).should eq('16.25')
 
-    result['matches'][2]['id'].should == 1
-    result['matches'][2]['weight'].should == 1
-    result['matches'][2]['attrs']['group_id'].should == 1
-    result['matches'][2]['attrs']['created_at'].should == 1175683690
-    result['matches'][2]['attrs']['tags'].should == [1, 2, 3, 4]
-    ('%0.2f' % result['matches'][2]['attrs']['rating']).should == '13.32'
+    result['matches'][2]['id'].should eq(1)
+    result['matches'][2]['weight'].should eq(1)
+    result['matches'][2]['attrs']['group_id'].should eq(1)
+    result['matches'][2]['attrs']['created_at'].should eq(1175683690)
+    result['matches'][2]['attrs']['tags'].should eq([1, 2, 3, 4])
+    ('%0.2f' % result['matches'][2]['attrs']['rating']).should eq('13.32')
 
-    result['words'].should == { 'wifi' => { 'hits' => 6, 'docs' => 3 } }
+    result['words'].should eq({ 'wifi' => { 'hits' => 6, 'docs' => 3 } })
   end
 end
