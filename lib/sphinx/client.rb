@@ -755,12 +755,11 @@ module Sphinx
     def set_ranking_mode(ranker, rankexpr = '')
       case ranker
         when String, Symbol
-          const_name = "SPH_RANK_#{ranker.to_s.upcase}"
-          unless self.class.const_defined?(const_name)
+          begin
+            ranker = self.class.const_get("SPH_RANK_#{ranker.to_s.upcase}")
+          rescue NameError
             raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid"
           end
-
-          ranker = self.class.const_get(const_name)
         when Fixnum
           raise ArgumentError, "\"ranker\" argument value \"#{ranker}\" is invalid" unless (SPH_RANK_PROXIMITY_BM25..SPH_RANK_SPH04).include?(ranker)
         else

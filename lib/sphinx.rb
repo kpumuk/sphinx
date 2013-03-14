@@ -3,7 +3,7 @@
 # Author::    Dmytro Shteflyuk <mailto:kpumuk@kpumuk.info>.
 # Copyright:: Copyright (c) 2006 — 2013 Dmytro Shteflyuk
 # License::   Distributes under the same terms as Ruby
-# Version::   0.9.10.2122
+# Version::   2.1.1.3712
 # Website::   http://kpumuk.info/projects/ror-plugins/sphinx
 # Sources::   http://github.com/kpumuk/sphinx
 #

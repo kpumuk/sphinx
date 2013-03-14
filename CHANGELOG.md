@@ -1,3 +1,9 @@
+## 2.1.1.3712 (Mar 15, 2013)
+
+Bugixes:
+
+  - Fixed broken ranking in Ruby 1.8.7.
+
 ## 2.1.1.3711 (Mar 15, 2013)
 
 Features:
