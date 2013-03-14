@@ -1,0 +1,812 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>
+  Module: Sphinx::Constants
+  
+    &mdash; Sphinx Client API Documentation
+  
+</title>
+
+  <link rel="stylesheet" href="../css/style.css" type="text/css" media="screen" charset="utf-8" />
+
+  <link rel="stylesheet" href="../css/common.css" type="text/css" media="screen" charset="utf-8" />
+
+<script type="text/javascript" charset="utf-8">
+  hasFrames = window.top.frames.main ? true : false;
+  relpath = '../';
+  framesUrl = "../frames.html#!" + escape(window.location.href);
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="../js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="../js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div id="header">
+      <div id="menu">
+  
+    <a href="../_index.html">Index (C)</a> &raquo;
+    <span class='title'><span class='object_link'><a href="../Sphinx.html" title="Sphinx (module)">Sphinx</a></span></span>
+     &raquo; 
+    <span class="title">Constants</span>
+  
+
+  <div class="noframes"><span class="title">(</span><a href="." target="_top">no frames</a><span class="title">)</span></div>
+</div>
+
+      <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="../class_list.html">
+      Class List
+    </a>
+  
+    <a class="full_list_link" id="method_list_link"
+        href="../method_list.html">
+      Method List
+    </a>
+  
+    <a class="full_list_link" id="file_list_link"
+        href="../file_list.html">
+      File List
+    </a>
+  
+</div>
+      <div class="clear"></div>
+    </div>
+
+    <iframe id="search_frame"></iframe>
+
+    <div id="content"><h1>Module: Sphinx::Constants
+  
+  
+  
+</h1>
+
+<dl class="box">
+  
+  
+    
+  
+    
+  
+  
+    <dt class="r1">Included in:</dt>
+    <dd class="r1"><span class='object_link'><a href="../Sphinx.html" title="Sphinx (module)">Sphinx</a></span>, <span class='object_link'><a href="Client.html" title="Sphinx::Client (class)">Client</a></span></dd>
+    
+  
+  
+    <dt class="r2 last">Defined in:</dt>
+    <dd class="r2 last">lib/sphinx/constants.rb</dd>
+  
+</dl>
+<div class="clear"></div>
+
+<h2>Overview</h2><div class="docstring">
+  <div class="discussion">
+    
+<p>Contains all constants need by Sphinx API.</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+  <h2>Constant Summary</h2>
+  
+    <dl class="constants">
+      
+        <dt id="SPH_MATCH_ALL-constant" class="">SPH_MATCH_ALL =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>match all query words</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>0</span></pre></dd>
+      
+        <dt id="SPH_MATCH_ANY-constant" class="">SPH_MATCH_ANY =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>match any query word</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>1</span></pre></dd>
+      
+        <dt id="SPH_MATCH_PHRASE-constant" class="">SPH_MATCH_PHRASE =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>match this exact phrase</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>2</span></pre></dd>
+      
+        <dt id="SPH_MATCH_BOOLEAN-constant" class="">SPH_MATCH_BOOLEAN =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>match this boolean query</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>3</span></pre></dd>
+      
+        <dt id="SPH_MATCH_EXTENDED-constant" class="">SPH_MATCH_EXTENDED =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>match this extended query</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>4</span></pre></dd>
+      
+        <dt id="SPH_MATCH_FULLSCAN-constant" class="">SPH_MATCH_FULLSCAN =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>match all document IDs w/o fulltext query, apply filters</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>5</span></pre></dd>
+      
+        <dt id="SPH_MATCH_EXTENDED2-constant" class="">SPH_MATCH_EXTENDED2 =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>extended engine V2 (TEMPORARY, WILL BE REMOVED IN 0.9.8-RELEASE)</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>6</span></pre></dd>
+      
+        <dt id="SPH_RANK_PROXIMITY_BM25-constant" class="">SPH_RANK_PROXIMITY_BM25 =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>default mode, phrase proximity major factor and BM25 minor one</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>0</span></pre></dd>
+      
+        <dt id="SPH_RANK_BM25-constant" class="">SPH_RANK_BM25 =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>statistical mode, BM25 ranking only (faster but worse quality)</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>1</span></pre></dd>
+      
+        <dt id="SPH_RANK_NONE-constant" class="">SPH_RANK_NONE =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>no ranking, all matches get a weight of 1</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>2</span></pre></dd>
+      
+        <dt id="SPH_RANK_WORDCOUNT-constant" class="">SPH_RANK_WORDCOUNT =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>simple word-count weighting, rank is a weighted sum of per-field keyword
+occurence counts</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>3</span></pre></dd>
+      
+        <dt id="SPH_RANK_PROXIMITY-constant" class="">SPH_RANK_PROXIMITY =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>phrase proximity</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>4</span></pre></dd>
+      
+        <dt id="SPH_RANK_MATCHANY-constant" class="">SPH_RANK_MATCHANY =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>emulate old match-any weighting</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>5</span></pre></dd>
+      
+        <dt id="SPH_RANK_FIELDMASK-constant" class="">SPH_RANK_FIELDMASK =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>sets bits where there were matches</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>6</span></pre></dd>
+      
+        <dt id="SPH_RANK_SPH04-constant" class="">SPH_RANK_SPH04 =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>codename SPH04, phrase proximity + bm25 + head/exact boost</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>7</span></pre></dd>
+      
+        <dt id="SPH_RANK_EXPR-constant" class="">SPH_RANK_EXPR =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>lets you specify the ranking formula in run time</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>8</span></pre></dd>
+      
+        <dt id="SPH_SORT_RELEVANCE-constant" class="">SPH_SORT_RELEVANCE =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>sort by document relevance desc, then by date</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>0</span></pre></dd>
+      
+        <dt id="SPH_SORT_ATTR_DESC-constant" class="">SPH_SORT_ATTR_DESC =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>sort by document date desc, then by relevance desc</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>1</span></pre></dd>
+      
+        <dt id="SPH_SORT_ATTR_ASC-constant" class="">SPH_SORT_ATTR_ASC =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>sort by document date asc, then by relevance desc</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>2</span></pre></dd>
+      
+        <dt id="SPH_SORT_TIME_SEGMENTS-constant" class="">SPH_SORT_TIME_SEGMENTS =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>sort by time segments (hour/day/week/etc) desc, then by relevance desc</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>3</span></pre></dd>
+      
+        <dt id="SPH_SORT_EXTENDED-constant" class="">SPH_SORT_EXTENDED =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>sort by SQL-like expression (eg. "@relevance DESC, price ASC, @id DESC")</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>4</span></pre></dd>
+      
+        <dt id="SPH_SORT_EXPR-constant" class="">SPH_SORT_EXPR =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>sort by arithmetic expression in descending order (eg. "@id +
+max(@weight,1000)*boost + log(price)")</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>5</span></pre></dd>
+      
+        <dt id="SPH_FILTER_VALUES-constant" class="">SPH_FILTER_VALUES =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>filter by integer values set</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>0</span></pre></dd>
+      
+        <dt id="SPH_FILTER_RANGE-constant" class="">SPH_FILTER_RANGE =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>filter by integer range</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>1</span></pre></dd>
+      
+        <dt id="SPH_FILTER_FLOATRANGE-constant" class="">SPH_FILTER_FLOATRANGE =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>filter by float range</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>2</span></pre></dd>
+      
+        <dt id="SPH_ATTR_INTEGER-constant" class="">SPH_ATTR_INTEGER =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>this attr is just an integer</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>1</span></pre></dd>
+      
+        <dt id="SPH_ATTR_TIMESTAMP-constant" class="">SPH_ATTR_TIMESTAMP =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>this attr is a timestamp</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>2</span></pre></dd>
+      
+        <dt id="SPH_ATTR_ORDINAL-constant" class="">SPH_ATTR_ORDINAL =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>this attr is an ordinal string number (integer at search time, specially
+handled at indexing time)</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>3</span></pre></dd>
+      
+        <dt id="SPH_ATTR_BOOL-constant" class="">SPH_ATTR_BOOL =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>this attr is a boolean bit field</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>4</span></pre></dd>
+      
+        <dt id="SPH_ATTR_FLOAT-constant" class="">SPH_ATTR_FLOAT =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>this attr is a float</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>5</span></pre></dd>
+      
+        <dt id="SPH_ATTR_BIGINT-constant" class="">SPH_ATTR_BIGINT =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>signed 64-bit integer</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>6</span></pre></dd>
+      
+        <dt id="SPH_ATTR_STRING-constant" class="">SPH_ATTR_STRING =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>string (binary; in-memory)</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>7</span></pre></dd>
+      
+        <dt id="SPH_ATTR_FACTORS-constant" class="">SPH_ATTR_FACTORS =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>???</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>1001</span></pre></dd>
+      
+        <dt id="SPH_ATTR_MULTI-constant" class="">SPH_ATTR_MULTI =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>this attr has multiple values (0 or more)</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>0x40000001</span></pre></dd>
+      
+        <dt id="SPH_ATTR_MULTI64-constant" class="">SPH_ATTR_MULTI64 =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>this attr has multiple 64-bit values (0 or more)</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>0x40000002</span></pre></dd>
+      
+        <dt id="SPH_GROUPBY_DAY-constant" class="">SPH_GROUPBY_DAY =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>group by day</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>0</span></pre></dd>
+      
+        <dt id="SPH_GROUPBY_WEEK-constant" class="">SPH_GROUPBY_WEEK =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>group by week</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>1</span></pre></dd>
+      
+        <dt id="SPH_GROUPBY_MONTH-constant" class="">SPH_GROUPBY_MONTH =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>group by month</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>2</span></pre></dd>
+      
+        <dt id="SPH_GROUPBY_YEAR-constant" class="">SPH_GROUPBY_YEAR =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>group by year</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>3</span></pre></dd>
+      
+        <dt id="SPH_GROUPBY_ATTR-constant" class="">SPH_GROUPBY_ATTR =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>group by attribute value</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>4</span></pre></dd>
+      
+        <dt id="SPH_GROUPBY_ATTRPAIR-constant" class="">SPH_GROUPBY_ATTRPAIR =
+          <div class="docstring">
+  <div class="discussion">
+    
+<p>group by sequential attrs pair</p>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='int'>5</span></pre></dd>
+      
+        <dt id="QUERY_FLAGS-constant" class="">QUERY_FLAGS =
+          <div class="docstring">
+  <div class="discussion">
+    
+<h65></h65>
+
+<p>Known query flags</p>
+
+<h65></h65>
+
+
+  </div>
+</div>
+<div class="tags">
+  
+
+</div>
+        </dt>
+        <dd><pre class="code"><span class='const'>HashWithIndifferentAccess</span><span class='period'>.</span><span class='id identifier rubyid_new'>new</span><span class='lparen'>(</span>
+  <span class='symbol'>:reverse_scan</span>       <span class='op'>=&gt;</span> <span class='lbrace'>{</span> <span class='symbol'>:values</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span> <span class='int'>0</span><span class='comma'>,</span> <span class='int'>1</span> <span class='rbracket'>]</span><span class='comma'>,</span>                  <span class='symbol'>:index</span> <span class='op'>=&gt;</span> <span class='int'>0</span> <span class='rbrace'>}</span><span class='comma'>,</span>
+  <span class='symbol'>:sort_method</span>        <span class='op'>=&gt;</span> <span class='lbrace'>{</span> <span class='symbol'>:values</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span><span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>pq</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>kbuffer</span><span class='tstring_end'>'</span></span> <span class='rbracket'>]</span><span class='comma'>,</span>        <span class='symbol'>:index</span> <span class='op'>=&gt;</span> <span class='int'>1</span> <span class='rbrace'>}</span><span class='comma'>,</span>
+  <span class='symbol'>:max_predicted_time</span> <span class='op'>=&gt;</span> <span class='lbrace'>{</span> <span class='symbol'>:values</span> <span class='op'>=&gt;</span> <span class='id identifier rubyid_lambda'>lambda</span> <span class='lbrace'>{</span> <span class='op'>|</span><span class='id identifier rubyid_x'>x</span><span class='op'>|</span> <span class='id identifier rubyid_x'>x</span> <span class='op'>&gt;</span> <span class='int'>0</span> <span class='rbrace'>}</span><span class='comma'>,</span>      <span class='symbol'>:index</span> <span class='op'>=&gt;</span> <span class='int'>2</span> <span class='rbrace'>}</span><span class='comma'>,</span>
+  <span class='symbol'>:boolean_simplify</span>   <span class='op'>=&gt;</span> <span class='lbrace'>{</span> <span class='symbol'>:values</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span> <span class='kw'>false</span><span class='comma'>,</span> <span class='kw'>true</span> <span class='rbracket'>]</span><span class='comma'>,</span>           <span class='symbol'>:index</span> <span class='op'>=&gt;</span> <span class='int'>3</span> <span class='rbrace'>}</span><span class='comma'>,</span>
+  <span class='symbol'>:idf</span>                <span class='op'>=&gt;</span> <span class='lbrace'>{</span> <span class='symbol'>:values</span> <span class='op'>=&gt;</span> <span class='lbracket'>[</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>normalized</span><span class='tstring_end'>'</span></span><span class='comma'>,</span> <span class='tstring'><span class='tstring_beg'>'</span><span class='tstring_content'>plain</span><span class='tstring_end'>'</span></span> <span class='rbracket'>]</span><span class='comma'>,</span> <span class='symbol'>:index</span> <span class='op'>=&gt;</span> <span class='int'>4</span> <span class='rbrace'>}</span>
+<span class='rparen'>)</span></pre></dd>
+      
+    </dl>
+  
+
+
+
+
+
+
+
+
+
+</div>
+
+    <div id="footer">
+  Generated on Thu Mar 14 12:34:39 2013 by
+  <a href="http://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.8.5.2 (ruby-1.9.3).
+</div>
+
+  </body>
+</html>
