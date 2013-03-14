@@ -40,7 +40,7 @@ module Sphinx
     VER_COMMAND_SEARCH     = 0x117
     # excerpt command version
     # @private
-    VER_COMMAND_EXCERPT    = 0x100
+    VER_COMMAND_EXCERPT    = 0x101
     # update command version
     # @private
     VER_COMMAND_UPDATE     = 0x102

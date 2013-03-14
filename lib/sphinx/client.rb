@@ -14,7 +14,7 @@ module Sphinx
   #
   class Client
     include Sphinx::Constants
-    
+
     #=================================================================
     # Some internal attributes to use inside client API
     #=================================================================
@@ -1770,7 +1770,8 @@ module Sphinx
         'single_passage'  => false,
         'use_boundaries'  => false,
         'weight_order'    => false,
-        'query_mode'      => false
+        'query_mode'      => false,
+        'force_all_words' => false
       ).update(opts)
 
       # build request
@@ -1782,6 +1783,7 @@ module Sphinx
       flags |= 8  if opts['use_boundaries']
       flags |= 16 if opts['weight_order']
       flags |= 32 if opts['query_mode']
+      flags |= 64 if opts['force_all_words']
 
       request = Request.new
       request.put_int 0, flags # mode=0, flags=1 (remove spaces)
@@ -2051,7 +2053,7 @@ module Sphinx
     # @example
     #   sphinx.flush_attrs
     #
-    def flush_attrs
+    def flush_attributes
       request = Request.new
       response = perform_request(:flushattrs, request)
 
@@ -2059,10 +2061,13 @@ module Sphinx
       begin
         response.get_int
       rescue EOFError
+        @error = 'unexpected response length'
         -1
       end
     end
-    alias :FlushAttrs :flush_attrs
+    alias :FlushAttributes :flush_attributes
+    alias :FlushAttrs :flush_attributes
+    alias :flush_attrs :flush_attributes
 
     #=================================================================
     # Persistent connections

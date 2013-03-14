@@ -1,9 +1,9 @@
 # Sphinx Client API
 #
 # Author::    Dmytro Shteflyuk <mailto:kpumuk@kpumuk.info>.
-# Copyright:: Copyright (c) 2006 — 2009 Dmytro Shteflyuk
+# Copyright:: Copyright (c) 2006 — 2013 Dmytro Shteflyuk
 # License::   Distributes under the same terms as Ruby
-# Version::   0.9.10-r2122
+# Version::   0.9.10.2122
 # Website::   http://kpumuk.info/projects/ror-plugins/sphinx
 # Sources::   http://github.com/kpumuk/sphinx
 #
@@ -11,12 +11,6 @@
 # You can freely distribute/modify this library.
 #
 module Sphinx
-  VERSION = begin
-    require 'yaml'
-    config = YAML.load(File.read(File.dirname(__FILE__) + '/../VERSION.yml'))
-    "#{config[:major]}.#{config[:minor]}.#{config[:patch]}.#{config[:build]}"
-  end
-
   # Base class for all Sphinx errors
   class SphinxError < StandardError; end
 
@@ -49,3 +43,4 @@ require "#{path}/sphinx/timeout"
 require "#{path}/sphinx/buffered_io"
 require "#{path}/sphinx/server"
 require "#{path}/sphinx/client"
+require "#{path}/sphinx/version"

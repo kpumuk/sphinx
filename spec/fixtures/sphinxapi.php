@@ -1,11 +1,13 @@
 <?php
 
 //
-// $Id$
+// $Id: sphinxapi.php 2167 2010-01-11 14:02:50Z shodan $
 //
 
 //
-// Copyright (c) 2001-2008, Andrew Aksyonoff. All rights reserved.
+// Copyright (c) 2001-2010, Andrew Aksyonoff
+// Copyright (c) 2008-2010, Sphinx Technologies Inc
+// All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License. You should have
@@ -29,7 +31,7 @@ define ( "SEARCHD_COMMAND_FLUSHATTRS",	7 );
 
 /// current client-side command implementation versions
 define ( "VER_COMMAND_SEARCH",		0x117 );
-define ( "VER_COMMAND_EXCERPT",		0x100 );
+define ( "VER_COMMAND_EXCERPT",		0x101 );
 define ( "VER_COMMAND_UPDATE",		0x102 );
 define ( "VER_COMMAND_KEYWORDS",	0x100 );
 define ( "VER_COMMAND_STATUS",		0x100 );
@@ -123,7 +125,7 @@ define ( "SPH_GROUPBY_ATTRPAIR",	5 );
 function sphPackI64 ( $v )
 {
 	assert ( is_numeric($v) );
-	
+
 	// x64
 	if ( PHP_INT_SIZE>=8 )
 	{
@@ -135,7 +137,7 @@ function sphPackI64 ( $v )
 	if ( is_int($v) )
 		return pack ( "NN", $v < 0 ? -1 : 0, $v );
 
-	// x32, bcmath	
+	// x32, bcmath
 	if ( function_exists("bcmul") )
 	{
 		if ( bccomp ( $v, 0 ) == -1 )
@@ -172,16 +174,16 @@ function sphPackI64 ( $v )
 function sphPackU64 ( $v )
 {
 	assert ( is_numeric($v) );
-	
+
 	// x64
 	if ( PHP_INT_SIZE>=8 )
 	{
 		assert ( $v>=0 );
-		
+
 		// x64, int
 		if ( is_int($v) )
 			return pack ( "NN", $v>>32, $v&0xFFFFFFFF );
-						  
+
 		// x64, bcmath
 		if ( function_exists("bcmul") )
 		{
@@ -189,12 +191,12 @@ function sphPackU64 ( $v )
 			$l = bcmod ( $v, 4294967296 );
 			return pack ( "NN", $h, $l );
 		}
-		
+
 		// x64, no-bcmath
 		$p = max ( 0, strlen($v) - 13 );
 		$lo = (int)substr ( $v, $p );
 		$hi = (int)substr ( $v, 0, $p );
-	
+
 		$m = $lo + $hi*1316134912;
 		$l = $m % 4294967296;
 		$h = $hi*2328 + (int)($m/4294967296);
@@ -205,7 +207,7 @@ function sphPackU64 ( $v )
 	// x32, int
 	if ( is_int($v) )
 		return pack ( "NN", 0, $v );
-	
+
 	// x32, bcmath
 	if ( function_exists("bcmul") )
 	{
@@ -218,7 +220,7 @@ function sphPackU64 ( $v )
 	$p = max(0, strlen($v) - 13);
 	$lo = (float)substr($v, $p);
 	$hi = (float)substr($v, 0, $p);
-	
+
 	$m = $lo + $hi*1316134912.0;
 	$q = floor($m / 4294967296.0);
 	$l = $m - ($q * 4294967296.0);
@@ -274,11 +276,11 @@ function sphUnpackU64 ( $v )
 	// x32, bcmath
 	if ( function_exists("bcmul") )
 		return bcadd ( $lo, bcmul ( $hi, "4294967296" ) );
-	
+
 	// x32, no-bcmath
 	$hi = (float)$hi;
 	$lo = (float)$lo;
-	
+
 	$q = floor($hi/10000000.0);
 	$r = $hi - $q*10000000.0;
 	$m = $lo + $r*4967296.0;
@@ -321,7 +323,7 @@ function sphUnpackI64 ( $v )
 			return $lo;
 		return sprintf ( "%.0f", $lo - 4294967296.0 );
 	}
-	
+
 	$neg = "";
 	$c = 0;
 	if ( $hi<0 )
@@ -330,7 +332,7 @@ function sphUnpackI64 ( $v )
 		$lo = ~$lo;
 		$c = 1;
 		$neg = "-";
-	}	
+	}
 
 	$hi = sprintf ( "%u", $hi );
 	$lo = sprintf ( "%u", $lo );
@@ -342,13 +344,18 @@ function sphUnpackI64 ( $v )
 	// x32, no-bcmath
 	$hi = (float)$hi;
 	$lo = (float)$lo;
-	
+
 	$q = floor($hi/10000000.0);
 	$r = $hi - $q*10000000.0;
 	$m = $lo + $r*4967296.0;
 	$mq = floor($m/10000000.0);
 	$l = $m - $mq*10000000.0 + $c;
 	$h = $q*4294967296.0 + $r*429.0 + $mq;
+	if ( $l==10000000 )
+	{
+		$l = 0;
+		$h += 1;
+	}
 
 	$h = sprintf ( "%.0f", $h );
 	$l = sprintf ( "%07.0f", $l );
@@ -358,11 +365,27 @@ function sphUnpackI64 ( $v )
 }
 
 
+function sphFixUint ( $value )
+{
+	if ( PHP_INT_SIZE>=8 )
+	{
+		// x64 route, workaround broken unpack() in 5.2.2+
+		if ( $value<0 ) $value += (1<<32);
+		return $value;
+	}
+	else
+	{
+		// x32 route, workaround php signed/unsigned braindamage
+		return sprintf ( "%u", $value );
+	}
+}
+
+
 /// sphinx searchd client class
 class SphinxClient
 {
 	var $_host;			///< searchd host (default is "localhost")
-	var $_port;			///< searchd port (default is 3312)
+	var $_port;			///< searchd port (default is 9312)
 	var $_offset;		///< how many records to seek from result-set start (default is 0)
 	var $_limit;		///< how many records to return from result-set starting at offset (default is 20)
 	var $_mode;			///< query matching mode (default is SPH_MATCH_ALL)
@@ -406,7 +429,7 @@ class SphinxClient
 	{
 		// per-client-object settings
 		$this->_host		= "localhost";
-		$this->_port		= 3312;
+		$this->_port		= 9312;
 		$this->_path		= false;
 		$this->_socket		= false;
 
@@ -484,7 +507,7 @@ class SphinxClient
 			$this->_path = $host;
 			return;
 		}
-				
+
 		assert ( is_int($port) );
 		$this->_host = $host;
 		$this->_port = $port;
@@ -534,13 +557,20 @@ class SphinxClient
 	/// connect to searchd server
 	function _Connect ()
 	{
-		return fopen('php://stdout', 'w');
-	}
+		if ($_ENV['SPHINX_MOCK_REQUEST']) {
+			return fopen('php://stdout', 'w');
+		}
 
-	function _OldConnect ()
-	{
-		if ( $this->_socket !== false )
-			return $this->_socket;
+		if ( $this->_socket!==false )
+		{
+			// we are in persistent connection mode, so we have a socket
+			// however, need to check whether it's still alive
+			if ( !@feof ( $this->_socket ) )
+				return $this->_socket;
+
+			// force reopen
+			$this->_socket = false;
+		}
 
 		$errno = 0;
 		$errstr = "";
@@ -561,14 +591,14 @@ class SphinxClient
 			$fp = @fsockopen ( $host, $port, $errno, $errstr );
 		else
 			$fp = @fsockopen ( $host, $port, $errno, $errstr, $this->_timeout );
-		
+
 		if ( !$fp )
 		{
 			if ( $this->_path )
 				$location = $this->_path;
 			else
 				$location = "{$this->_host}:{$this->_port}";
-			
+
 			$errstr = trim ( $errstr );
 			$this->_error = "connection to $location failed (errno=$errno, msg=$errstr)";
 			$this->_connerror = true;
@@ -606,6 +636,7 @@ class SphinxClient
 		$len = 0;
 
 		$header = fread ( $fp, 8 );
+
 		if ( strlen($header)==8 )
 		{
 			list ( $status, $ver, $len ) = array_values ( unpack ( "n2a/Nb", $header ) );
@@ -622,6 +653,11 @@ class SphinxClient
 		}
 		if ( $this->_socket === false )
 			fclose ( $fp );
+
+		if ($_ENV['SPHINX_MOCK_RESPONSE']) {
+			echo $header;
+			echo $response;
+		}
 
 		// check response
 		$read = strlen ( $response );
@@ -1177,16 +1213,7 @@ class SphinxClient
 					list ( $doc, $weight ) = array_values ( unpack ( "N*N*",
 						substr ( $response, $p, 8 ) ) );
 					$p += 8;
-
-					if ( PHP_INT_SIZE>=8 )
-					{
-						// x64 route, workaround broken unpack() in 5.2.2+
-						if ( $doc<0 ) $doc += (1<<32);
-					} else
-					{
-						// x32 route, workaround php signed/unsigned braindamage
-						$doc = sprintf ( "%u", $doc );
-					}
+					$doc = sphFixUint($doc);
 				}
 				$weight = sprintf ( "%u", $weight );
 
@@ -1211,7 +1238,7 @@ class SphinxClient
 					if ( $type==SPH_ATTR_FLOAT )
 					{
 						list(,$uval) = unpack ( "N*", substr ( $response, $p, 4 ) ); $p += 4;
-						list(,$fval) = unpack ( "f*", pack ( "L", $uval ) ); 
+						list(,$fval) = unpack ( "f*", pack ( "L", $uval ) );
 						$attrvals[$attr] = $fval;
 						continue;
 					}
@@ -1225,15 +1252,15 @@ class SphinxClient
 						while ( $nvalues-->0 && $p<$max )
 						{
 							list(,$val) = unpack ( "N*", substr ( $response, $p, 4 ) ); $p += 4;
-							$attrvals[$attr][] = sprintf ( "%u", $val );
+							$attrvals[$attr][] = sphFixUint($val);
 						}
 					} else if ( $type==SPH_ATTR_STRING )
 					{
 						$attrvals[$attr] = substr ( $response, $p, $val );
-						$p += $val;						
+						$p += $val;
 					} else
 					{
-						$attrvals[$attr] = sprintf ( "%u", $val );
+						$attrvals[$attr] = sphFixUint($val);
 					}
 				}
 
@@ -1301,18 +1328,20 @@ class SphinxClient
 		if ( !isset($opts["use_boundaries"]) )		$opts["use_boundaries"] = false;
 		if ( !isset($opts["weight_order"]) )		$opts["weight_order"] = false;
 		if ( !isset($opts["query_mode"]) )			$opts["query_mode"] = false;
+		if ( !isset($opts["force_all_words"]) )		$opts["force_all_words"] = false;
 
 		/////////////////
 		// build request
 		/////////////////
 
-		// v.1.0 req
+		// v.1.01 req
 		$flags = 1; // remove spaces
 		if ( $opts["exact_phrase"] )	$flags |= 2;
 		if ( $opts["single_passage"] )	$flags |= 4;
 		if ( $opts["use_boundaries"] )	$flags |= 8;
 		if ( $opts["weight_order"] )	$flags |= 16;
 		if ( $opts["query_mode"] )		$flags |= 32;
+		if ( $opts["force_all_words"] )	$flags |= 64;
 		$req = pack ( "NN", 0, $flags ); // mode=0, flags=$flags
 		$req .= pack ( "N", strlen($index) ) . $index; // req index
 		$req .= pack ( "N", strlen($words) ) . $words; // req words
@@ -1499,6 +1528,7 @@ class SphinxClient
 		}
 
 		// build request
+		$this->_MBPush ();
 		$req = pack ( "N", strlen($index) ) . $index;
 
 		$req .= pack ( "N", count($attrs) );
@@ -1523,18 +1553,28 @@ class SphinxClient
 
 		// connect, send query, get response
 		if (!( $fp = $this->_Connect() ))
+		{
+			$this->_MBPop ();
 			return -1;
+		}
 
 		$len = strlen($req);
 		$req = pack ( "nnN", SEARCHD_COMMAND_UPDATE, VER_COMMAND_UPDATE, $len ) . $req; // add header
 		if ( !$this->_Send ( $fp, $req, $len+8 ) )
+		{
+			$this->_MBPop ();
 			return -1;
+		}
 
 		if (!( $response = $this->_GetResponse ( $fp, VER_COMMAND_UPDATE ) ))
+		{
+			$this->_MBPop ();
 			return -1;
+		}
 
 		// parse response
 		list(,$updated) = unpack ( "N*", substr ( $response, 0, 4 ) );
+		$this->_MBPop ();
 		return $updated;
 	}
 
@@ -1571,7 +1611,7 @@ class SphinxClient
 
 		fclose ( $this->_socket );
 		$this->_socket = false;
-		
+
 		return true;
 	}
 
@@ -1616,13 +1656,13 @@ class SphinxClient
 	// flush
 	//////////////////////////////////////////////////////////////////////////
 
-	function FlushAttrs ()
+	function FlushAttributes ()
 	{
 		$this->_MBPush ();
 		if (!( $fp = $this->_Connect() ))
 		{
 			$this->_MBPop();
-			return false;
+			return -1;
 		}
 
 		$req = pack ( "nnN", SEARCHD_COMMAND_FLUSHATTRS, VER_COMMAND_FLUSHATTRS, 0 ); // len=0
@@ -1630,19 +1670,20 @@ class SphinxClient
 			 !( $response = $this->_GetResponse ( $fp, VER_COMMAND_FLUSHATTRS ) ) )
 		{
 			$this->_MBPop ();
-			return false;
+			return -1;
 		}
 
 		$tag = -1;
 		if ( strlen($response)==4 )
 			list(,$tag) = unpack ( "N*", $response );
+		else
+			$this->_error = "unexpected response length";
 
 		$this->_MBPop ();
 		return $tag;
 	}
-
 }
 
 //
-// $Id$
+// $Id: sphinxapi.php 2167 2010-01-11 14:02:50Z shodan $
 //
