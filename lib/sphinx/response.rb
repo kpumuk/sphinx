@@ -10,17 +10,17 @@ module Sphinx
       @position = 0
       @size = response.length
     end
-    
+
     # Gets current stream position.
     def position
       @position
     end
-    
+
     # Gets response size.
     def size
       @size
     end
-    
+
     # Returns <tt>true</tt> when response stream is out.
     def eof?
       @position >= @size
@@ -50,7 +50,7 @@ module Sphinx
       @position += length
       return values
     end
-    
+
     # Get string from stream.
     def get_string
       length = get_int
@@ -59,7 +59,7 @@ module Sphinx
       @position += length
       return value
     end
-    
+
     # Get float from stream.
     def get_float
       raise EOFError if @position + 4 > @size

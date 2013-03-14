@@ -13,7 +13,7 @@ module Sphinx
       Timeout = ::SystemTimer
     end
   rescue LoadError => e
-    puts "[sphinx] Could not load SystemTimer gem, falling back to Ruby's slower/unsafe timeout library: #{e.message}"
+    # puts "[sphinx] Could not load SystemTimer gem, falling back to Ruby's slower/unsafe timeout library: #{e.message}"
     require 'timeout'
     Timeout = ::Timeout
   end

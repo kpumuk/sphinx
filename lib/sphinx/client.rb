@@ -66,10 +66,17 @@ module Sphinx
       @anchor        = []                      # geographical anchor point
       @indexweights  = []                      # per-index weights
       @ranker        = SPH_RANK_PROXIMITY_BM25 # ranking mode (default is SPH_RANK_PROXIMITY_BM25)
+      @rankexpr      = ''                      # ranking expression
       @maxquerytime  = 0                       # max query time, milliseconds (default is 0, do not limit)
       @fieldweights  = {}                      # per-field-name weights
       @overrides     = []                      # per-query attribute values overrides
       @select        = '*'                     # select-list (attributes or expressions, with optional aliases)
+      @query_flags   = 0
+      @predictedtime = 0
+      @outerorderby  = ''
+      @outeroffset   = 0
+      @outerlimit    = 0
+      @hasouter      = false
 
       # per-reply fields (for single-query case)
       @error         = ''                      # last error message
@@ -108,6 +115,7 @@ module Sphinx
         :select => @select,
         :match_mode => @mode,
         :ranking_mode => @ranker,
+        :ranking_expression => @rankexpr,
         :sort_mode => { :mode => @sort, :sortby => @sortby },
         :weights => @weights,
         :field_weights => @fieldweights,
@@ -116,7 +124,13 @@ module Sphinx
         :filters => @filters,
         :geo_anchor => @anchor,
         :group_by => { :attribute => @groupby, :func => @groupfunc, :sort => @groupsort },
-        :group_distinct => @groupdistinct
+        :group_distinct => @groupdistinct,
+        :query_flags => @query_flags,
+        :predicted_time => @predictedtime,
+        :outer_order_by => @outerorderby,
+        :outer_offset => @outeroffset,
+        :outer_limit => @outerlimit,
+        :has_outer => @hasouter,
       }
 
       "<Sphinx::Client: %d servers, params: %s>" %
@@ -609,6 +623,42 @@ module Sphinx
     end
     alias :SetSelect :set_select
 
+    def set_query_flag(flag_name, flag_value)
+      raise ArgumentError, 'unknown "flag_name" argument value' unless QUERY_FLAGS.has_key?(flag_name)
+
+      flag   = QUERY_FLAGS[flag_name]
+      values = QUERY_FLAGS[flag_name][:values]
+
+      if flag_name.to_s == 'max_predicted_time'
+        raise ArgumentError, "\"flag_value\" should be a positive integer for \"max_predicted_time\" flag" unless flag_value.kind_of?(Integer) and flag_value >= 0
+
+        @predictedtime = flag_value
+      elsif !values.include?(flag_value)
+        raise ArgumentError, "unknown \"flag_value\", should be one of #{values.inspect}"
+      end
+
+      is_set = values.respond_to?(:call) ? values.call(flag_value) : values.index(flag_value) == 1
+      @query_flags = set_bit(@query_flags, flag[:index], is_set)
+      self
+    end
+    alias :SetQueryFlag set_query_flag
+
+    def set_outer_select(orderby, offset, limit)
+      raise ArgumentError, '"orderby" argument must be String' unless orderby.kind_of?(String)
+      raise ArgumentError, '"offset" argument must be Integer' unless offset.kind_of?(Integer)
+      raise ArgumentError, '"limit" argument must be Integer'  unless limit.kind_of?(Integer)
+
+      raise ArgumentError, '"offset" argument should be greater or equal to zero' unless offset >= 0
+      raise ArgumentError, '"limit" argument should be greater to zero'           unless limit > 0
+
+      @outerorderby = orderby
+      @outeroffset = offset
+      @outerlimit = limit
+      @hasouter = true
+      self
+    end
+    alias :SetOuterSelect set_outer_select
+
     #=================================================================
     # Full-text search query settings
     #=================================================================
@@ -655,17 +705,33 @@ module Sphinx
     # matching mode at the time of this writing. Parameter must be a
     # constant specifying one of the known modes.
     #
+    # By default, in the +EXTENDED+ matching mode Sphinx computes two
+    # factors which contribute to the final match weight. The major
+    # part is a phrase proximity value between the document text and
+    # the query. The minor part is so-called BM25 statistical function,
+    # which varies from 0 to 1 depending on the keyword frequency within
+    # document (more occurrences yield higher weight) and within the whole
+    # index (more rare keywords yield higher weight).
+    #
+    # However, in some cases you'd want to compute weight differently - or
+    # maybe avoid computing it at all for performance reasons because you're
+    # sorting the result set by something else anyway. This can be accomplished
+    # by setting the appropriate ranking mode.
+    #
     # You can specify ranking mode as String ("proximity_bm25", "bm25", etc),
     # Symbol (:proximity_bm25, :bm25, etc), or
     # Fixnum constant (SPH_RANK_PROXIMITY_BM25, SPH_RANK_BM25, etc).
     #
     # @param [Integer, String, Symbol] ranker ranking mode.
+    # @param [String] rankexpr  ranking formula to use with the expression
+    #   based ranker (+SPH_RANK_EXPR+).
     # @return [Sphinx::Client] self.
     #
     # @example
     #   sphinx.set_ranking_mode(Sphinx::SPH_RANK_BM25)
     #   sphinx.set_ranking_mode(:bm25)
     #   sphinx.set_ranking_mode('bm25')
+    #   sphinx.set_ranking_mode(:expr, 'sum(lcs*user_weight)*1000+bm25')
     #
     # @raise [ArgumentError] Occurred when parameters are invalid.
     #
@@ -673,7 +739,7 @@ module Sphinx
     # @see http://www.sphinxsearch.com/docs/current.html#api-func-setmatchmode Section 6.3.1, "SetMatchMode"
     # @see http://www.sphinxsearch.com/docs/current.html#api-func-setrankingmode Section 6.3.2, "SetRankingMode"
     #
-    def set_ranking_mode(ranker)
+    def set_ranking_mode(ranker, rankexpr = '')
       case ranker
         when String, Symbol
           begin
@@ -687,7 +753,11 @@ module Sphinx
           raise ArgumentError, '"ranker" argument must be Fixnum, String, or Symbol'
       end
 
+      raise ArgumentError, '"rankexpr" argument must be String' unless rankexpr.kind_of?(String)
+      raise ArgumentError, '"rankexpr" should not be empty if ranker is SPH_RANK_EXPR' if ranker == SPH_RANK_EXPR and rankexpr.empty?
+
       @ranker = ranker
+      @rankexpr = rankexpr
       self
     end
     alias :SetRankingMode :set_ranking_mode
@@ -1259,6 +1329,22 @@ module Sphinx
     end
     alias :ResetOverrides :reset_overrides
 
+    def reset_query_flag
+      @query_flags = 0
+      @predictedtime = 0
+      self
+    end
+    alias :ResetQueryFlag :reset_query_flag
+
+    def reset_outer_select
+      @outerorderby = ''
+      @outeroffset = 0
+      @outerlimit = 0
+      @hasouter = 0
+      self
+    end
+    alias :ResetOuterSelect :reset_outer_select
+
     # Connects to searchd server, runs given search query with
     # current settings, obtains and returns the result set.
     #
@@ -1473,7 +1559,12 @@ module Sphinx
 
       # mode and limits
       request = Request.new
-      request.put_int @offset, @limit, @mode, @ranker, @sort
+      request.put_int @query_flags, @offset, @limit, @mode
+      # ranker
+      request.put_int @ranker
+      request.put_string @rankexpr if @ranker == SPH_RANK_EXPR
+      # sorting
+      request.put_int @sort
       request.put_string @sortby
       # query itself
       request.put_string query
@@ -1563,6 +1654,13 @@ module Sphinx
       # select-list
       request.put_string @select
 
+      # max_predicted_time
+      request.put_int @predictedtime if @predictedtime > 0
+
+      # outer select
+      request.put_string @outerorderby
+      request.put_int @outeroffset, @outerlimit, (@hasouter ? 1 : 0)
+
       # store request to requests array
       @reqs << request.to_s;
       return @reqs.length - 1
@@ -1611,52 +1709,49 @@ module Sphinx
 
       reqs, nreqs = @reqs.join(''), @reqs.length
       @reqs = []
-      response = perform_request(:search, reqs, nreqs)
+      response = perform_request(:search, reqs, [0, nreqs])
 
       # parse response
       (1..nreqs).map do
-        result = HashWithIndifferentAccess.new('error' => '', 'warning' => '')
+        result = HashWithIndifferentAccess.new(:error => '', :warning => '')
 
         # extract status
-        status = result['status'] = response.get_int
+        status = result[:status] = response.get_int
         if status != SEARCHD_OK
           message = response.get_string
           if status == SEARCHD_WARNING
-            result['warning'] = message
+            result[:warning] = message
           else
-            result['error'] = message
+            result[:error] = message
             next result
           end
         end
 
         # read schema
         nfields = response.get_int
-        result['fields'] = (1..nfields).map { response.get_string }
+        result[:fields] = (1..nfields).map { response.get_string }
 
         attrs_names_in_order = []
         nattrs = response.get_int
-        attrs = (1..nattrs).inject({}) do |hash, idx|
+        attrs = nattrs.times.inject(HashWithIndifferentAccess.new) do |hash, idx|
           name, type = response.get_string, response.get_int
           hash[name] = type
           attrs_names_in_order << name
           hash
         end
-        result['attrs'] = attrs
+        result[:attrs] = attrs
 
         # read match count
         count, id64 = response.get_ints(2)
 
         # read matches
-        result['matches'] = (1..count).map do
-          doc, weight = if id64 == 0
-            response.get_ints(2)
-          else
-            [response.get_int64, response.get_int]
-          end
+        result[:matches] = (1..count).map do
+          doc = id64 == 0 ? response.get_int : response.get_int64
+          weight = response.get_int
 
           # This is a single result put in the result['matches'] array
-          match = { 'id' => doc, 'weight' => weight }
-          match['attrs'] = attrs_names_in_order.inject({}) do |hash, name|
+          match = HashWithIndifferentAccess.new(:id => doc, :weight => weight)
+          match[:attrs] = attrs_names_in_order.inject(HashWithIndifferentAccess.new) do |hash, name|
             hash[name] = case attrs[name]
               when SPH_ATTR_BIGINT
                 # handle 64-bit ints
@@ -1665,28 +1760,35 @@ module Sphinx
                 # handle floats
                 response.get_float
               when SPH_ATTR_STRING
+                # handle string
                 response.get_string
+              when SPH_ATTR_FACTORS
+                # ???
+                response.get_int
+              when SPH_ATTR_MULTI
+                # handle array of integers
+                val = response.get_int
+                response.get_ints(val) if val > 0
+              when SPH_ATTR_MULTI64
+                # handle array of 64-bit integers
+                val = response.get_int
+                (val / 2).times.map { response.get_int64 }
               else
                 # handle everything else as unsigned ints
-                val = response.get_int
-                if (attrs[name] & SPH_ATTR_MULTI) != 0
-                  (1..val).map { response.get_int }
-                else
-                  val
-                end
+                response.get_int
             end
             hash
           end
           match
         end
-        result['total'], result['total_found'], msecs = response.get_ints(3)
-        result['time'] = '%.3f' % (msecs / 1000.0)
+        result[:total], result[:total_found], msecs = response.get_ints(3)
+        result[:time] = '%.3f' % (msecs / 1000.0)
 
         nwords = response.get_int
-        result['words'] = (1..nwords).inject({}) do |hash, idx|
+        result[:words] = nwords.times.inject({}) do |hash, idx|
           word = response.get_string
           docs, hits = response.get_ints(2)
-          hash[word] = { 'docs' => docs, 'hits' => hits }
+          hash[word] = HashWithIndifferentAccess.new(:docs => docs, :hits => hits)
           hash
         end
 
@@ -1761,29 +1863,42 @@ module Sphinx
 
       # fixup options
       opts = HashWithIndifferentAccess.new(
-        'before_match'    => '<b>',
-        'after_match'     => '</b>',
-        'chunk_separator' => ' ... ',
-        'limit'           => 256,
-        'around'          => 5,
-        'exact_phrase'    => false,
-        'single_passage'  => false,
-        'use_boundaries'  => false,
-        'weight_order'    => false,
-        'query_mode'      => false,
-        'force_all_words' => false
+        :before_match         => '<b>',
+        :after_match          => '</b>',
+        :chunk_separator      => ' ... ',
+        :limit                => 256,
+        :limit_passages       => 0,
+        :limit_words          => 0,
+        :around               => 5,
+        :exact_phrase         => false,
+        :single_passage       => false,
+        :use_boundaries       => false,
+        :weight_order         => false,
+        :query_mode           => false,
+        :force_all_words      => false,
+        :start_passage_id     => 1,
+        :load_files           => false,
+        :html_strip_mode      => 'index',
+        :allow_empty          => false,
+        :passage_boundary     => 'none',
+        :emit_zones           => false,
+        :load_files_scattered => false
       ).update(opts)
 
       # build request
 
-      # v.1.0 req
-      flags = 1
-      flags |= 2  if opts['exact_phrase']
-      flags |= 4  if opts['single_passage']
-      flags |= 8  if opts['use_boundaries']
-      flags |= 16 if opts['weight_order']
-      flags |= 32 if opts['query_mode']
-      flags |= 64 if opts['force_all_words']
+      # v.1.2 req
+      flags  = 1
+      flags |= 2    if opts[:exact_phrase]
+      flags |= 4    if opts[:single_passage]
+      flags |= 8    if opts[:use_boundaries]
+      flags |= 16   if opts[:weight_order]
+      flags |= 32   if opts[:query_mode]
+      flags |= 64   if opts[:force_all_words]
+      flags |= 128  if opts[:load_files]
+      flags |= 256  if opts[:allow_empty]
+      flags |= 512  if opts[:emit_zones]
+      flags |= 1024 if opts[:load_files_scattered]
 
       request = Request.new
       request.put_int 0, flags # mode=0, flags=1 (remove spaces)
@@ -1793,10 +1908,10 @@ module Sphinx
       request.put_string words
 
       # options
-      request.put_string opts['before_match']
-      request.put_string opts['after_match']
-      request.put_string opts['chunk_separator']
-      request.put_int opts['limit'].to_i, opts['around'].to_i
+      request.put_string opts[:before_match], opts[:after_match], opts[:chunk_separator]
+      request.put_int opts[:limit].to_i, opts[:around].to_i
+      request.put_int opts[:limit_passages].to_i, opts[:limit_words].to_i, opts[:start_passage_id].to_i
+      request.put_string opts[:html_strip_mode], opts[:passage_boundary]
 
       # documents
       request.put_int docs.size
@@ -1920,10 +2035,11 @@ module Sphinx
     #
     # @see http://www.sphinxsearch.com/docs/current.html#api-func-updateatttributes Section 6.7.2, "UpdateAttributes"
     #
-    def update_attributes(index, attrs, values, mva = false)
+    def update_attributes(index, attrs, values, mva = false, ignore_non_existent = false)
       # verify everything
       raise ArgumentError, '"index" argument must be String' unless index.kind_of?(String) or index.kind_of?(Symbol)
       raise ArgumentError, '"mva" argument must be Boolean'  unless mva.kind_of?(TrueClass) or mva.kind_of?(FalseClass)
+      raise ArgumentError, '"ignore_non_existent" argument must be Boolean'  unless ignore_non_existent.kind_of?(TrueClass) or ignore_non_existent.kind_of?(FalseClass)
 
       raise ArgumentError, '"attrs" argument must be Array' unless attrs.kind_of?(Array)
       attrs.each do |attr|
@@ -1952,6 +2068,7 @@ module Sphinx
       request.put_string index
 
       request.put_int attrs.length
+      request.put_int ignore_non_existent ? 1 : 0
       for attr in attrs
         request.put_string attr
         request.put_int mva ? 1 : 0
@@ -2157,7 +2274,7 @@ module Sphinx
       #   <tt>:update</tt>, <tt>:keywords</tt>, <tt>:persist</tt>, <tt>:status</tt>,
       #   <tt>:query</tt>, <tt>:flushattrs</tt>. See <tt>SEARCHD_COMMAND_*</tt> for details).
       # @param [Sphinx::Request] request contains request body.
-      # @param [Integer] additional additional integer data to be placed between header and body.
+      # @param [Integer, Array] additional additional integer or array of integers data to be placed between header and body.
       # @param [Sphinx::Server] server where perform request on. This is special
       #   parameter for internal usage. If specified, request will be performed
       #   on specified server, and it will try to establish connection to this
@@ -2195,9 +2312,10 @@ module Sphinx
           command_ver = Sphinx::Client.const_get("VER_COMMAND_#{cmd}")
 
           with_socket(server) do |socket|
-            len = request.to_s.length + (additional.nil? ? 0 : 4)
+            additional = Array(additional)
+            len = request.to_s.length + (additional.size * 4)
             header = [command_id, command_ver, len].pack('nnN')
-            header << [additional].pack('N') unless additional.nil?
+            header << additional.pack('N' * additional.size) unless additional.empty?
 
             socket.write(header + request.to_s)
 
@@ -2434,6 +2552,22 @@ module Sphinx
           # Close previously opened socket on any other error
           server.free_socket(socket)
         end
+      end
+
+      # Sets or resets given bit in a bitset.
+      #
+      # @param [Integer] bitset integer value to set bit in.
+      # @param [Integer] index integer offset of the bit to set.
+      # @param [Boolean,Integer] value value to set bit into (+true+, +false+, +0+, or +1+).
+      #
+      def set_bit(bitset, index, value)
+        bit = 1 << index
+        if value == true || value == 1
+          bitset |= bit
+        elsif bitset & bit > 0
+          bitset ^= bit
+        end
+        bitset
       end
 
       # Enables ability to skip +set_+ prefix for methods inside {#query} block.

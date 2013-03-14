@@ -24,9 +24,6 @@ module Sphinx
     # status command
     # @private
     SEARCHD_COMMAND_STATUS     = 5
-    # query command
-    # @private
-    SEARCHD_COMMAND_QUERY      = 6
     # flushattrs command
     # @private
     SEARCHD_COMMAND_FLUSHATTRS = 7
@@ -37,13 +34,13 @@ module Sphinx
 
     # search command version
     # @private
-    VER_COMMAND_SEARCH     = 0x117
+    VER_COMMAND_SEARCH     = 0x11D
     # excerpt command version
     # @private
-    VER_COMMAND_EXCERPT    = 0x101
+    VER_COMMAND_EXCERPT    = 0x104
     # update command version
     # @private
-    VER_COMMAND_UPDATE     = 0x102
+    VER_COMMAND_UPDATE     = 0x103
     # keywords command version
     # @private
     VER_COMMAND_KEYWORDS   = 0x100
@@ -116,6 +113,8 @@ module Sphinx
     SPH_RANK_FIELDMASK      = 6
     # codename SPH04, phrase proximity + bm25 + head/exact boost
     SPH_RANK_SPH04          = 7
+    # lets you specify the ranking formula in run time
+    SPH_RANK_EXPR           = 8
 
     #=================================================================
     # Known sort modes
@@ -164,8 +163,12 @@ module Sphinx
     SPH_ATTR_BIGINT    = 6
     # string (binary; in-memory)
     SPH_ATTR_STRING    = 7
+    # ???
+    SPH_ATTR_FACTORS   = 1001
     # this attr has multiple values (0 or more)
-    SPH_ATTR_MULTI     = 0x40000000
+    SPH_ATTR_MULTI     = 0x40000001
+    # this attr has multiple 64-bit values (0 or more)
+    SPH_ATTR_MULTI64   = 0x40000002
 
     #=================================================================
     # Known grouping functions
@@ -183,6 +186,18 @@ module Sphinx
     SPH_GROUPBY_ATTR     = 4
     # group by sequential attrs pair
     SPH_GROUPBY_ATTRPAIR = 5
+
+    #=================================================================
+    # Known query flags
+    #=================================================================
+
+    QUERY_FLAGS = HashWithIndifferentAccess.new(
+      :reverse_scan       => { :values => [ 0, 1 ],                  :index => 0 },
+      :sort_method        => { :values => ['pq', 'kbuffer' ],        :index => 1 },
+      :max_predicted_time => { :values => lambda { |x| x > 0 },      :index => 2 },
+      :boolean_simplify   => { :values => [ false, true ],           :index => 3 },
+      :idf                => { :values => [ 'normalized', 'plain' ], :index => 4 }
+    )
   end
 
   include Constants

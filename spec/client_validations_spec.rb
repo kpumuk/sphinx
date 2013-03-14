@@ -4,7 +4,7 @@ describe Sphinx::Client, 'disconnected' do
   before :each do
     @sphinx = Sphinx::Client.new
   end
-  
+
   context 'in SetServer method' do
     it 'should raise an error when host is not String' do
       expect {
@@ -66,7 +66,7 @@ describe Sphinx::Client, 'disconnected' do
       }.to raise_error(ArgumentError)
     end
   end
-  
+
   context 'in SetLimits method' do
     it 'should raise an error when offset is not Integer' do
       expect {
@@ -131,7 +131,7 @@ describe Sphinx::Client, 'disconnected' do
       }.to raise_error(ArgumentError)
     end
   end
-  
+
   context 'in SetMatchMode method' do
     it 'should raise an error when mode is not Integer, String or Symbol' do
       expect {
@@ -174,8 +174,14 @@ describe Sphinx::Client, 'disconnected' do
         @sphinx.SetRankingMode(100)
       }.to raise_error(ArgumentError)
     end
+
+    it 'should raise an error when ranker is expr and expression is not specified' do
+      expect {
+        @sphinx.SetRankingMode(:expr)
+      }.to raise_error(ArgumentError)
+    end
   end
-  
+
   context 'in SetSortMode method' do
     it 'should raise an error when mode is not Integer, String or Symbol' do
       expect {
@@ -209,7 +215,7 @@ describe Sphinx::Client, 'disconnected' do
       }.to raise_error(ArgumentError)
     end
   end
-  
+
   context 'in SetWeights method' do
     it 'should raise an error when weights is not Array' do
       expect {
@@ -694,7 +700,7 @@ describe Sphinx::Client, 'disconnected' do
       }.to_not raise_error(ArgumentError)
     end
   end
-  
+
   context 'in SetSelect method' do
     it 'should raise an error when select is not String' do
       expect {
@@ -710,7 +716,55 @@ describe Sphinx::Client, 'disconnected' do
       }.to_not raise_error(ArgumentError)
     end
   end
-  
+
+  context 'in SetQueryFlag method' do
+    it 'should raise an error when unknown flag passed' do
+      expect {
+        @sphinx.SetQueryFlag('unknown', 1)
+      }.to raise_error(ArgumentError)
+    end
+
+    [ :reverse_scan, :sort_method, :max_predicted_time, :boolean_simplify, :idf ].each do |flag|
+      it "should raise an error when #{flag} flag has incorrect value" do
+        expect {
+          @sphinx.SetQueryFlag(flag, 'invalid')
+        }.to raise_error(ArgumentError)
+      end
+    end
+
+    it "should raise an error when :max_predicted_time flag has negative value" do
+      expect {
+        @sphinx.SetQueryFlag(:max_predicted_time, -1)
+      }.to raise_error(ArgumentError)
+    end
+  end
+
+  context 'in SetOuterSelect method' do
+    it 'should raise an error when orderby is not a String' do
+      expect {
+        @sphinx.SetOuterSelect([], 0, 1)
+      }.to raise_error(ArgumentError)
+    end
+
+    it 'should raise an error when offset is not an Integer' do
+      expect {
+        @sphinx.SetOuterSelect('sortby', 'a', 1)
+      }.to raise_error(ArgumentError)
+    end
+
+    it 'should raise an error when offset is negative' do
+      expect {
+        @sphinx.SetOuterSelect('sortby', -1, 1)
+      }.to raise_error(ArgumentError)
+    end
+
+    it 'should raise an error when limit is less than 1' do
+      expect {
+        @sphinx.SetOuterSelect('sortby', 1, 0)
+      }.to raise_error(ArgumentError)
+    end
+  end
+
   context 'in BuildExcerpts method' do
     it 'should raise an error when docs is not Array of Strings' do
       expect {

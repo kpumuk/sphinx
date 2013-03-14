@@ -313,24 +313,26 @@ describe Sphinx::Client, 'disconnected' do
 
     describe 'with rank' do
       [ :proximity_bm25, :bm25, :none, :wordcount, :proximity, :matchany, :fieldmask, :sph04 ].each do |rank|
+        expr = rank == :expr ? '' : 'sum(lcs*user_weight)*1000+bm25'
+
         it "should generate valid request for SPH_RANK_#{rank.to_s.upcase}" do
           expected = sphinx_fixture("ranking_#{rank}")
           @sock.should_receive(:write).with(expected)
-          @sphinx.SetRankingMode(Sphinx::Client.const_get("SPH_RANK_#{rank.to_s.upcase}"))
+          @sphinx.SetRankingMode(Sphinx::Client.const_get("SPH_RANK_#{rank.to_s.upcase}"), expr)
           sphinx_safe_call { @sphinx.Query('query') }
         end
 
         it "should generate valid request for \"#{rank}\"" do
           expected = sphinx_fixture("ranking_#{rank}")
           @sock.should_receive(:write).with(expected)
-          @sphinx.SetRankingMode(rank.to_s)
+          @sphinx.SetRankingMode(rank.to_s, expr)
           sphinx_safe_call { @sphinx.Query('query') }
         end
 
         it "should generate valid request for :#{rank}" do
           expected = sphinx_fixture("ranking_#{rank}")
           @sock.should_receive(:write).with(expected)
-          @sphinx.SetRankingMode(rank)
+          @sphinx.SetRankingMode(rank, expr)
           sphinx_safe_call { @sphinx.Query('query') }
         end
       end
@@ -535,7 +537,7 @@ describe Sphinx::Client, 'disconnected' do
     end
 
     it 'should generate valid request for SetOverride' do
-      expected = sphinx_fixture('set_override')
+      expected = sphinx_fixture('override')
       @sock.should_receive(:write).with(expected)
       @sphinx.SetOverride('attr1', Sphinx::SPH_ATTR_INTEGER, { 10 => 20 })
       @sphinx.SetOverride('attr2', Sphinx::SPH_ATTR_FLOAT, { 11 => 30.3 })
@@ -547,6 +549,41 @@ describe Sphinx::Client, 'disconnected' do
       expected = sphinx_fixture('select')
       @sock.should_receive(:write).with(expected)
       @sphinx.SetSelect('attr1, attr2')
+      sphinx_safe_call { @sphinx.Query('query') }
+    end
+
+    it 'should generate valid request for SetOuterSelect' do
+      expected = sphinx_fixture('outer_select')
+      @sock.should_receive(:write).with(expected)
+      @sphinx.SetOuterSelect('attr', 10, 100)
+      sphinx_safe_call { @sphinx.Query('query') }
+    end
+
+    it 'should generate valid request for SetQueryFlag' do
+      expected = sphinx_fixture('query_flag')
+      @sock.should_receive(:write).with(expected)
+      @sphinx.SetQueryFlag('reverse_scan', 1)
+      @sphinx.SetQueryFlag('sort_method', 'kbuffer')
+      @sphinx.SetQueryFlag('max_predicted_time', 15)
+      @sphinx.SetQueryFlag('boolean_simplify', true)
+      @sphinx.SetQueryFlag('idf', 'plain')
+      sphinx_safe_call { @sphinx.Query('query') }
+    end
+
+    it 'should generate valid request for SetQueryFlag after flag reset' do
+      expected = sphinx_fixture('query_flag_after_reset')
+      @sock.should_receive(:write).with(expected)
+      @sphinx.SetQueryFlag('reverse_scan', 1)
+      @sphinx.SetQueryFlag('sort_method', 'kbuffer')
+      @sphinx.SetQueryFlag('max_predicted_time', 15)
+      @sphinx.SetQueryFlag('boolean_simplify', true)
+      @sphinx.SetQueryFlag('idf', 'plain')
+
+      @sphinx.SetQueryFlag('reverse_scan', 0)
+      @sphinx.SetQueryFlag('sort_method', 'pq')
+      @sphinx.SetQueryFlag('max_predicted_time', 0)
+      @sphinx.SetQueryFlag('boolean_simplify', false)
+      @sphinx.SetQueryFlag('idf', 'normalized')
       sphinx_safe_call { @sphinx.Query('query') }
     end
   end

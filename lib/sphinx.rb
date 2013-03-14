@@ -35,12 +35,11 @@ require 'socket'
 require 'zlib'
 
 path = File.dirname(__FILE__)
-require "#{path}/sphinx/constants"
 require "#{path}/sphinx/indifferent_access"
+require "#{path}/sphinx/constants"
 require "#{path}/sphinx/request"
 require "#{path}/sphinx/response"
 require "#{path}/sphinx/timeout"
 require "#{path}/sphinx/buffered_io"
 require "#{path}/sphinx/server"
 require "#{path}/sphinx/client"
-require "#{path}/sphinx/version"
